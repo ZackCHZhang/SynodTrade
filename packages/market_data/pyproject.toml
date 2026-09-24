@@ -1,0 +1,26 @@
+[project]
+name = "quant-market-data"
+version = "0.1.0"
+description = "行情/账户数据更新（IBKR 历史 K 线、实时快照、账户与持仓）"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "quant-core",
+    "quant-database",
+    "ib_async>=2.0",
+    "tenacity>=9.0",
+]
+
+[project.entry-points."quant.stages"]
+data_update = "quant_market_data.stage:build_data_update_stage"
+
+[tool.poetry]
+packages = [{ include = "quant_market_data", from = "src" }]
+
+[tool.poetry.dependencies]
+quant-core = { path = "../core", develop = true }
+quant-database = { path = "../database", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

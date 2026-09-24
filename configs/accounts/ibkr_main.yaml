@@ -1,0 +1,9 @@
+# IBKR connection. Secrets and account numbers come from the environment (.env), never from here.
+# Paper ports: IB Gateway 4002, TWS 7497. Live: 4001 / 7496.
+name: ibkr_main
+broker: ibkr
+account_id: ${IBKR_ACCOUNT}
+host: ${IBKR_HOST:-127.0.0.1}
+port: ${IBKR_PORT:-4002}
+client_id: ${IBKR_CLIENT_ID:-17}
+base_currency: USD

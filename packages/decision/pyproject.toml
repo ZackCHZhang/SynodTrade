@@ -1,0 +1,27 @@
+[project]
+name = "quant-decision"
+version = "0.1.0"
+description = "决策 agent、技术指标计算、多 agent 决策聚合"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "quant-core",
+    "quant-database",
+]
+
+[project.entry-points."quant.stages"]
+decision = "quant_decision.stage:build_decision_stage"
+
+[project.entry-points."quant.agents"]
+decision = "quant_decision.agent:DecisionAgent"
+
+[tool.poetry]
+packages = [{ include = "quant_decision", from = "src" }]
+
+[tool.poetry.dependencies]
+quant-core = { path = "../core", develop = true }
+quant-database = { path = "../database", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

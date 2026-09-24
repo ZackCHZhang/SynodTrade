@@ -1,0 +1,35 @@
+# LLM providers. An agent picks one with `model.provider: <name>` in configs/agents/*.yaml.
+#
+#   kind              anthropic          -> Anthropic Messages API (Claude, or any Anthropic-compatible URL)
+#                     openai_compatible  -> OpenAI Chat Completions API (DeepSeek, OpenAI, Qwen, Kimi, vLLM, Ollama...)
+#   base_url          endpoint; omit to use the SDK default
+#   api_key_env       NAME of the environment variable holding the key (set it in .env).
+#                     Keys are never written in this file.
+#   structured_output (openai_compatible only) json_schema | json_object | prompt
+#   max_concurrency / max_attempts / timeout_s   per-provider limits, shared by all agents using it
+#   extra_headers / extra_body                   vendor-specific additions to every request
+
+providers:
+  anthropic:
+    kind: anthropic
+    api_key_env: ANTHROPIC_API_KEY
+    max_concurrency: 4
+
+  deepseek:
+    kind: openai_compatible
+    base_url: https://api.deepseek.com
+    api_key_env: DEEPSEEK_API_KEY
+    structured_output: json_object   # DeepSeek supports JSON mode, not json_schema
+    max_concurrency: 4
+
+  # openai:
+  #   kind: openai_compatible
+  #   api_key_env: OPENAI_API_KEY
+  #   structured_output: json_schema
+  #   max_tokens_param: max_completion_tokens
+  #
+  # local_ollama:
+  #   kind: openai_compatible
+  #   base_url: http://localhost:11434/v1
+  #   api_key_env: OLLAMA_API_KEY      # any non-empty value
+  #   structured_output: json_object

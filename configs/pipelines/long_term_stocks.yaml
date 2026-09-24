@@ -1,0 +1,59 @@
+# Slow single-stock strategy, run once per trading day.
+name: long_term_stocks
+mode: paper            # dry_run | paper | live  (live also needs QUANT_ALLOW_LIVE=1)
+account: ibkr_main
+universe: [AAPL, MSFT, GOOGL, NVDA]
+budget:
+  max_capital: 5000    # this pipeline's capital ceiling (sub-ledger), base currency
+sizing:
+  buy_base: available_cash
+  min_one_lot_on_sell: false
+stages:
+  - type: data_update
+    timeframes: [1d]
+    lookback_days: 365
+  - type: sentiment
+    on_error: skip             # sentiment is optional: a failure here does not stop the run
+    sources: [reddit, stocktwits, ibkr_news]
+    source_options:
+      ibkr_news:
+        max_headlines: 20
+        fetch_bodies: false    # true: also download article text (one request per article)
+      reddit:
+        subreddits: [stocks, investing, wallstreetbets]
+        mode: search           # search | new
+        limit: 50
+        aliases: { AAPL: [Apple], MSFT: [Microsoft], GOOGL: [Alphabet], NVDA: [Nvidia] }
+    lookback_hours: 24
+    prefilter:
+      max_items_per_symbol: 20 # token control: at most this many posts per symbol per agent
+      max_chars_per_item: 800
+    # Each agent reference chooses its LLM at instantiation: provider (a name from
+    # configs/llm_providers.yaml) and model name. Instances of one agent may use different
+    # models by listing the agent twice.
+    agents:
+      - { agent: retail_mood, count: 1, model: { provider: anthropic, name: claude-opus-5 } }
+      - { agent: event_extractor, count: 1, model: { provider: anthropic, name: claude-opus-5 } }
+  - type: decision
+    agents:
+      - { agent: value_investor, count: 2, weight: 1.0,    # count > 1: independent instances
+          model: { provider: anthropic, name: claude-opus-5 } }
+      - { agent: trend_follower, count: 1, weight: 0.8,
+          model: { provider: anthropic, name: claude-opus-5 } }
+    aggregation: { method: weighted_vote, min_confidence: 0.6 }  # weighted_vote | majority | unanimous
+    bars_lookback: 260         # daily bars loaded for indicators (SMA 200, 52-week range)
+    min_bars: 30               # fewer completed bars -> HOLD without asking any agent
+    recent_bars_in_prompt: 20
+    history_limit: 5           # past final decisions (with price move since) shown to agents
+  - type: risk
+    rules: default             # configs/risk/default.yaml (hard rules, run first)
+    on_agent_failure: reject   # risk agent unavailable -> reject (fail-safe) | approve
+    max_quote_age_minutes: 30  # older quotes are ignored; the last close is used instead
+    agents:
+      - { agent: conservative_risk_officer, count: 1,
+          model: { provider: anthropic, name: claude-opus-5 } }
+    combine: most_conservative # most_conservative | median (over the risk agents)
+  - type: trading
+    order_type: limit
+    limit_offset_bps: 5
+    cancel_after_minutes: 30

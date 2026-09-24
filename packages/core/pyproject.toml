@@ -1,0 +1,23 @@
+[project]
+name = "quant-core"
+version = "0.1.0"
+description = "共享基础：数据模型、接口协议、LLM 客户端、配置加载、日志、注册表"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pydantic>=2.9",
+    "pyyaml>=6.0",
+    "structlog>=24.4",
+    "jinja2>=3.1",
+    "tenacity>=9.0",
+    "anthropic>=1.8,<2",
+    "openai>=3.19,<4",
+    "tzdata>=2024.1",
+]
+
+[tool.poetry]
+packages = [{ include = "quant_core", from = "src" }]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
