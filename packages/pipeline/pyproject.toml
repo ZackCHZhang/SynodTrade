@@ -1,0 +1,31 @@
+[project]
+name = "quant-pipeline"
+version = "0.1.0"
+description = "主流程编排：从 YAML 构建流水线、多实例化、失败策略、CLI"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "quant-core",
+    "quant-database",
+    "quant-market-data",
+    "quant-sentiment",
+    "quant-decision",
+    "quant-risk",
+    "quant-trading",
+]
+
+[tool.poetry]
+packages = [{ include = "quant_pipeline", from = "src" }]
+
+[tool.poetry.dependencies]
+quant-core = { path = "../core", develop = true }
+quant-database = { path = "../database", develop = true }
+quant-market-data = { path = "../market_data", develop = true }
+quant-sentiment = { path = "../sentiment", develop = true }
+quant-decision = { path = "../decision", develop = true }
+quant-risk = { path = "../risk", develop = true }
+quant-trading = { path = "../trading", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

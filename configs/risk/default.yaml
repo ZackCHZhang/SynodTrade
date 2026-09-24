@@ -1,0 +1,29 @@
+# Hard risk rules (layer 1). Deterministic code enforces these before any risk agent runs;
+# no LLM can override them. Ratios are fractions of the pipeline's own value (its virtual
+# sub-account: budget.max_capital plus/minus its own trading), not of the whole account.
+name: default
+
+kill_switch: false            # true: every order becomes HOLD (a database flag does the same)
+
+max_position_pct: 0.20        # one symbol at most 20% of the strategy's value after a buy
+max_gross_exposure_pct: 0.90  # all positions at most 90% after a buy
+min_cash_pct: 0.10            # keep at least 10% in cash after a buy
+
+max_daily_loss_pct: 0.03      # strategy down 3% today -> only HOLD/SELL until tomorrow
+max_weekly_loss_pct: 0.06     # down 6% this week -> only HOLD/SELL until next week
+
+max_trades_per_day: 4
+max_order_notional: 2000      # fat-finger limit per order (base currency); null = none
+one_order_per_symbol_per_day: true
+
+whitelist: []                 # empty: any symbol in the pipeline universe
+blacklist: []
+
+liquidity:
+  max_spread_bps: 50          # buys need bid/ask spread <= 0.50%
+  min_avg_volume: 100000      # buys need 20-day average volume >= 100k shares
+  require_quote: false        # true: block buys when no two-sided quote is available
+
+trading_hours:
+  enabled: true               # orders only during regular exchange hours
+  calendar: XNYS

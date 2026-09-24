@@ -1,0 +1,26 @@
+[project]
+name = "quant-database"
+version = "0.1.0"
+description = "数据库管理：ORM 模型、Repository、Alembic 迁移"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "quant-core",
+    "sqlalchemy[asyncio]>=2.0.36,<3",
+    "alembic>=1.14",
+    "aiosqlite>=0.20",
+    "asyncpg>=0.30",
+]
+
+[project.scripts]
+quant-db = "quant_database.cli:main"
+
+[tool.poetry]
+packages = [{ include = "quant_database", from = "src" }]
+
+[tool.poetry.dependencies]
+quant-core = { path = "../core", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

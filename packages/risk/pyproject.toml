@@ -1,0 +1,28 @@
+[project]
+name = "quant-risk"
+version = "0.1.0"
+description = "风控：确定性硬规则引擎 + 风控 agent（只能降低风险）"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "quant-core",
+    "quant-database",
+    "exchange-calendars>=4.5",
+]
+
+[project.entry-points."quant.stages"]
+risk = "quant_risk.stage:build_risk_stage"
+
+[project.entry-points."quant.agents"]
+risk = "quant_risk.agent:RiskAgent"
+
+[tool.poetry]
+packages = [{ include = "quant_risk", from = "src" }]
+
+[tool.poetry.dependencies]
+quant-core = { path = "../core", develop = true }
+quant-database = { path = "../database", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

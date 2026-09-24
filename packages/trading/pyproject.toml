@@ -1,0 +1,25 @@
+[project]
+name = "quant-trading"
+version = "0.1.0"
+description = "交易执行：仓位→订单、幂等、Broker（IBKR / DryRun）、订单跟踪"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "quant-core",
+    "quant-database",
+    "ib_async>=2.0",
+]
+
+[project.entry-points."quant.stages"]
+trading = "quant_trading.stage:build_trading_stage"
+
+[tool.poetry]
+packages = [{ include = "quant_trading", from = "src" }]
+
+[tool.poetry.dependencies]
+quant-core = { path = "../core", develop = true }
+quant-database = { path = "../database", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
