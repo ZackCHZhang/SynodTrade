@@ -10,6 +10,7 @@ resulting `RiskVerdict` enforces the same invariant once more.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal, Self
 from uuid import UUID
@@ -18,6 +19,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from quant_core.agent import Agent
 from quant_core.models import Action, RiskVerdict, Verdict
+from quant_core.timeutil import utcnow
 from quant_risk.rules import verdict_between
 
 
@@ -97,6 +99,7 @@ class RiskAgent(Agent[RiskAgentOutput]):
         symbol: str,
         run_id: UUID,
         decision_id: UUID | None,
+        as_of: datetime | None = None,
     ) -> RiskVerdict:
         result = await self.invoke(
             {
@@ -109,6 +112,7 @@ class RiskAgent(Agent[RiskAgentOutput]):
         )
         adjusted = result.output.effective()
         return RiskVerdict(
+            created_at=as_of or utcnow(),
             run_id=run_id,
             symbol=symbol,
             source=self.agent_id,

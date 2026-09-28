@@ -1,0 +1,20 @@
+# Risk rules for a diversified ETF allocation: larger single positions are acceptable.
+name: etf
+kill_switch: false
+max_position_pct: 0.35
+max_gross_exposure_pct: 0.95
+min_cash_pct: 0.05
+max_daily_loss_pct: 0.04
+max_weekly_loss_pct: 0.08
+max_trades_per_day: 6
+max_order_notional: 2500
+one_order_per_symbol_per_day: true
+whitelist: [SPY, QQQ, IWM, TLT, IEF, GLD]
+blacklist: []
+liquidity:
+  max_spread_bps: 20
+  min_avg_volume: 1000000
+  require_quote: false
+trading_hours:
+  enabled: true
+  calendar: XNYS

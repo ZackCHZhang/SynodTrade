@@ -219,6 +219,7 @@ async def test_stage_runs_and_returns_context(repos: Repositories) -> None:
     assert stage.options.lookback_days == 60
     context = ctx(["AAPL"])
     assert await stage.run(context) is context
+    assert services.get("market_data", FakeMarketDataProvider).connected
     assert await repos.accounts.get_latest_account("DU1") is not None
 
 

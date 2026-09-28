@@ -15,6 +15,7 @@ or its agent failed (fell back to HOLD). Methods:
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 from uuid import UUID
@@ -22,6 +23,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from quant_core.models import Action, AggregatedDecision, Decision, Vote
+from quant_core.timeutil import utcnow
 
 
 class AggregationMethod(StrEnum):
@@ -53,8 +55,10 @@ def aggregate(
     symbol: str,
     votes: Sequence[tuple[Decision, float]],
     options: AggregationOptions,
+    created_at: datetime | None = None,
 ) -> AggregatedDecision:
-    """`votes` are (decision, agent weight) pairs for one symbol."""
+    """`votes` are (decision, agent weight) pairs for one symbol. `created_at` should be
+    the run's `as_of`, so later runs "as of" a moment see exactly what existed then."""
     effective = [(effective_action(d, options.min_confidence), d, w) for d, w in votes]
 
     if options.method is AggregationMethod.WEIGHTED_VOTE:
@@ -86,6 +90,7 @@ def aggregate(
                 final = min((a for a, _, _ in effective), key=lambda a: abs(a.weight))
 
     return AggregatedDecision(
+        created_at=created_at or utcnow(),
         run_id=run_id,
         symbol=symbol,
         final_action=final,

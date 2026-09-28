@@ -1,5 +1,7 @@
-# Local infrastructure. Phase 1: PostgreSQL 16 (+ TimescaleDB extension available).
-# ib-gateway and scheduler services are added in phase 10.
+# Full deployment: database, IB Gateway and the scheduler.
+#   cp .env.example .env      # fill in TWS_USERID / TWS_PASSWORD, IBKR_ACCOUNT, API keys...
+#   docker compose up -d
+# The scheduler waits for Postgres, applies migrations, then wakes pipelines on schedule.
 services:
   postgres:
     image: timescale/timescaledb:latest-pg16
@@ -17,6 +19,37 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # IB Gateway with IBC auto-login (https://github.com/gnzsnz/ib-gateway-docker).
+  # Inside the compose network the API is on port 4004 (paper) / 4003 (live).
+  ib-gateway:
+    image: ghcr.io/gnzsnz/ib-gateway:stable
+    restart: unless-stopped
+    environment:
+      TWS_USERID: ${TWS_USERID:?set TWS_USERID in .env}
+      TWS_PASSWORD: ${TWS_PASSWORD:?set TWS_PASSWORD in .env}
+      TRADING_MODE: ${TRADING_MODE:-paper}
+      READ_ONLY_API: "no"
+      TZ: America/New_York
+    ports:
+      - "127.0.0.1:4004:4004"  # paper API for local tools (quant run from the host)
+
+  scheduler:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ib-gateway:
+        condition: service_started
+    env_file: .env
+    environment:
+      QUANT_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-quant}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-quant}
+      IBKR_HOST: ib-gateway
+      IBKR_PORT: ${IBKR_GATEWAY_PORT:-4004}
+      TZ: Europe/Berlin  # container local time for humans; all scheduling uses exchange time
+    volumes:
+      - ./configs:/app/configs:ro  # edit configs without rebuilding
 
 volumes:
   pgdata:

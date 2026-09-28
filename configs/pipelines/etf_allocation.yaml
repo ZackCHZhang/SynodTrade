@@ -1,0 +1,32 @@
+# Weekly ETF allocation with its own capital (sub-ledger) and risk rules.
+name: etf_allocation
+mode: paper
+account: ibkr_etf
+universe: [SPY, QQQ, IWM, TLT, IEF, GLD]
+budget:
+  max_capital: 5000
+sizing:
+  buy_base: available_cash
+  min_one_lot_on_sell: true    # small ETF positions must still be sellable
+stages:
+  - type: data_update
+    timeframes: [1d]
+    lookback_days: 400
+  - type: decision
+    agents:
+      - { agent: trend_follower, count: 2, weight: 1.0,
+          model: { provider: anthropic, name: claude-opus-5 } }
+      - { agent: value_investor, count: 1, weight: 0.5,
+          model: { provider: anthropic, name: claude-opus-5 } }
+    aggregation: { method: majority, min_confidence: 0.6 }
+    history_limit: 8
+  - type: risk
+    rules: etf
+    agents:
+      - { agent: conservative_risk_officer, count: 1,
+          model: { provider: anthropic, name: claude-opus-5 } }
+    combine: most_conservative
+  - type: trading
+    order_type: limit
+    limit_offset_bps: 3
+    cancel_after_minutes: 30

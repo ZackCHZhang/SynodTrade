@@ -49,6 +49,7 @@ class DataUpdateStage:
         self._account_id = account_id
 
     async def run(self, ctx: PipelineContext) -> PipelineContext:
+        await self._updater.provider.connect()  # idempotent; the pipeline disconnects at the end
         report = await self._updater.update(
             ctx.universe,
             timeframes=self.options.timeframes,

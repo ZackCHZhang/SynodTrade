@@ -6,13 +6,14 @@ in other packages and tasks spawned from it) carries those fields via contextvar
 
 from __future__ import annotations
 
+import io
 import logging
 import re
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, TextIO
+from typing import Any, TextIO, cast
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -27,6 +28,17 @@ _SECRET_KEY = re.compile(
     re.IGNORECASE,
 )
 REDACTED = "***"
+
+
+class _CurrentStderr(io.TextIOBase):
+    """Writes to whatever `sys.stderr` is at write time, so logging survives stderr being
+    replaced (and a replaced stream being closed), e.g. under test runners or daemons."""
+
+    def write(self, text: str) -> int:
+        return sys.stderr.write(text)
+
+    def flush(self) -> None:
+        sys.stderr.flush()
 
 
 def redact_secrets(_: WrappedLogger, __: str, event_dict: EventDict) -> EventDict:
@@ -65,7 +77,7 @@ def configure_logging(
     structlog.configure(
         processors=processors,
         wrapper_class=structlog.make_filtering_bound_logger(logging.getLevelName(level.upper())),
-        logger_factory=structlog.PrintLoggerFactory(file=stream or sys.stderr),
+        logger_factory=structlog.PrintLoggerFactory(file=stream or cast(TextIO, _CurrentStderr())),
         cache_logger_on_first_use=False,
     )
 

@@ -80,7 +80,7 @@ plugins = ["pydantic.mypy"]
 disable_error_code = ["type-abstract"]
 
 [[tool.mypy.overrides]]
-module = ["exchange_calendars", "exchange_calendars.*", "pandas", "pandas.*"]
+module = ["exchange_calendars", "exchange_calendars.*", "pandas", "pandas.*", "apscheduler", "apscheduler.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]

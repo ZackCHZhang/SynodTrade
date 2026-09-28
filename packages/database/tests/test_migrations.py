@@ -66,3 +66,22 @@ def test_every_table_is_migrated() -> None:
     source = "".join(p.read_text(encoding="utf-8") for p in versions.glob("*.py"))
     for table in Base.metadata.tables:
         assert re.search(rf"create_table\(\s*[\"']{table}[\"']", source), table
+
+
+def test_foreign_tables_are_ignored_by_autogenerate(tmp_path: Path) -> None:
+    """The scheduler's `apscheduler_jobs` table must never show up as a diff to drop."""
+    from sqlalchemy import text
+
+    assert not migrate.include_name("apscheduler_jobs", "table", {})
+    assert migrate.include_name("orders", "table", {})
+    db_file = tmp_path / "m.db"
+    migrate.upgrade(_async_url(db_file))
+    engine = create_engine(_sync_url(db_file))
+    with engine.begin() as conn:
+        conn.execute(text("CREATE TABLE apscheduler_jobs (id VARCHAR PRIMARY KEY)"))
+    with engine.connect() as conn:
+        ctx = MigrationContext.configure(
+            conn, opts={"compare_type": True, "include_name": migrate.include_name}
+        )
+        assert compare_metadata(ctx, Base.metadata) == []
+    engine.dispose()

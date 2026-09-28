@@ -9,6 +9,14 @@ from alembic.config import Config
 
 MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
+# Tables that share the database but are not ours (e.g. the scheduler's job store):
+# autogenerate must never propose creating or dropping them.
+FOREIGN_TABLES = frozenset({"apscheduler_jobs"})
+
+
+def include_name(name: str | None, type_: str, parent_names: object) -> bool:
+    return not (type_ == "table" and name in FOREIGN_TABLES)
+
 
 def alembic_config(url: str | None = None) -> Config:
     cfg = Config()
