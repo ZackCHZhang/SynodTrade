@@ -101,6 +101,7 @@ async def test_end_to_end(
     assert all(r.sentiment == 0.6 and r.error is None for r in aapl)
     assert sorted(aapl[0].item_ids) == ["r1", "r2", "t1"]  # made-up id dropped
     assert context.sentiment_results["MSFT"][0].sentiment == -0.4
+    assert {r.created_at for rs in context.sentiment_results.values() for r in rs} == {NOW}
 
     # prompt: posts delimited, markup neutralised, persona as system prompt
     aapl_prompt = next(r for r in llm.requests if "Symbol: AAPL" in r.messages[0].content)

@@ -21,6 +21,22 @@ core ← database ← {market_data, sentiment, decision, risk, trading} ← pipe
 
 中间层的业务包之间禁止互相 import。
 
+## 快速开始
+
+```bash
+python tasks.py install
+poetry run quant validate                                  # 校验 configs/
+poetry run quant run -p long_term_stocks --offline         # 无需网关、API key，完整跑一遍（dry-run）
+```
+
+真正运行时：
+1. 在 `.env` 中填写 IBKR 账户、LLM 的 API key 和数据库地址。
+2. 启动 Postgres 和 IB Gateway，执行 `poetry run quant-db upgrade` 建表。
+3. 先用 `quant run -p long_term_stocks --dry-run` 检查结果，确认无误后按配置中的 `mode`（默认 paper）运行。
+4. 定时运行：用 `quant-scheduler plan` 查看排程，再用 `quant-scheduler run` 启动；也可以用 `docker compose up -d` 一次性启动 postgres、ib-gateway 和 scheduler（见 `packages/scheduler/README.md`）。
+
+各包的详细说明见 `packages/*/README.md`。
+
 ## 开发环境
 
 需要 Python 3.12 与 Poetry 2.x。根目录一个共享 venv（`.venv/`），所有包以 editable 方式安装。

@@ -260,6 +260,9 @@ async def test_end_to_end(
     assert len(aapl.votes) == 3
     nvda = ctx.aggregated_decisions["NVDA"]
     assert (nvda.final_action, nvda.method, nvda.votes) == (Action.HOLD, "insufficient_data", [])
+    # records describe the run's moment, not the wall clock (replays stay consistent)
+    assert {a.created_at for a in ctx.aggregated_decisions.values()} == {NOW}
+    assert {d.created_at for ds in ctx.decisions.values() for d in ds} == {NOW}
 
     decisions = ctx.decisions["AAPL"]
     trend = next(d for d in decisions if d.agent_id == "trend_follower")

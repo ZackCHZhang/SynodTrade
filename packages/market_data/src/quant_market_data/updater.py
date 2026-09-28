@@ -32,6 +32,10 @@ class DataUpdater:
         self._provider = provider
         self._repos = repos
 
+    @property
+    def provider(self) -> MarketDataProvider:
+        return self._provider
+
     async def sync_instrument(self, symbol: str) -> Instrument:
         """Instrument with a broker con_id, resolved once and then cached in the database."""
         stored = await self._repos.instruments.get(symbol)

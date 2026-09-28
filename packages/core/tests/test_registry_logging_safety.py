@@ -170,3 +170,15 @@ def test_live_allowed_with_flag(monkeypatch: pytest.MonkeyPatch) -> None:
     assert live_trading_allowed(RunMode.LIVE)
     monkeypatch.delenv(ALLOW_LIVE_ENV)
     assert not live_trading_allowed(RunMode.LIVE)
+
+
+def test_default_stream_follows_stderr_replacement(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    configure_logging()  # no explicit stream: stderr, resolved at write time
+    replaced = io.StringIO()
+    monkeypatch.setattr("sys.stderr", replaced)
+    get_logger().info("to the replacement")
+    replaced.close()  # a closed former stderr must not break later logging
+    monkeypatch.setattr("sys.stderr", io.StringIO())
+    get_logger().info("still fine")

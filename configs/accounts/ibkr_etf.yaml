@@ -1,0 +1,9 @@
+# Same IBKR account as ibkr_main, separate API connection: each pipeline needs its own
+# client ids (market data = client_id, trading = +1, news = +2) so both can run at once.
+name: ibkr_etf
+broker: ibkr
+account_id: ${IBKR_ACCOUNT}
+host: ${IBKR_HOST:-127.0.0.1}
+port: ${IBKR_PORT:-4002}
+client_id: ${IBKR_CLIENT_ID_ETF:-27}
+base_currency: USD

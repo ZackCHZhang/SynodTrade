@@ -95,6 +95,7 @@ class DecisionStage:
             context = await self._context(symbol, ctx, ledger, nav)
             if context is None:
                 aggregated[symbol] = AggregatedDecision(
+                    created_at=ctx.as_of,
                     run_id=ctx.run_id,
                     symbol=symbol,
                     final_action=Action.HOLD,
@@ -117,7 +118,9 @@ class DecisionStage:
         weights = {slot.agent.instance_id: slot.weight for slot in self.agents}
         for symbol in sorted(contexts):
             votes = [(d, weights[d.instance_id]) for d in decisions if d.symbol == symbol]
-            aggregated[symbol] = aggregate(ctx.run_id, symbol, votes, self.options.aggregation)
+            aggregated[symbol] = aggregate(
+                ctx.run_id, symbol, votes, self.options.aggregation, created_at=ctx.as_of
+            )
 
         await self._repos.decisions.add_decisions(decisions)
         await self._repos.decisions.add_aggregated([aggregated[s] for s in ctx.universe])

@@ -1,0 +1,18 @@
+# When to wake which pipeline. All times are exchange time (America/New_York); non-trading
+# days are skipped using the real exchange calendar (holidays, early closes, DST).
+#   market_relative: anchor open|close, offset_minutes (+ after, - before)
+#   cron:            5-field crontab in the exchange timezone
+# Optional per job: dry_run, enabled, misfire_grace_minutes (default 15),
+#                   skip_non_trading_days (cron only, default true)
+calendar: XNYS
+timezone: America/New_York
+
+jobs:
+  - pipeline: long_term_stocks
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 30          # every trading day, 30 minutes after the open
+
+  - pipeline: etf_allocation
+    trigger: cron
+    cron: "0 11 * * MON"        # Mondays 11:00 New York (skipped if Monday is a holiday)

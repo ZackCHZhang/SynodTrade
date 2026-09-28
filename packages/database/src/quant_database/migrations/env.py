@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import os
+from typing import Any
 
 from alembic import context
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from quant_database.engine import DATABASE_URL_ENV
+from quant_database.migrate import include_name
 from quant_database.models import Base
 
 config = context.config
@@ -23,8 +25,13 @@ def _url() -> str:
     return url
 
 
-def _configure(**kwargs: object) -> None:
-    context.configure(target_metadata=target_metadata, compare_type=True, **kwargs)  # type: ignore[arg-type]
+def _configure(**kwargs: Any) -> None:
+    context.configure(
+        target_metadata=target_metadata,
+        compare_type=True,
+        include_name=include_name,
+        **kwargs,
+    )
 
 
 def run_migrations_offline() -> None:

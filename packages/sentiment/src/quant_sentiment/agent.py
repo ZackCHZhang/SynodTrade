@@ -95,6 +95,7 @@ class SentimentAgent(Agent[SentimentOutput]):
                 unknown=sorted(set(out.item_ids) - known),
             )
         return SentimentResult(
+            created_at=as_of,
             run_id=run_id,
             instance_id=self.instance_id,
             agent_id=self.agent_id,

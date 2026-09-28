@@ -236,6 +236,8 @@ async def test_rules_then_agents_then_final(
     assert (final["NVDA"].verdict, final["NVDA"].adjusted_action) == (Verdict.APPROVE, A.SELL)
     # TSLA: hold stays hold
     assert final["TSLA"].adjusted_action is A.HOLD
+    stamped = await repos.risk.get_by_run(run_id)
+    assert {v.created_at for v in stamped} == {NOW}  # rules, agents and final alike
 
     assert len(llm.requests) == 4  # 2 officers x (AAPL, NVDA)
     nvda_prompt = next(

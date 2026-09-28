@@ -277,6 +277,7 @@ class RiskStage:
                     symbol=symbol,
                     run_id=ctx.run_id,
                     decision_id=ctx.aggregated_decisions[symbol].id,
+                    as_of=ctx.as_of,
                 )
                 for symbol in to_review
                 for slot in self.agents
@@ -290,6 +291,7 @@ class RiskStage:
         for symbol, outcome in outcomes.items():
             agg = ctx.aggregated_decisions[symbol]
             rules_verdict = RiskVerdict(
+                created_at=ctx.as_of,
                 run_id=ctx.run_id,
                 symbol=symbol,
                 source="rules",
@@ -309,6 +311,7 @@ class RiskStage:
                     for v in agent_verdicts
                 )
             final = RiskVerdict(
+                created_at=ctx.as_of,
                 run_id=ctx.run_id,
                 symbol=symbol,
                 source="final",

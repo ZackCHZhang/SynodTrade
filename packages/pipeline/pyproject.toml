@@ -12,7 +12,11 @@ dependencies = [
     "quant-decision",
     "quant-risk",
     "quant-trading",
+    "typer>=0.12",
 ]
+
+[project.scripts]
+quant = "quant_pipeline.cli:app"
 
 [tool.poetry]
 packages = [{ include = "quant_pipeline", from = "src" }]

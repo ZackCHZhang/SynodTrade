@@ -62,6 +62,7 @@ class DecisionAgent(Agent[DecisionOutput]):
                 unknown=sorted(set(out.referenced_data_ids) - shown_ids),
             )
         return Decision(
+            created_at=context.as_of,
             run_id=run_id,
             instance_id=self.instance_id,
             agent_id=self.agent_id,
