@@ -172,6 +172,24 @@ async def test_one_failing_symbol_does_not_stop_the_rest(repos: Repositories) ->
     assert report.positions_written is None
 
 
+async def test_refresh_bars_for_selection(repos: Repositories) -> None:
+    """Bars only (no quotes/account), for any symbols; implements core's BarsRefresher."""
+    from quant_core.interfaces import BarsRefresher
+
+    fake = provider(fail_symbols=["MSFT"])
+    updater = DataUpdater(fake, repos)
+    assert isinstance(updater, BarsRefresher)
+    errors = await updater.refresh_bars(
+        ["AAPL", "MSFT", "NOPE"], timeframe=Timeframe.D1, lookback=timedelta(days=400), now=NOW
+    )
+    assert fake.connected
+    assert set(errors) == {"MSFT"}  # NOPE: no error, just no bars (the screen rejects it)
+    assert await repos.bars.get_latest_bars("NOPE", 5, as_of=NOW) == []
+    assert errors["MSFT"].startswith("MarketDataError")
+    assert len(await repos.bars.get_latest_bars("AAPL", 500, as_of=NOW)) > 200
+    assert not [c for c in fake.calls if c[0] in ("fetch_quotes", "fetch_account")]
+
+
 async def test_quote_and_account_errors_are_reported(
     repos: Repositories, monkeypatch: pytest.MonkeyPatch
 ) -> None:

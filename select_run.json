@@ -1,0 +1,40 @@
+{
+  "run_id": "347186d8-15cc-49ea-af78-2699f53f8b1b",
+  "status": "succeeded",
+  "mode": "dry_run",
+  "as_of": "2026-09-30T15:36:11.580657+00:00",
+  "stages": {
+    "selection": {
+      "status": "ok",
+      "seconds": 32.361
+    }
+  },
+  "universe": [
+    "AAPL",
+    "LLY",
+    "NVDA"
+  ],
+  "selection": {
+    "method": "weighted_score(top_n=3, min_score=0.2)",
+    "candidates": 20,
+    "selected": [
+      "AAPL",
+      "LLY",
+      "NVDA"
+    ],
+    "holdings": [
+      "AAPL"
+    ],
+    "scores": {
+      "AAPL": 0.7,
+      "LLY": 0.675,
+      "NVDA": 0.45
+    }
+  },
+  "sentiment_results": 0,
+  "decisions": 0,
+  "final_decisions": {},
+  "risk": {},
+  "orders": {},
+  "errors": []
+}

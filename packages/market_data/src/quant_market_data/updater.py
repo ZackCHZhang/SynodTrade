@@ -56,6 +56,22 @@ class DataUpdater:
             written += await self._repos.bars.upsert(bars)
         return written
 
+    async def refresh_bars(
+        self, symbols: Sequence[str], *, timeframe: Timeframe, lookback: timedelta, now: datetime
+    ) -> dict[str, str]:
+        """Bars only, for any symbols (core `BarsRefresher`, used by stock selection).
+        Connects the provider if needed; returns {symbol: error} for failed symbols."""
+        await self._provider.connect()
+        errors: dict[str, str] = {}
+        for symbol in symbols:
+            try:
+                instrument = await self.sync_instrument(symbol)
+                await self.update_bars(instrument, timeframe, lookback, now)
+            except Exception as exc:  # one bad symbol must not stop the others
+                errors[symbol] = f"{type(exc).__name__}: {exc}"
+                log.warning("market_data.refresh_failed", symbol=symbol, error=str(exc))
+        return errors
+
     async def update(
         self,
         symbols: Sequence[str],

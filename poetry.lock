@@ -2909,6 +2909,21 @@ files = [
 filelock = ">=3.15.4"
 
 [[package]]
+name = "python-dotenv"
+version = "1.2.3"
+description = "Read key-value pairs from a .env file and set them as environment variables"
+optional = false
+python-versions = ">=3.10"
+groups = ["packages"]
+files = [
+    {file = "python_dotenv-1.2.3-py3-none-any.whl", hash = "sha256:904552145e8bfed22162c09dab1c2b9b54fefa7b23ba780f4f26ca0316b0f0d9"},
+    {file = "python_dotenv-1.2.3.tar.gz", hash = "sha256:a20a594dabeaa385725aa239d5244871c143ecb356add8a20fcf23773a6c3a35"},
+]
+
+[package.extras]
+cli = ["click (>=5.0)"]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.3"
 description = "YAML parser and emitter for Python"
@@ -3006,6 +3021,7 @@ anthropic = ">=1.8,<2"
 jinja2 = ">=3.1"
 openai = ">=3.19,<4"
 pydantic = ">=2.9"
+python-dotenv = ">=1.0"
 pyyaml = ">=6.0"
 structlog = ">=24.4"
 tenacity = ">=9.0"
@@ -3090,6 +3106,7 @@ quant-database = "*"
 quant-decision = "*"
 quant-market-data = "*"
 quant-risk = "*"
+quant-selection = "*"
 quant-sentiment = "*"
 quant-trading = "*"
 typer = ">=0.12"
@@ -3140,6 +3157,25 @@ typer = ">=0.12"
 [package.source]
 type = "directory"
 url = "packages/scheduler"
+
+[[package]]
+name = "quant-selection"
+version = "0.1.0"
+description = "选股：候选来源（固定列表 / IBKR 扫描器）+ 量化初筛 + 多 agent 选股与聚合"
+optional = false
+python-versions = ">=3.12,<3.13"
+groups = ["packages"]
+files = []
+develop = true
+
+[package.dependencies]
+ib_async = ">=2.0"
+quant-core = "*"
+quant-database = "*"
+
+[package.source]
+type = "directory"
+url = "packages/selection"
 
 [[package]]
 name = "quant-sentiment"
@@ -3694,4 +3730,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.13"
-content-hash = "9bb48a66347d48c5099b5e10b112247cb2bfc94214930e3c6c00002f6a931767"
+content-hash = "14b0f554f1cf44a30bacddff82d20a2eb50ed7a96ec5833543cd58d05a311c9d"

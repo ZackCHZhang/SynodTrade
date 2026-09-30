@@ -20,11 +20,13 @@ from quant_core.sizing import SizingConfig
 
 SLUG = r"^[a-z][a-z0-9_]*$"
 
-# Canonical stage types and their required relative order (spec §10.1).
-CANONICAL_STAGE_ORDER = ("data_update", "sentiment", "decision", "risk", "trading")
+# Canonical stage types and their required relative order (spec §10.1). `selection`
+# (optional) picks the universe the later stages work on, so it comes first.
+CANONICAL_STAGE_ORDER = ("selection", "data_update", "sentiment", "decision", "risk", "trading")
 
 
 class AgentRole(StrEnum):
+    SELECTION = "selection"
     SENTIMENT = "sentiment"
     DECISION = "decision"
     RISK = "risk"
@@ -32,6 +34,7 @@ class AgentRole(StrEnum):
 
 # Agents referenced by a canonical stage must have the matching role.
 STAGE_AGENT_ROLE = {
+    "selection": AgentRole.SELECTION,
     "sentiment": AgentRole.SENTIMENT,
     "decision": AgentRole.DECISION,
     "risk": AgentRole.RISK,
@@ -137,7 +140,9 @@ class PipelineConfig(CoreModel):
     name: str = Field(pattern=SLUG)
     mode: RunMode = RunMode.DRY_RUN
     account: str = Field(pattern=SLUG)
-    universe: list[str] = Field(min_length=1)
+    # Symbols to trade. With a `selection` stage they are (part of) the candidate pool and
+    # the stage replaces the run's universe with its picks; the list may then be empty.
+    universe: list[str] = Field(default_factory=list)
     budget: BudgetConfig
     sizing: SizingConfig = Field(default_factory=SizingConfig)
     stages: list[StageConfig] = Field(min_length=1)
@@ -161,6 +166,8 @@ class PipelineConfig(CoreModel):
             raise ValueError(f"duplicate stage types: {dupes}")
 
         enabled = [s.type for s in self.stages if s.enabled]
+        if not self.universe and "selection" not in enabled:
+            raise ValueError("universe must list at least 1 symbol (or use a selection stage)")
         canonical = [t for t in enabled if t in CANONICAL_STAGE_ORDER]
         if canonical != sorted(canonical, key=CANONICAL_STAGE_ORDER.index):
             raise ValueError(

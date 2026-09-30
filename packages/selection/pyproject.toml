@@ -1,0 +1,32 @@
+[project]
+name = "quant-selection"
+version = "0.1.0"
+description = "选股：候选来源（固定列表 / IBKR 扫描器）+ 量化初筛 + 多 agent 选股与聚合"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "quant-core",
+    "quant-database",
+    "ib_async>=2.0",
+]
+
+[project.entry-points."quant.stages"]
+selection = "quant_selection.stage:build_selection_stage"
+
+[project.entry-points."quant.agents"]
+selection = "quant_selection.agent:SelectionAgent"
+
+[project.entry-points."quant.candidate_sources"]
+static = "quant_selection.sources:build_static_source"
+ibkr_scanner = "quant_selection.scanner:build_ibkr_scanner_source"
+
+[tool.poetry]
+packages = [{ include = "quant_selection", from = "src" }]
+
+[tool.poetry.dependencies]
+quant-core = { path = "../core", develop = true }
+quant-database = { path = "../database", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

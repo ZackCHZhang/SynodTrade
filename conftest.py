@@ -18,3 +18,9 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
             item.add_marker(pytest.mark.integration)
         if item.get_closest_marker("integration"):
             item.add_marker(pytest.mark.enable_socket)
+
+
+@pytest.fixture(autouse=True)
+def _no_dotenv(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A developer's real .env (API keys) must never reach the tests."""
+    monkeypatch.setenv("QUANT_NO_DOTENV", "1")

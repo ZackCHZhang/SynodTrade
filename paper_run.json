@@ -1,0 +1,40 @@
+{
+  "run_id": "ed005825-3259-4e12-b521-64552abe933c",
+  "status": "succeeded",
+  "mode": "paper",
+  "as_of": "2026-09-30T15:10:34.279605+00:00",
+  "stages": {
+    "data_update": {
+      "status": "ok",
+      "seconds": 1.444
+    },
+    "sentiment": {
+      "status": "ok",
+      "seconds": 0.785
+    },
+    "decision": {
+      "status": "ok",
+      "seconds": 4.133
+    },
+    "risk": {
+      "status": "ok",
+      "seconds": 0.345
+    },
+    "trading": {
+      "status": "ok",
+      "seconds": 0.115
+    }
+  },
+  "sentiment_results": 0,
+  "decisions": 6,
+  "final_decisions": {
+    "AAPL": "hold",
+    "MSFT": "hold"
+  },
+  "risk": {
+    "MSFT": "hold",
+    "AAPL": "hold"
+  },
+  "orders": {},
+  "errors": []
+}

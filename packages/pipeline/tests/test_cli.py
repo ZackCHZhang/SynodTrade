@@ -123,3 +123,32 @@ def test_kill_switch(tmp_path: Path) -> None:
     assert "kill switch off" in off.output
     bad = cli.invoke(app, ["kill-switch", "maybe", "--db-url", url])
     assert bad.exit_code != 0
+
+
+def test_offline_bullish_demo_and_bad_llm_style(configs: Path, tmp_path: Path) -> None:
+    base = [
+        "run",
+        "-p",
+        "demo_all_modules",
+        "--offline",
+        "--configs",
+        str(configs),
+        "--db-url",
+        db_url(tmp_path),
+        "--init-db",
+        "--as-of",
+        "2026-10-01T14:00:00Z",
+        "--log-level",
+        "WARNING",
+    ]
+    result = cli.invoke(app, [*base, "--offline-llm", "bullish"])
+    assert result.exit_code == 0, result.output
+    summary = summary_json(result.stdout)
+    selection = summary["selection"]
+    assert isinstance(selection, dict)
+    selected = selection["selected"]
+    assert len(selected) == 3
+    assert summary["orders"] == dict.fromkeys(selected, "dry_run")
+    bad = cli.invoke(app, [*base, "--offline-llm", "euphoric"])
+    assert bad.exit_code != 0
+    assert "neutral or bullish" in bad.output

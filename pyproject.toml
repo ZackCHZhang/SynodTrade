@@ -15,6 +15,7 @@ package-mode = false
 quant-core = { path = "packages/core", develop = true }
 quant-database = { path = "packages/database", develop = true }
 quant-market-data = { path = "packages/market_data", develop = true }
+quant-selection = { path = "packages/selection", develop = true }
 quant-sentiment = { path = "packages/sentiment", develop = true }
 quant-decision = { path = "packages/decision", develop = true }
 quant-risk = { path = "packages/risk", develop = true }
@@ -62,7 +63,7 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = [
-    "quant_core", "quant_database", "quant_market_data", "quant_sentiment",
+    "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
     "quant_decision", "quant_risk", "quant_trading", "quant_pipeline", "quant_scheduler",
 ]
 
@@ -109,7 +110,7 @@ markers = [
 [tool.coverage.run]
 branch = true
 source = [
-    "quant_core", "quant_database", "quant_market_data", "quant_sentiment",
+    "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
     "quant_decision", "quant_risk", "quant_trading", "quant_pipeline", "quant_scheduler",
 ]
 
@@ -120,11 +121,12 @@ exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
 
 # ---------------------------------------------------------------- import-linter
 # Enforces the package DAG:
-#   core <- database <- {market_data, sentiment, decision, risk, trading} <- pipeline <- scheduler
+#   core <- database <- {market_data, selection, sentiment, decision, risk, trading}
+#        <- pipeline <- scheduler
 # Business packages in the middle layer must not import each other.
 [tool.importlinter]
 root_packages = [
-    "quant_core", "quant_database", "quant_market_data", "quant_sentiment",
+    "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
     "quant_decision", "quant_risk", "quant_trading", "quant_pipeline", "quant_scheduler",
 ]
 
@@ -134,7 +136,7 @@ type = "layers"
 layers = [
     "quant_scheduler",
     "quant_pipeline",
-    "quant_market_data | quant_sentiment | quant_decision | quant_risk | quant_trading",
+    "quant_market_data | quant_selection | quant_sentiment | quant_decision | quant_risk | quant_trading",
     "quant_database",
     "quant_core",
 ]

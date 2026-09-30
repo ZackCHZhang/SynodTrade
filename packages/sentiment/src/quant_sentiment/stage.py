@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
+from collections.abc import Sequence
+from datetime import datetime, timedelta
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -37,6 +38,17 @@ class SentimentOptions(BaseModel):
 
 class SentimentError(RuntimeError):
     pass
+
+
+class UnavailableSource:
+    """Stands in for a source that could not be created; fails like any broken source."""
+
+    def __init__(self, name: str, reason: str) -> None:
+        self.name = name
+        self.reason = reason
+
+    async def fetch(self, symbols: Sequence[str], since: datetime) -> list[SentimentItem]:
+        raise SentimentError(f"{self.name} unavailable: {self.reason}")
 
 
 class SentimentStage:
@@ -131,12 +143,16 @@ def build_sentiment_stage(config: StageConfig, services: Services) -> SentimentS
     options = config.options(SentimentOptions)
     repos = services.get("repos", Repositories)
     provided = services.optional("sentiment_sources", dict) or {}
-    sources: list[SentimentSource] = [
-        provided[name]
-        if name in provided
-        else SENTIMENT_SOURCES.get(name)(options.source_options.get(name, {}))
-        for name in options.sources
-    ]
+    sources: list[SentimentSource] = []
+    for name in options.sources:
+        if name in provided:
+            sources.append(provided[name])
+            continue
+        try:
+            sources.append(SENTIMENT_SOURCES.get(name)(options.source_options.get(name, {})))
+        except Exception as exc:  # e.g. missing credentials: only this source is lost
+            log.warning("sentiment.source_unavailable", source=name, error=str(exc))
+            sources.append(UnavailableSource(name, f"{type(exc).__name__}: {exc}"))
     agents = instantiate_agents(
         config.agents,
         role=AgentRole.SENTIMENT,

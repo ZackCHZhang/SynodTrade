@@ -13,6 +13,7 @@ dependencies = [
     "anthropic>=1.8,<2",
     "openai>=3.19,<4",
     "tzdata>=2024.1",
+    "python-dotenv>=1.0",
 ]
 
 [tool.poetry]

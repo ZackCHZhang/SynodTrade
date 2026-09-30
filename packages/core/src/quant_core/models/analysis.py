@@ -1,4 +1,4 @@
-"""Sentiment, decision and risk records produced by agents during a run."""
+"""Selection, sentiment, decision and risk records produced by agents during a run."""
 
 from __future__ import annotations
 
@@ -37,6 +37,49 @@ class AgentOutputMeta(CoreModel):
     created_at: UtcDatetime = Field(default_factory=utcnow)
     llm_call_ids: list[UUID] = Field(default_factory=list)
     error: str | None = None  # set when the agent fell back to its default output
+
+
+class Candidate(CoreModel):
+    """A symbol proposed for stock selection by a candidate source."""
+
+    symbol: Symbol
+    source: str
+    rank: int | None = None  # position in the source's own ranking (e.g. a scanner), 0 = top
+    note: str | None = None
+
+
+class SelectionPick(CoreModel):
+    symbol: Symbol
+    score: Probability  # how strongly the agent wants the symbol in the universe
+    reason: str
+
+
+class SelectionResult(AgentOutputMeta):
+    """One selection agent's picks from the screened candidates."""
+
+    pipeline_name: str
+    picks: list[SelectionPick] = Field(default_factory=list)
+    summary: str = ""
+    candidates: list[str] = Field(default_factory=list)  # what the agent was shown
+
+
+class StockSelection(CoreModel):
+    """The aggregated selection of one run: the universe the later stages trade."""
+
+    id: UUID = Field(default_factory=uuid4)
+    run_id: UUID
+    pipeline_name: str
+    method: str
+    candidates: list[str]  # after screening, i.e. shown to the agents
+    selected: list[str]  # picked, best first
+    holdings: list[str] = Field(default_factory=list)  # kept because the strategy holds them
+    scores: dict[str, float] = Field(default_factory=dict)  # aggregated score per candidate
+    rejected: dict[str, str] = Field(default_factory=dict)  # symbol -> screening reason
+    created_at: UtcDatetime = Field(default_factory=utcnow)
+
+    @property
+    def universe(self) -> list[str]:
+        return self.selected + [s for s in self.holdings if s not in self.selected]
 
 
 class SentimentResult(AgentOutputMeta):
