@@ -19,6 +19,7 @@ from quant_database.repositories.market import (
 )
 from quant_database.repositories.orders import LedgerRepository, OrderRepository
 from quant_database.repositories.runs import LLMCallRepository, RunRepository
+from quant_database.repositories.selection import SelectionRepository
 from quant_database.repositories.system import KILL_SWITCH, FlagRepository
 
 
@@ -32,6 +33,7 @@ class Repositories:
     accounts: AccountRepository
     runs: RunRepository
     llm_calls: LLMCallRepository
+    selection: SelectionRepository
     sentiment: SentimentRepository
     decisions: DecisionRepository
     risk: RiskRepository
@@ -48,6 +50,7 @@ class Repositories:
             accounts=AccountRepository(db),
             runs=RunRepository(db),
             llm_calls=LLMCallRepository(db),
+            selection=SelectionRepository(db),
             sentiment=SentimentRepository(db),
             decisions=DecisionRepository(db),
             risk=RiskRepository(db),
@@ -72,5 +75,6 @@ __all__ = [
     "Repositories",
     "RiskRepository",
     "RunRepository",
+    "SelectionRepository",
     "SentimentRepository",
 ]

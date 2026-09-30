@@ -251,3 +251,34 @@ async def test_model_is_chosen_per_agent_reference(
         ("anthropic", "claude-opus-5"),
         ("deepseek", "deepseek-chat"),
     ]
+
+
+async def test_source_that_cannot_be_created_only_loses_that_source(
+    repos: Repositories, store: ConfigStore, run_id: UUID, make_post: Post
+) -> None:
+    def needs_credentials(options: dict[str, Any]) -> FakeSentimentSource:
+        raise RuntimeError("REDDIT_CLIENT_ID not set")
+
+    SENTIMENT_SOURCES.register("broken_test_source", needs_credentials)
+    try:
+        pool = LLMClientPool({}, env={})
+        pool.set("anthropic", FakeLLMClient(default=analyst))
+        good = FakeSentimentSource("good", [make_post("g1")])
+        config = stage_config(
+            sources=["broken_test_source", "good"],
+            agents=[{"agent": "retail_mood", "model": CLAUDE}],
+        )
+        stage = build_sentiment_stage(
+            config,
+            Services(repos=repos, config_store=store, llm=pool, sentiment_sources={"good": good}),
+        )
+        context = await stage.run(ctx(run_id, ["AAPL"]))
+        assert context.sentiment_results["AAPL"][0].item_ids == ["g1"]
+        only_broken = build_sentiment_stage(
+            stage_config(sources=["broken_test_source"], agents=[]),
+            Services(repos=repos, config_store=store, llm=pool),
+        )
+        with pytest.raises(SentimentError, match="REDDIT_CLIENT_ID"):
+            await only_broken.run(ctx(run_id, ["AAPL"]))
+    finally:
+        SENTIMENT_SOURCES.unregister("broken_test_source")

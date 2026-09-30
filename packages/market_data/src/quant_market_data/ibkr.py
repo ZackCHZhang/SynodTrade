@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 
-from ib_async import IB, BarData, Contract, Stock, Ticker
+from ib_async import IB, BarData, Contract, Forex, Stock, Ticker
+from ib_async.ib import StartupFetch
 from pydantic import ValidationError
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 from tenacity.wait import wait_base
@@ -143,6 +144,9 @@ class IBKRMarketDataProvider:
             clientId=self.client_id,
             timeout=self.connect_timeout_s,
             readonly=True,
+            # no orders/executions needed here (the executions request times out on
+            # read-only connections and only slows connecting down)
+            fetchFields=StartupFetch.POSITIONS | StartupFetch.ACCOUNT_UPDATES,
         )
         self._ib.reqMarketDataType(self.market_data_type)
         log.info("ibkr.connected", host=self.host, port=self.port, client_id=self.client_id)
@@ -232,20 +236,86 @@ class IBKRMarketDataProvider:
         self._require_connection()
         if not instruments:
             return []
-        by_con_id = {i.con_id: i.symbol for i in instruments}
+        by_con_id = {i.con_id: i for i in instruments}
         tickers = await self._ib.reqTickersAsync(*(self._contract(i) for i in instruments))
-        return [
-            quote_from_ticker(by_con_id[t.contract.conId], t)
-            for t in tickers
-            if t.contract is not None and t.contract.conId in by_con_id
-        ]
+        quotes = []
+        for t in tickers:
+            if t.contract is None or t.contract.conId not in by_con_id:
+                continue
+            instrument = by_con_id[t.contract.conId]
+            quote = quote_from_ticker(instrument.symbol, t)
+            if quote.reference_price is None:
+                # No streaming data (e.g. a paper account without market data sharing):
+                # fall back to the latest 1-minute bar, stamped with its real (delayed) time.
+                quote = await self._quote_from_bars(instrument) or quote
+            quotes.append(quote)
+        return quotes
+
+    async def _quote_from_bars(self, instrument: Instrument) -> Quote | None:
+        contract = self._contract(instrument)
+        await self._pacing.acquire(str(contract.conId))
+        bars = await self._ib.reqHistoricalDataAsync(
+            contract,
+            endDateTime="",
+            durationStr="3600 S",
+            barSizeSetting="1 min",
+            whatToShow="TRADES",
+            useRTH=True,
+            formatDate=2,
+            timeout=self.request_timeout_s,
+        )
+        if not bars:
+            return None
+        last = bars[-1]
+        return Quote(
+            symbol=instrument.symbol,
+            ts=bar_timestamp(last.date) + timedelta(minutes=1),  # when the bar closed
+            last=price(last.close),
+        )
+
+    async def fx_rate(self, from_ccy: str, to_ccy: str) -> Decimal:
+        """Units of `to_ccy` per 1 `from_ccy`, from the IDEALPRO midpoint (last daily close)."""
+        if from_ccy == to_ccy:
+            return Decimal(1)
+        for pair, invert in ((f"{from_ccy}{to_ccy}", False), (f"{to_ccy}{from_ccy}", True)):
+            [contract] = await self._ib.qualifyContractsAsync(Forex(pair))
+            if not isinstance(contract, Contract) or not contract.conId:
+                continue
+            await self._pacing.acquire(str(contract.conId))
+            bars = await self._ib.reqHistoricalDataAsync(
+                contract,
+                endDateTime="",
+                durationStr="3 D",
+                barSizeSetting="1 day",
+                whatToShow="MIDPOINT",
+                useRTH=False,
+                formatDate=2,
+                timeout=self.request_timeout_s,
+            )
+            if bars:
+                rate = Decimal(str(bars[-1].close))
+                return Decimal(1) / rate if invert else rate
+        raise MarketDataError(f"no FX rate for {from_ccy}->{to_ccy}")
 
     async def fetch_account(self, account_id: str) -> AccountData:
+        """Account values converted to the trading currency (`base_currency`, e.g. USD).
+
+        IBKR reports the summary in the account's own base currency (e.g. EUR for a
+        European account); budgets and US prices are in USD, so values are converted at
+        the current FX midpoint.
+        """
         self._require_connection()
-        values = await self._ib.accountSummaryAsync(account_id)
+        values = [
+            v for v in await self._ib.accountSummaryAsync(account_id) if v.account == account_id
+        ]
+        account_ccy = next(
+            (v.currency for v in values if v.tag == "NetLiquidation" and v.currency), None
+        )
+        if account_ccy is None:
+            raise MarketDataError(f"account {account_id}: summary lacks ['NetLiquidation']")
         tags: dict[str, Decimal] = {}
         for v in values:
-            if v.account == account_id and v.currency in (self.base_currency, "BASE"):
+            if v.currency == account_ccy:
                 try:
                     tags.setdefault(v.tag, Decimal(v.value))
                 except ArithmeticError:
@@ -253,15 +323,28 @@ class IBKRMarketDataProvider:
         missing = {"NetLiquidation", "TotalCashValue", "BuyingPower"} - tags.keys()
         if missing:
             raise MarketDataError(f"account {account_id}: summary lacks {sorted(missing)}")
+        rate = await self.fx_rate(account_ccy, self.base_currency)
+        if account_ccy != self.base_currency:
+            log.info(
+                "ibkr.account_fx",
+                account_currency=account_ccy,
+                currency=self.base_currency,
+                rate=str(rate),
+            )
+
+        def converted(tag: str) -> Decimal | None:
+            value = tags.get(tag)
+            return None if value is None else (value * rate).quantize(Decimal("0.01"))
+
         ts = utcnow()
         account = AccountSnapshot(
             account_id=account_id,
             ts=ts,
             currency=self.base_currency,
-            nav=tags["NetLiquidation"],
-            cash=tags["TotalCashValue"],
-            buying_power=tags["BuyingPower"],
-            available_funds=tags.get("AvailableFunds"),
+            nav=converted("NetLiquidation") or Decimal(0),
+            cash=converted("TotalCashValue") or Decimal(0),
+            buying_power=converted("BuyingPower") or Decimal(0),
+            available_funds=converted("AvailableFunds"),
         )
         positions = [
             Position(

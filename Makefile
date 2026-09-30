@@ -1,6 +1,6 @@
 # All logic lives in tasks.py so Windows (no make) and Linux/CI behave identically.
 PYTHON ?= python
-PACKAGES := core database market_data sentiment decision risk trading pipeline scheduler
+PACKAGES := core database market_data selection sentiment decision risk trading pipeline scheduler
 
 .PHONY: install lint format typecheck test cov integration check up down $(addprefix test-,$(PACKAGES))
 

@@ -26,10 +26,13 @@ from quant_database.models import (
     OrderRow,
     PipelineRunRow,
     RiskAssessmentRow,
+    SelectionResultRow,
     SentimentResultRow,
+    StockSelectionRow,
 )
 from quant_market_data import FakeMarketDataProvider
 from quant_pipeline import PipelineBusyError, PipelineRunner, RunOptions, select_stages
+from quant_pipeline.offline import offline_market_data, schema_reply
 from quant_sentiment.sources import FakeSentimentSource
 from quant_trading import SimulatedBroker
 
@@ -210,6 +213,34 @@ def test_select_stages(store: ConfigStore) -> None:
     ]
     with pytest.raises(ConfigError, match="no enabled stages"):
         select_stages(pipeline, ["backtest"])
+    demo = store.pipeline("demo_all_modules")
+    assert [s.type for s in select_stages(demo, ["select", "data"])] == [
+        "selection",
+        "data_update",
+    ]
+
+
+async def test_selection_uses_the_shared_market_data_provider(
+    store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    """Outside offline mode the selection stage refreshes candidate bars through the same
+    market data provider as data_update, and its candidate sources can be overridden."""
+    from quant_selection import FakeCandidateSource
+
+    symbols = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "JPM", "V", "COST", "LLY"]
+    provider = offline_market_data([*symbols, "AMD"], AS_OF)
+    overrides = fakes(market_data=provider, llm=schema_reply)
+    overrides["candidate_sources"] = {"ibkr_scanner": FakeCandidateSource("ibkr_scanner", ["AMD"])}
+    overrides["llm"].set("deepseek", overrides["llm"].get("anthropic"))
+    report = await runner(store, db, overrides).run(
+        "demo_all_modules", RunOptions(dry_run=True, as_of=AS_OF, stages=["select", "data"])
+    )
+    assert report.ok, report.errors
+    assert report.summary["selection"]["candidates"] == 11
+    assert len(report.summary["universe"]) == 3
+    assert ("fetch_bars", "AMD") in provider.calls
+    stored = await Repositories.create(db).bars.get_latest_bars("AMD", 5, as_of=AS_OF)
+    assert len(stored) == 5  # the scanner's candidate got bars through the provider
 
 
 async def test_concurrent_runs_are_refused(store: ConfigStore, db: Database, fakes: Fakes) -> None:
@@ -296,3 +327,68 @@ async def test_offline_mode(store: ConfigStore, db: Database) -> None:
     assert report.mode is RunMode.DRY_RUN
     assert report.summary["decisions"] == 12
     assert report.summary["orders"] == {}  # the neutral offline LLM holds everything
+
+
+async def test_demo_pipeline_exercises_every_module(store: ConfigStore, db: Database) -> None:
+    """configs/pipelines/demo_all_modules.yaml, offline with the bullish fake LLM."""
+    report = await PipelineRunner(store, db, env={}).run(
+        "demo_all_modules", RunOptions(offline=True, offline_llm="bullish", as_of=AS_OF)
+    )
+    assert report.ok, report.errors
+    summary = report.summary
+    assert {name: s["status"] for name, s in summary["stages"].items()} == {
+        "selection": "ok",
+        "data_update": "ok",
+        "sentiment": "ok",
+        "decision": "ok",
+        "risk": "ok",
+        "trading": "ok",
+    }
+    # 10 pool symbols + the offline scanner's (NVDA, AMZN, GOOGL, META, JPM, XOM): 11
+    selection = summary["selection"]
+    assert selection["candidates"] == 11
+    selected = selection["selected"]
+    assert len(selected) == 3  # top_n; the offline agents both pick the 3 first shown
+    assert list(selection["scores"].values()) == [0.7, 0.6, 0.5]
+    assert summary["universe"] == selected  # nothing held yet
+    assert summary["sentiment_results"] == 2 * 3  # 2 sentiment agents x 3 symbols
+    assert summary["decisions"] == 3 * 3  # 3 decision instances x 3 symbols
+    assert summary["final_decisions"] == dict.fromkeys(selected, "buy")
+    assert summary["risk"] == dict.fromkeys(selected, "buy")
+    assert summary["orders"] == dict.fromkeys(selected, "dry_run")  # recorded, never sent
+
+    run_id = report.run_id
+    assert await count(db, StockSelectionRow, run_id=run_id) == 1
+    assert await count(db, SelectionResultRow, run_id=run_id) == 2
+    assert await count(db, AgentInstanceRow, run_id=run_id) == 2 + 2 + 3 + 1
+    assert await count(db, SentimentResultRow, run_id=run_id) == 6
+    assert await count(db, RiskAssessmentRow, run_id=run_id) == 3 * 3  # rules, agent, final
+    assert await count(db, OrderRow, run_id=run_id) == 3
+    assert await count(db, FillRow) == 0  # dry run: nothing fills
+    assert await count(db, LLMCallRow, run_id=run_id) == 2 + 6 + 9 + 3
+
+
+async def test_offline_neutral_llm_never_trades_but_analyses(
+    store: ConfigStore, db: Database
+) -> None:
+    report = await PipelineRunner(store, db, env={}).run(
+        "demo_all_modules", RunOptions(offline=True, as_of=AS_OF)
+    )
+    assert report.ok
+    assert report.summary["sentiment_results"] == 6  # synthetic posts are analysed
+    assert set(report.summary["final_decisions"].values()) == {"hold"}
+    assert report.summary["orders"] == {}
+
+
+async def test_paper_flag_forces_paper_mode_never_live(
+    store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    # demo config says dry_run; --paper switches to paper, so a dry-run broker is refused
+    report = await runner(store, db, fakes()).run(
+        "demo_all_modules", RunOptions(paper=True, as_of=AS_OF, stages=["risk", "trading"])
+    )
+    assert report.mode is RunMode.PAPER
+    with pytest.raises(ConfigError, match="either dry_run or paper"):
+        await runner(store, db, fakes()).run(
+            "demo_all_modules", RunOptions(paper=True, dry_run=True, as_of=AS_OF)
+        )

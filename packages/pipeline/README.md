@@ -7,8 +7,9 @@
 ```bash
 quant run -p long_term_stocks                  # 按配置里的 mode 运行（paper / live / dry_run）
 quant run -p long_term_stocks --dry-run        # 强制 dry-run：记录订单，但绝不发送
-quant run -p long_term_stocks --stages data,sentiment   # 只跑部分阶段（data = data_update）
+quant run -p long_term_stocks --stages data,sentiment   # 只跑部分阶段（data = data_update，select = selection）
 quant run -p long_term_stocks --offline        # 无网关、无 API key、不联网：假数据 + 中性假 LLM，强制 dry-run
+quant run -p demo_all_modules --offline --offline-llm bullish --as-of 2026-09-30T14:00:00Z   # 全部模块都会走到
 quant run -p long_term_stocks --as-of 2026-10-01T10:00:00-04:00
 quant validate [-p NAME]                       # 校验流水线及其引用的全部配置
 quant kill-switch on --reason "..." | off | status
@@ -26,7 +27,8 @@ quant kill-switch on --reason "..." | off | status
 4. 写入 `pipeline_runs` 记录，包括 `run_id`、运行模式、`as_of`、`config_hash`，以及配置快照（流水线和全部 agent 配置）。
 5. **只装配所选阶段需要的服务**：
    - 数据库仓库、ConfigStore、LLM 厂商池、流水线配置、账户配置；
-   - 包含 `data_update` 阶段时，才创建行情源（IBKR）；
+   - 包含 `data_update` 或 `selection` 阶段时，才创建行情源（IBKR），两个阶段共用这一个连接。选股阶段通过它（`bars_refresher`）拉取候选股的日线；
+   - 选股阶段会把本次运行的 universe 替换成选出的股票加上已有持仓，之后的阶段都只处理这个 universe；
    - 包含 `trading` 阶段时，才用 `create_broker(mode)` 创建券商，所以只跑 `data,sentiment` 时不会连接券商；
    - 用到的 LLM 厂商会先检查 API key，缺失时立即失败。
 6. 通过注册表（entry point `quant.stages`）按顺序创建并运行各阶段。**每条日志都自动带上 `run_id` 和 `pipeline`。**
@@ -45,9 +47,9 @@ quant kill-switch on --reason "..." | off | status
 | 模块 | 离线时使用 |
 |---|---|
 | 行情 | 截至 `as_of` 的生成日线，每只股票约 300 根 |
-| 舆情数据源 | 存在，但没有数据 |
-| LLM | `schema_reply` 根据要求的输出格式返回中性结果：舆情 0、决策 HOLD、风控维持原提案。**无论它返回什么都不会促成交易** |
-| 券商 | DryRunBroker |
+| 舆情数据源 | 每只股票几条合成帖子和新闻（metadata 中标有 `synthetic`），舆情 agent 也会被调用 |
+| LLM | `schema_reply` 根据要求的输出格式返回合法结果。默认 `--offline-llm neutral`：决策全部 HOLD，不会产生订单；`--offline-llm bullish`：决策给出买入，风控 agent 和下单流程也会走一遍 |
+| 券商 | DryRunBroker（订单只记录、不发送、不成交） |
 
 ## 运行测试
 

@@ -1,0 +1,82 @@
+# 演示流水线：一个配置文件用到全部 6 个阶段和所有模块，方便快速检查整条链路。
+# 先选股（从候选池 + IBKR 扫描器里挑 3 只），后面的阶段只处理选出的股票和已有持仓。
+#
+#   离线试跑（无需网关、API key，不联网）：
+#     quant run -p demo_all_modules --offline --offline-llm bullish --as-of 2026-09-30T14:00:00Z
+#   真实数据 + 真实 LLM，只记录订单不下单：
+#     quant run -p demo_all_modules --dry-run
+#   真实数据 + 真实 LLM + TWS paper 账户下单：
+#     quant run -p demo_all_modules --paper
+#
+# 默认 mode: dry_run；只有加 --paper 才会向 paper 账户下单，永远不会碰真实资金。
+# 模型：DeepSeek（configs/llm_providers.yaml 的 deepseek，key 放在 .env 的 DEEPSEEK_API_KEY）。
+
+name: demo_all_modules
+mode: dry_run                 # dry_run | paper | live（live 还需要 QUANT_ALLOW_LIVE=1）
+account: ibkr_main            # configs/accounts/ibkr_main.yaml
+# 有 selection 阶段时，universe 是选股的候选池（再加上扫描器的结果）
+universe: [AAPL, MSFT, NVDA, AMZN, GOOGL, META, JPM, V, COST, LLY]
+budget:
+  max_capital: 10000          # 这条流水线自己的虚拟子账本资金
+sizing:
+  buy_base: available_cash    # 买入档按可用现金的 15% / 30%
+  min_one_lot_on_sell: true
+
+stages:
+  # 0. 选股：候选池 + IBKR 扫描器 -> 量化初筛 -> 两种选股 agent 各自挑 -> 聚合取前 3
+  - type: selection
+    sources:
+      - { type: ibkr_scanner, scan_code: MOST_ACTIVE, rows: 15, above_price: 10,
+          market_cap_above: 10000,                  # 市值单位：百万美元
+          stock_type: CORP }                        # 只要普通股，排除 ETF
+    screen: { min_price: 5, min_avg_dollar_volume: 20000000, max_candidates: 20 }
+    agents:
+      - { agent: momentum_screener,  count: 1, weight: 1.0,
+          model: { provider: deepseek, name: deepseek-chat } }
+      - { agent: defensive_screener, count: 1, weight: 1.0,
+          model: { provider: deepseek, name: deepseek-chat } }
+    aggregation: { method: weighted_score, top_n: 3, min_score: 0.2 }
+    max_picks_per_agent: 5
+    keep_holdings: true          # 已持有的股票始终保留，落选后仍可卖出
+    fallback: previous           # agent 全部失败时沿用上次选股
+
+  # 1. 行情：IBKR 历史日线（只补缺失部分）、报价快照、账户与持仓快照
+  - type: data_update
+    timeframes: [1d]
+    lookback_days: 300
+
+  # 2. 舆情：三个数据源 + 两个舆情 agent；失败时跳过，不影响后续
+  - type: sentiment
+    on_error: skip
+    sources: [reddit, stocktwits, ibkr_news]
+    lookback_hours: 24
+    prefilter: { max_items_per_symbol: 10, max_chars_per_item: 500 }
+    agents:
+      - { agent: retail_mood,     count: 1, model: { provider: deepseek, name: deepseek-chat } }
+      - { agent: event_extractor, count: 1, model: { provider: deepseek, name: deepseek-chat } }
+
+  # 3. 决策：两个决策 agent（价值型 ×2 实例、趋势型 ×1），加权投票聚合
+  - type: decision
+    agents:
+      - { agent: value_investor, count: 2, weight: 1.0,
+          model: { provider: deepseek, name: deepseek-chat } }
+      - { agent: trend_follower, count: 1, weight: 0.8,
+          model: { provider: deepseek, name: deepseek-chat } }
+    aggregation: { method: weighted_vote, min_confidence: 0.6 }
+    bars_lookback: 260
+    history_limit: 5
+
+  # 4. 风控：先硬规则（configs/risk/default.yaml），再风控 agent（只能降低风险）
+  - type: risk
+    rules: default
+    agents:
+      - { agent: conservative_risk_officer, count: 1,
+          model: { provider: deepseek, name: deepseek-chat } }
+    combine: most_conservative
+    on_agent_failure: reject
+
+  # 5. 交易：限价单，幂等下单，跟踪到成交/撤销（dry_run 时只记录）
+  - type: trading
+    order_type: limit
+    limit_offset_bps: 25        # 行情延迟约 15 分钟：限价放宽到 0.25%，更容易成交
+    cancel_after_minutes: 5     # 测试用：5 分钟未成交就撤单

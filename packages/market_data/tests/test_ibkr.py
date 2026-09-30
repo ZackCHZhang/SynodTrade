@@ -322,3 +322,100 @@ async def test_fetch_account_missing_tags() -> None:
     ib.summary = [_value("NetLiquidation", "1")]
     with pytest.raises(MarketDataError, match="BuyingPower"):
         await make_provider(ib).fetch_account("DU1")
+
+
+class FxStubIB(StubIB):
+    """Qualifies forex pairs from a table (None: IBKR has no such pair)."""
+
+    def __init__(self, pairs: dict[str, int | None]) -> None:
+        super().__init__()
+        self.pairs = pairs
+
+    async def qualifyContractsAsync(self, *contracts: Contract) -> list[Any]:  # noqa: N802
+        c = contracts[0]
+        pair = f"{c.symbol}{c.currency}"
+        self.calls.append(("qualify", pair))
+        con_id = self.pairs.get(pair)
+        if con_id is None:
+            return [None]
+        c.conId = con_id
+        return [c]
+
+
+def fx_bar(rate: float) -> BarData:
+    return BarData(
+        date=date(2026, 9, 30),
+        open=rate,
+        high=rate,
+        low=rate,
+        close=rate,
+        volume=0,
+        average=rate,
+        barCount=0,
+    )
+
+
+async def test_fetch_account_converts_eur_to_usd() -> None:
+    ib = FxStubIB({"EURUSD": 12087792})
+    ib.summary = [
+        _value("NetLiquidation", "1000000", currency="EUR"),
+        _value("TotalCashValue", "900000", currency="EUR"),
+        _value("BuyingPower", "4000000", currency="EUR"),
+        _value("AvailableFunds", "800000", currency="EUR"),
+    ]
+    ib.history = [[fx_bar(1.1358)]]
+    data = await make_provider(ib).fetch_account("DU1")
+    assert data.account.currency == "USD"
+    assert data.account.nav == D("1135800.00")
+    assert data.account.cash == D("1022220.00")
+    assert data.account.available_funds == D("908640.00")
+    fx_request = next(c[1] for c in ib.calls if c[0] == "history")
+    assert fx_request[1]["whatToShow"] == "MIDPOINT"
+
+
+async def test_fx_rate_uses_the_inverse_pair_when_needed() -> None:
+    ib = FxStubIB({"JPYUSD": None, "USDJPY": 15016})
+    ib.history = [[fx_bar(150.0)]]
+    provider = make_provider(ib)
+    assert await provider.fx_rate("JPY", "USD") == D(1) / D("150.0")
+    assert await provider.fx_rate("USD", "USD") == D(1)
+    with pytest.raises(MarketDataError, match="no FX rate for XXX->USD"):
+        await make_provider(FxStubIB({})).fx_rate("XXX", "USD")
+
+
+async def test_fetch_account_without_net_liquidation() -> None:
+    ib = StubIB()
+    ib.summary = [_value("TotalCashValue", "1")]
+    with pytest.raises(MarketDataError, match="NetLiquidation"):
+        await make_provider(ib).fetch_account("DU1")
+
+
+async def test_quotes_fall_back_to_the_latest_minute_bar() -> None:
+    ib = StubIB()
+    empty = ticker(Contract(conId=265598), time=NOW)  # no bid/ask/last at all
+    ib.tickers = [empty]
+    minute = datetime(2026, 9, 30, 14, 52, tzinfo=UTC)
+    ib.history = [
+        [
+            BarData(
+                date=minute,
+                open=338.7,
+                high=338.9,
+                low=338.6,
+                close=338.8,
+                volume=100,
+                average=338.8,
+                barCount=5,
+            )
+        ]
+    ]
+    [quote] = await make_provider(ib).fetch_quotes([AAPL])
+    assert quote.last == D("338.8")
+    assert quote.bid is None
+    assert quote.ts == minute + timedelta(minutes=1)  # honest (delayed) timestamp
+    request = next(c[1] for c in ib.calls if c[0] == "history")[1]
+    assert (request["barSizeSetting"], request["whatToShow"]) == ("1 min", "TRADES")
+
+    ib.tickers, ib.history = [empty], [[]]  # no bars either: keep the empty quote
+    [nothing] = await make_provider(ib).fetch_quotes([AAPL])
+    assert nothing.reference_price is None

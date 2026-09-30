@@ -75,3 +75,6 @@ AGENTS: Registry[Callable[..., Any]] = Registry("agent", "quant.agents")
 SENTIMENT_SOURCES: Registry[Callable[..., Any]] = Registry(
     "sentiment source", "quant.sentiment_sources"
 )
+CANDIDATE_SOURCES: Registry[Callable[..., Any]] = Registry(
+    "candidate source", "quant.candidate_sources"
+)

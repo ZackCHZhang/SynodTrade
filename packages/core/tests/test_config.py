@@ -7,6 +7,8 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from quant_core.config import (
+    CANONICAL_STAGE_ORDER,
+    STAGE_AGENT_ROLE,
     AgentRole,
     ConfigError,
     ConfigStore,
@@ -191,6 +193,11 @@ def test_default_mode_is_dry_run(pipeline_data: dict[str, Any]) -> None:
         ({"mode": "yolo"}, "mode"),
         ({"stages": _stages("decision", "decision")}, "duplicate stage types"),
         ({"stages": _stages("decision", "sentiment")}, "out of order"),
+        ({"stages": _stages("decision", "selection")}, "out of order"),
+        (
+            {"universe": [], "stages": _stages("selection", selection={"enabled": False})},
+            "at least 1",
+        ),
         ({"stages": _stages("decision", "trading")}, "requires an enabled risk stage"),
         ({"stages": _stages("decision", "trading", "risk")}, "out of order"),
         (
@@ -249,3 +256,12 @@ def test_store_load_generic_kind(configs_dir: Path, write_yaml: WriteYaml) -> No
     assert ConfigStore(configs_dir, env={}).load("risk", "tight", Limits).max_trades == 3
     with pytest.raises(ConfigError, match="not found"):
         ConfigStore(configs_dir, env={}).load("risk", "missing", Limits)
+
+
+def test_selection_stage_allows_an_empty_universe(pipeline_data: dict[str, Any]) -> None:
+    pipeline_data["universe"] = []
+    pipeline_data["stages"] = _stages("selection", "decision")
+    pipeline = PipelineConfig.model_validate(pipeline_data)
+    assert pipeline.universe == []
+    assert STAGE_AGENT_ROLE["selection"] is AgentRole.SELECTION
+    assert CANONICAL_STAGE_ORDER[0] == "selection"

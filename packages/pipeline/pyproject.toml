@@ -8,6 +8,7 @@ dependencies = [
     "quant-core",
     "quant-database",
     "quant-market-data",
+    "quant-selection",
     "quant-sentiment",
     "quant-decision",
     "quant-risk",
@@ -25,6 +26,7 @@ packages = [{ include = "quant_pipeline", from = "src" }]
 quant-core = { path = "../core", develop = true }
 quant-database = { path = "../database", develop = true }
 quant-market-data = { path = "../market_data", develop = true }
+quant-selection = { path = "../selection", develop = true }
 quant-sentiment = { path = "../sentiment", develop = true }
 quant-decision = { path = "../decision", develop = true }
 quant-risk = { path = "../risk", develop = true }

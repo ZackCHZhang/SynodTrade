@@ -1,0 +1,47 @@
+Selection time (UTC): {{ as_of }}
+
+You choose which stocks this strategy should follow from now on: its universe. For every
+stock you choose, a later step decides whether to buy, hold or sell it, and independent risk
+controls check every trade. Stocks the strategy already holds stay in the universe anyway,
+so they can still be sold; you do not need to pick them to keep them.
+
+Pick AT MOST {{ max_picks }} stocks, only from the candidates below, and only stocks you
+would actually want the strategy to consider owning. Picking fewer (or none) is right when
+few candidates fit the approach. Every number below was computed by code from completed
+daily bars and is accurate; do not recompute it.
+
+## Candidates
+{% for c in candidates -%}
+- [{{ c.id }}] {{ c.symbol }}{% if c.held %} (currently held){% endif %} (from {{ c.sources }}{% if c.notes %}: {{ c.notes }}{% endif %})
+  close {{ c.last_close }} | return 20d {{ c.return_20d }}, 60d {{ c.return_60d }}, 1y {{ c.return_250d }}
+  | volatility 60d {{ c.volatility_60d }} | vs SMA50 {{ c.price_vs_sma_50 }}, vs SMA200 {{ c.price_vs_sma_200 }}
+  | RSI14 {{ c.rsi_14 }} | from 52w high {{ c.from_52w_high }} | max drawdown 1y {{ c.max_drawdown_1y }}
+  | avg daily $ volume {{ c.avg_dollar_volume }}
+{% endfor %}
+## Current holdings of the strategy
+{% if holdings -%}
+{{ holdings | join(", ") }}
+{%- else -%}
+None.
+{%- endif %}
+
+## Previous selection
+{% if previous -%}
+{{ previous.date }}: {{ previous.selected | join(", ") if previous.selected else "nothing selected" }}
+Avoid needless turnover: replace a previously selected stock only when a candidate is clearly
+better for this approach.
+{%- else -%}
+None (first selection).
+{%- endif %}
+
+{% if instructions -%}
+## Your approach
+{{ instructions }}
+
+{% endif -%}
+Respond with a JSON object containing:
+- "picks": a list of at most {{ max_picks }} objects, best first, each with
+  - "symbol": the candidate's symbol exactly as listed (e.g. "{{ candidates[0].symbol if candidates else "AAPL" }}")
+  - "score": number from 0 to 1 — how strongly you want this stock in the universe
+  - "reason": one or two sentences citing the numbers that matter
+- "summary": a few sentences on how you chose

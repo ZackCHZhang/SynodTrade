@@ -29,14 +29,23 @@ from quant_core.safety import ensure_mode_allowed
 from quant_core.services import Services
 from quant_core.timeutil import utcnow
 from quant_database import Database, PipelineRun, Repositories, RunStatus
-from quant_market_data import IBKRMarketDataProvider, MarketDataProvider
-from quant_pipeline.offline import offline_llm, offline_market_data, offline_sentiment_sources
+from quant_market_data import DataUpdater, IBKRMarketDataProvider, MarketDataProvider
+from quant_pipeline.offline import (
+    OfflineLLMStyle,
+    offline_candidate_sources,
+    offline_llm,
+    offline_market_data,
+    offline_sentiment_sources,
+    offline_symbols,
+)
 from quant_trading import Broker, create_broker
 
 log = get_logger(__name__)
 
 # Short names accepted by `--stages`.
 STAGE_ALIASES = {
+    "select": "selection",
+    "selection": "selection",
     "data": "data_update",
     "sentiment": "sentiment",
     "decision": "decision",
@@ -53,9 +62,11 @@ class PipelineBusyError(RuntimeError):
 @dataclass(frozen=True, slots=True)
 class RunOptions:
     dry_run: bool = False  # force dry_run mode whatever the config says
+    paper: bool = False  # run in paper mode whatever the config says (never live)
     stages: Sequence[str] | None = None  # subset of stage types (aliases allowed)
     as_of: datetime | None = None  # default: now
     offline: bool = False  # fake market data, sentiment and LLM; implies dry_run
+    offline_llm: OfflineLLMStyle = "neutral"  # bullish: fake decisions say buy
     max_run_minutes: int = 180  # an older unfinished run is considered crashed
 
 
@@ -138,26 +149,39 @@ class PipelineRunner:
             }
             if options.offline:
                 for name in providers:
-                    llm.set(name, offline_llm())
+                    llm.set(name, offline_llm(options.offline_llm))
             else:
                 llm.check(sorted(providers))  # fail fast on missing API keys
         items["llm"] = llm
 
-        if "data_update" in types:
+        # Symbols the run may touch: the universe, or with a selection stage every candidate.
+        symbols = offline_symbols(pipeline, stages) if options.offline else pipeline.universe
+        if types & {"selection", "data_update"}:  # one market data connection for both
             if "market_data" in o:
                 items["market_data"] = o["market_data"]
             elif options.offline:
-                items["market_data"] = offline_market_data(pipeline.universe, as_of)
+                items["market_data"] = offline_market_data(symbols, as_of)
             else:
                 assert account is not None
                 items["market_data"] = IBKRMarketDataProvider.from_account(account)
+        if "selection" in types:
+            items["bars_refresher"] = o.get("bars_refresher") or DataUpdater(
+                items["market_data"], self.repos
+            )
+            if "candidate_sources" in o:
+                items["candidate_sources"] = o["candidate_sources"]
+            elif options.offline:
+                stage = next(s for s in stages if s.type == "selection")
+                items["candidate_sources"] = offline_candidate_sources(stage)
         if "sentiment" in types:
             if "sentiment_sources" in o:
                 items["sentiment_sources"] = o["sentiment_sources"]
             elif options.offline:
                 stage = next(s for s in stages if s.type == "sentiment")
                 items["sentiment_sources"] = offline_sentiment_sources(
-                    getattr(stage, "sources", None) or ["reddit", "stocktwits", "ibkr_news"]
+                    getattr(stage, "sources", None) or ["reddit", "stocktwits", "ibkr_news"],
+                    symbols,
+                    as_of,
                 )
         if "trading" in types:
             items["broker"] = o.get("broker") or create_broker(mode, account, self._env)
@@ -211,7 +235,14 @@ class PipelineRunner:
         options = options or RunOptions()
         pipeline = self.store.validate_pipeline(pipeline_name)
         offline = options.offline
-        mode = RunMode.DRY_RUN if (options.dry_run or offline) else pipeline.mode
+        if options.dry_run and options.paper:
+            raise ConfigError("choose either dry_run or paper, not both")
+        if options.dry_run or offline:
+            mode = RunMode.DRY_RUN
+        elif options.paper:
+            mode = RunMode.PAPER
+        else:
+            mode = pipeline.mode
         ensure_mode_allowed(mode, self._env)
         stage_configs = select_stages(pipeline, options.stages)
         started = utcnow()
@@ -314,10 +345,25 @@ class PipelineRunner:
 
 def summarize(ctx: PipelineContext, timings: dict[str, dict[str, Any]]) -> dict[str, Any]:
     statuses = {r.client_order_id: r.status.value for r in ctx.order_results}
+    selection = ctx.selection
     return {
         "mode": ctx.mode.value,
         "as_of": ctx.as_of.isoformat(),
         "stages": timings,
+        "universe": list(ctx.universe),
+        **(
+            {
+                "selection": {
+                    "method": selection.method,
+                    "candidates": len(selection.candidates),
+                    "selected": selection.selected,
+                    "holdings": selection.holdings,
+                    "scores": {s: selection.scores[s] for s in selection.selected},
+                }
+            }
+            if selection is not None
+            else {}
+        ),
         "sentiment_results": sum(len(v) for v in ctx.sentiment_results.values()),
         "decisions": sum(len(v) for v in ctx.decisions.values()),
         "final_decisions": {s: d.final_action.value for s, d in ctx.aggregated_decisions.items()},

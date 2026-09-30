@@ -6,7 +6,14 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from quant_core.models.analysis import AggregatedDecision, Decision, RiskVerdict, SentimentResult
+from quant_core.models.analysis import (
+    AggregatedDecision,
+    Decision,
+    RiskVerdict,
+    SelectionResult,
+    SentimentResult,
+    StockSelection,
+)
 from quant_core.models.enums import RunMode
 from quant_core.models.orders import OrderIntent, OrderResult
 from quant_core.timeutil import UtcDatetime, utcnow
@@ -37,6 +44,8 @@ class PipelineContext(BaseModel):
     started_at: UtcDatetime = Field(default_factory=utcnow)
     as_of: UtcDatetime = Field(default_factory=utcnow)
 
+    selection_results: list[SelectionResult] = Field(default_factory=list)
+    selection: StockSelection | None = None  # set by the selection stage (which sets universe)
     sentiment_results: dict[str, list[SentimentResult]] = Field(default_factory=dict)
     decisions: dict[str, list[Decision]] = Field(default_factory=dict)
     aggregated_decisions: dict[str, AggregatedDecision] = Field(default_factory=dict)

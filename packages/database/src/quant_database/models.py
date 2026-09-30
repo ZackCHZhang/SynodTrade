@@ -186,6 +186,42 @@ class LLMCallRow(Base):
     created_at: Mapped[datetime]
 
 
+# ------------------------------------------------------------------ stock selection
+
+
+class SelectionResultRow(Base):
+    __tablename__ = "selection_results"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(ForeignKey("pipeline_runs.run_id"), index=True)
+    pipeline_name: Mapped[str] = mapped_column(NAME)
+    instance_id: Mapped[UUID]
+    agent_id: Mapped[str] = mapped_column(NAME)
+    prompt_version: Mapped[str] = mapped_column(SHORT)
+    picks: Mapped[list[Any]]  # [{symbol, score, reason}]
+    summary: Mapped[str] = mapped_column(Text)
+    candidates: Mapped[list[Any]]
+    llm_call_ids: Mapped[list[Any]]
+    error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime]
+
+
+class StockSelectionRow(Base):
+    __tablename__ = "stock_selections"
+    __table_args__ = (Index(None, "pipeline_name", "created_at"),)
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(ForeignKey("pipeline_runs.run_id"), unique=True)
+    pipeline_name: Mapped[str] = mapped_column(NAME)
+    method: Mapped[str] = mapped_column(NAME)
+    candidates: Mapped[list[Any]]
+    selected: Mapped[list[Any]]
+    holdings: Mapped[list[Any]]
+    scores: Mapped[dict[str, Any]]
+    rejected: Mapped[dict[str, Any]]
+    created_at: Mapped[datetime]
+
+
 # ------------------------------------------------------------------ sentiment
 
 

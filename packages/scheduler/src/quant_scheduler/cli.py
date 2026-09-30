@@ -18,6 +18,7 @@ from typing import Annotated
 import typer
 
 from quant_core.config import ConfigError, ConfigStore
+from quant_core.envfile import load_env_file
 from quant_core.logging import configure_logging
 from quant_core.timeutil import utcnow
 from quant_database import DATABASE_URL_ENV, Database
@@ -29,6 +30,17 @@ from quant_scheduler.notify import default_notifier
 from quant_scheduler.triggers import build_trigger, upcoming
 
 app = typer.Typer(help="Wakes pipelines on exchange-calendar schedules.", no_args_is_help=True)
+
+
+@app.callback()
+def _load_env(
+    env_file: Annotated[Path, typer.Option("--env-file", help="settings/secrets file")] = Path(
+        ".env"
+    ),
+) -> None:
+    """Loads --env-file (default .env) without overriding variables already set."""
+    load_env_file(env_file)
+
 
 ConfigsOption = Annotated[Path, typer.Option("--configs", help="configs directory")]
 DbOption = Annotated[str | None, typer.Option("--db-url", help="database URL")]
