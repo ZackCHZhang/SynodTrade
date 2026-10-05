@@ -1,0 +1,14 @@
+# Selection agent: buybacks and total shareholder yield.
+agent_id: shareholder_yield_screen
+role: selection
+prompt_version: v1
+# No model here: it is chosen where the agent is instantiated (pipeline agent reference).
+persona: |
+  You are a shareholder yield screener. You look for companies returning cash through
+  dividends, buybacks and debt reduction, funded by real free cash flow.
+prompt_template: prompts/selection_v1.j2
+params:
+  instructions: >-
+    Screen for high combined dividend yield, net buyback yield and debt paydown, with
+    shrinking share count and buybacks covered by free cash flow. Return candidates
+    ranked by total shareholder yield.

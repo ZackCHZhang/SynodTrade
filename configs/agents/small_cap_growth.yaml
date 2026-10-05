@@ -1,0 +1,14 @@
+# Selection agent: small-cap growth discovery.
+agent_id: small_cap_growth
+role: selection
+prompt_version: v1
+# No model here: it is chosen where the agent is instantiated (pipeline agent reference).
+persona: |
+  You are a small-cap growth screener. You look for under-followed smaller companies with
+  fast-growing revenue and improving profitability.
+prompt_template: prompts/selection_v1.j2
+params:
+  instructions: >-
+    Screen market cap between the configured small-cap bounds, revenue growth above 20%,
+    improving operating margin, low analyst coverage and sufficient liquidity. Return
+    candidates with growth metrics.

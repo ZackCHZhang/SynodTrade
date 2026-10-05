@@ -1,3 +1,4 @@
+import asyncio
 import io
 import json
 from collections.abc import Callable
@@ -392,3 +393,56 @@ async def test_paper_flag_forces_paper_mode_never_live(
         await runner(store, db, fakes()).run(
             "demo_all_modules", RunOptions(paper=True, dry_run=True, as_of=AS_OF)
         )
+
+
+async def test_stage_progress_events_are_logged(
+    store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    stream = io.StringIO()
+    configure_logging("INFO", stream=stream)
+    await runner(store, db, fakes()).run("long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF))
+    lines = [json.loads(line) for line in stream.getvalue().splitlines()]
+    starts = [line["stage"] for line in lines if line["event"] == "pipeline.stage_start"]
+    done = [
+        (line["stage"], line["status"]) for line in lines if line["event"] == "pipeline.stage_done"
+    ]
+    assert starts == ["data_update", "sentiment", "decision", "risk", "trading"]
+    assert done == [(stage, "ok") for stage in starts]
+    assert {line["total"] for line in lines if line["event"] == "pipeline.stage_start"} == {5}
+
+
+class BlockingMarketData(FakeMarketDataProvider):
+    """Hangs in connect() so the run can be cancelled mid-stage."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.entered = asyncio.Event()
+        self.disconnected = False
+
+    async def connect(self) -> None:
+        self.entered.set()
+        await asyncio.Event().wait()
+
+    async def disconnect(self) -> None:
+        self.disconnected = True
+
+
+async def test_cancelled_run_is_closed_and_marked_failed(
+    store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    market_data = BlockingMarketData()
+    task = asyncio.create_task(
+        runner(store, db, fakes(market_data=market_data)).run(
+            "long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF)
+        )
+    )
+    await asyncio.wait_for(market_data.entered.wait(), 5)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert market_data.disconnected
+    async with db.transaction() as s:
+        row = (await s.execute(select(PipelineRunRow))).scalar_one()
+    assert row.status == RunStatus.FAILED.value
+    assert row.error == "cancelled before completion"
+    assert row.ended_at is not None

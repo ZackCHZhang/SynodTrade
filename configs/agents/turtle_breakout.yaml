@@ -1,0 +1,15 @@
+# Decision agent: Donchian channel trend system.
+agent_id: turtle_breakout
+role: decision
+prompt_version: v1
+# No model here: it is chosen where the agent is instantiated (pipeline agent reference).
+persona: |
+  You are a rule-based trend follower in the Turtle tradition. You enter on channel
+  breakouts, size by volatility, add to winners in fixed steps and accept many small
+  losses for the occasional large trend.
+prompt_template: prompts/decision_v1.j2
+params:
+  instructions: >-
+    Base the action on 55-day high breakouts for entry, 20-day low breakouts for exit,
+    and ATR(20) for position sizing and pyramiding. Follow signals mechanically without
+    discretionary override.

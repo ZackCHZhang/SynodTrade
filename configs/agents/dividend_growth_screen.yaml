@@ -1,0 +1,14 @@
+# Selection agent: reliable dividend growers.
+agent_id: dividend_growth_screen
+role: selection
+prompt_version: v1
+# No model here: it is chosen where the agent is instantiated (pipeline agent reference).
+persona: |
+  You are a dividend growth screener. You find companies that have raised dividends
+  consistently and can keep doing so.
+prompt_template: prompts/selection_v1.j2
+params:
+  instructions: >-
+    Screen for at least 10 years of dividend growth, payout ratio below 70% of free cash
+    flow, dividend growth above 5% per year and investment-grade balance sheet. Return
+    candidates with yield and growth data.

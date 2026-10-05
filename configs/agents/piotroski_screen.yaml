@@ -1,0 +1,14 @@
+# Selection agent: Piotroski F-score financial strength.
+agent_id: piotroski_screen
+role: selection
+prompt_version: v1
+# No model here: it is chosen where the agent is instantiated (pipeline agent reference).
+persona: |
+  You are a financial strength screener using the Piotroski F-score. You look for cheap
+  stocks whose fundamentals are actually improving.
+prompt_template: prompts/selection_v1.j2
+params:
+  instructions: >-
+    Compute the nine-point F-score (profitability, leverage, liquidity, operating
+    efficiency). Combine with low P/B; keep names scoring 8-9. Return candidates with
+    score breakdown.

@@ -1,0 +1,202 @@
+// Chinese labels and help texts for config keys. Unknown keys fall back to the key itself.
+
+type Entry = [label: string, help?: string];
+
+const L: Record<string, Entry> = {
+  // pipeline
+  name: ['名称'],
+  mode: ['运行模式', 'dry_run 只记录不下单；paper 向模拟账户下单；live 实盘（还需 QUANT_ALLOW_LIVE=1）'],
+  account: ['账户'],
+  universe: ['股票池', '有选股阶段时作为候选池的一部分'],
+  budget: ['资金预算'],
+  max_capital: ['资金上限', '这条流水线虚拟子账本的资金'],
+  currency: ['币种'],
+  sizing: ['仓位计算'],
+  buy_base: ['买入基数', 'available_cash：按可用现金的 15%/30%；nav：按净值'],
+  min_one_lot_on_sell: ['卖出至少一手', '卖出档向下取整为 0 时卖出一手'],
+  lot_size: ['每手股数'],
+  stages: ['阶段'],
+  // stage common
+  type: ['类型'],
+  enabled: ['启用'],
+  on_error: ['失败策略', 'abort：终止整个运行；skip：记录错误并继续'],
+  agents: ['Agent 实例'],
+  // selection
+  sources: ['数据来源'],
+  include_universe: ['包含股票池', '流水线 universe 作为一个候选来源'],
+  keep_holdings: ['保留持仓', '已持有的股票始终留在 universe 中，落选后仍可卖出'],
+  max_raw_candidates: ['最多原始候选', '限制拉取 K 线的数量'],
+  timeframe: ['K 线周期'],
+  lookback_days: ['回溯天数'],
+  bars_lookback: ['加载 K 线数', '用于计算指标（SMA 200、52 周区间）'],
+  refresh_bars: ['刷新 K 线'],
+  screen: ['量化初筛'],
+  min_bars: ['最少 K 线数'],
+  min_price: ['最低价格'],
+  max_price: ['最高价格'],
+  min_avg_dollar_volume: ['最低日均成交额', '最近 20 根 K 线 收盘价×成交量 的均值'],
+  max_volatility: ['最大波动率', '60 日年化，例如 0.8'],
+  max_candidates: ['最多候选', '展示给 agent 的候选数量'],
+  aggregation: ['聚合方式'],
+  method: ['方法'],
+  top_n: ['选出数量'],
+  min_score: ['最低分数'],
+  max_picks_per_agent: ['每个 agent 最多挑选'],
+  fallback: ['兜底策略', 'agent 全部失败时：previous 沿用上次；holdings 只保留持仓；fail 失败'],
+  // scanner / static
+  host: ['主机'],
+  port: ['端口'],
+  client_id: ['Client ID'],
+  scan_code: ['扫描代码', '例如 MOST_ACTIVE、TOP_PERC_GAIN、HOT_BY_VOLUME'],
+  instrument: ['品种'],
+  location: ['市场'],
+  rows: ['返回行数'],
+  above_price: ['价格高于'],
+  below_price: ['价格低于'],
+  above_volume: ['成交量高于'],
+  market_cap_above: ['市值高于（百万美元）'],
+  market_cap_below: ['市值低于（百万美元）'],
+  stock_type: ['股票类型', 'ALL、CORP（普通股）、ADR、ETF、REIT、CEF'],
+  filters: ['额外过滤标签'],
+  connect_timeout_s: ['连接超时（秒）'],
+  symbols: ['股票代码'],
+  note: ['备注'],
+  // data update
+  timeframes: ['K 线周期'],
+  quotes: ['报价快照'],
+  fail_on_error: ['有错误即失败', '任一股票更新失败时让阶段失败'],
+  // sentiment
+  source_options: ['来源选项'],
+  lookback_hours: ['回溯小时数'],
+  prefilter: ['预过滤'],
+  max_items_per_symbol: ['每只股票最多条目', '控制 token：每个 agent 每只股票最多这么多帖子'],
+  max_chars_per_item: ['每条最多字符'],
+  min_chars: ['最少字符'],
+  bot_authors: ['机器人作者'],
+  bot_name_pattern: ['机器人名称正则'],
+  half_life_hours: ['半衰期（小时）', '帖子排序权重随时间衰减的速度'],
+  min_sources_ok: ['最少成功来源数'],
+  subreddits: ['Subreddit 列表'],
+  limit: ['每次请求条数'],
+  min_upvotes: ['最少点赞'],
+  include_nsfw: ['包含 NSFW'],
+  aliases: ['别名', '例如 AAPL: [Apple]'],
+  providers: ['供应商'],
+  max_headlines: ['最多标题数'],
+  fetch_bodies: ['下载正文', '每篇文章多一次请求'],
+  max_body_chars: ['正文最多字符'],
+  // decision
+  min_confidence: ['最低置信度', '低于该置信度的决策视为 hold'],
+  recent_bars_in_prompt: ['提示词中的 K 线数'],
+  history_limit: ['历史决策条数', '展示给 agent 的过去最终决策（及其后的价格变化）'],
+  // risk stage
+  rules: ['风控规则', 'configs/risk/<名称>.yaml，硬规则先于风控 agent 执行'],
+  combine: ['合并方式', 'most_conservative 取最保守；median 取中位'],
+  on_agent_failure: ['agent 失败时', 'reject 拒绝（安全）；approve 放行'],
+  max_quote_age_minutes: ['报价最长时效（分钟）', '更旧的报价被忽略，改用最近收盘价'],
+  // trading
+  order_type: ['订单类型'],
+  limit_offset_bps: ['限价偏移（bp）', '买入在卖一价上加、卖出在买一价上减'],
+  time_in_force: ['有效期'],
+  cancel_after_minutes: ['未成交撤单（分钟）'],
+  poll_interval_seconds: ['轮询间隔（秒）'],
+  wait_for_fills: ['等待成交'],
+  // agent
+  agent_id: ['Agent ID'],
+  role: ['角色'],
+  impl: ['实现', '注册表中的实现名，默认等于角色'],
+  prompt_version: ['提示词版本'],
+  model: ['模型'],
+  persona: ['人设（system prompt）'],
+  prompt_template: ['提示词模板'],
+  params: ['参数'],
+  instructions: ['策略说明', '插入到提示词模板的 instructions 变量'],
+  provider: ['LLM 供应商'],
+  max_tokens: ['最大输出 token'],
+  temperature: ['温度', '最新的 Claude 模型不接受采样参数，留空'],
+  effort: ['推理强度'],
+  max_validation_attempts: ['结构化输出最多重试'],
+  agent: ['Agent'],
+  count: ['实例数', '>1 时创建多个独立实例'],
+  weight: ['权重'],
+  // account
+  broker: ['券商'],
+  account_id: ['账户号', '建议写 ${IBKR_ACCOUNT}，真实账户号放在 .env'],
+  base_currency: ['基础币种'],
+  // risk rules
+  kill_switch: ['熔断开关', '开启后所有订单变为 HOLD（数据库中的全局开关效果相同）'],
+  max_position_pct: ['单只最大仓位', '占策略净值的比例，0.2 = 20%'],
+  max_gross_exposure_pct: ['总持仓上限', '0.9 = 90%'],
+  min_cash_pct: ['最低现金比例'],
+  max_daily_loss_pct: ['单日最大亏损', '触发后当天只能 HOLD/SELL'],
+  max_weekly_loss_pct: ['单周最大亏损'],
+  max_trades_per_day: ['每日最多交易'],
+  max_order_notional: ['单笔最大金额', 'null 表示不限制'],
+  one_order_per_symbol_per_day: ['每只股票每天一单'],
+  whitelist: ['白名单', '为空表示股票池内全部允许'],
+  blacklist: ['黑名单'],
+  liquidity: ['流动性'],
+  max_spread_bps: ['最大买卖价差（bp）'],
+  min_avg_volume: ['最低 20 日均量（股）'],
+  require_quote: ['必须有双边报价'],
+  trading_hours: ['交易时段'],
+  calendar: ['交易日历'],
+  // providers
+  kind: ['接口类型', 'anthropic：Anthropic Messages API；openai_compatible：OpenAI Chat Completions 兼容接口'],
+  base_url: ['Base URL', '留空使用 SDK 默认地址'],
+  api_key_env: ['API Key 环境变量', '只写变量名，key 本身放在 .env'],
+  max_concurrency: ['最大并发'],
+  max_attempts: ['最多尝试次数'],
+  timeout_s: ['超时（秒）'],
+  structured_output: ['结构化输出方式'],
+  max_tokens_param: ['max_tokens 参数名'],
+  extra_headers: ['额外请求头'],
+  extra_body: ['额外请求字段'],
+  // schedules
+  timezone: ['时区'],
+  jobs: ['任务'],
+  pipeline: ['流水线'],
+  trigger: ['触发方式', 'market_relative：相对开盘/收盘；cron：交易所时区下的 crontab'],
+  anchor: ['锚点'],
+  offset_minutes: ['偏移（分钟）', '正数为之后，负数为之前'],
+  cron: ['Cron 表达式', '5 字段，例如 0 11 * * MON'],
+  skip_non_trading_days: ['跳过非交易日'],
+  dry_run: ['Dry run'],
+  misfire_grace_minutes: ['错过容忍（分钟）'],
+};
+
+export function label(key: string | number): string {
+  return L[String(key)]?.[0] ?? String(key);
+}
+
+export function help(key: string | number): string | undefined {
+  return L[String(key)]?.[1];
+}
+
+export const STAGE_INFO: Record<string, { label: string; color: string; desc: string }> = {
+  selection: { label: '选股', color: '#8e24aa', desc: '候选池 + 扫描器 → 量化初筛 → 选股 agent → 聚合' },
+  data_update: { label: '行情更新', color: '#1e88e5', desc: 'IBKR 历史 K 线、报价快照、账户与持仓快照' },
+  sentiment: { label: '舆情', color: '#00897b', desc: 'Reddit / Stocktwits / IBKR 新闻 → 舆情 agent' },
+  decision: { label: '决策', color: '#f4511e', desc: '决策 agent 多实例投票 → 聚合为最终动作' },
+  risk: { label: '风控', color: '#e53935', desc: '硬规则 → 风控 agent（只能降低风险）' },
+  trading: { label: '交易', color: '#43a047', desc: '限价单、幂等下单、跟踪成交/撤单' },
+};
+
+export function stageLabel(type: string): string {
+  return STAGE_INFO[type]?.label ?? type;
+}
+
+export const ROLE_LABEL: Record<string, string> = {
+  selection: '选股',
+  sentiment: '舆情',
+  decision: '决策',
+  risk: '风控',
+};
+
+export const ACTION_COLOR: Record<string, 'success' | 'error' | 'default' | 'warning' | 'info'> = {
+  strong_buy: 'success',
+  buy: 'success',
+  hold: 'default',
+  sell: 'error',
+  strong_sell: 'error',
+};

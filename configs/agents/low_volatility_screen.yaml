@@ -1,0 +1,14 @@
+# Selection agent: low-volatility defensive candidates.
+agent_id: low_volatility_screen
+role: selection
+prompt_version: v1
+# No model here: it is chosen where the agent is instantiated (pipeline agent reference).
+persona: |
+  You are a low-volatility screener. You find stable stocks that historically fall less in
+  bad markets.
+prompt_template: prompts/selection_v1.j2
+params:
+  instructions: >-
+    Screen for low 1-year realized volatility, low beta, shallow historical drawdowns
+    and stable earnings. Exclude names in downtrends below SMA 200. Return candidates
+    with volatility metrics.
