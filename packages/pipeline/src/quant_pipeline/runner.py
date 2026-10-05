@@ -298,49 +298,68 @@ class PipelineRunner:
                     )
                 )
                 built = []
-            for cfg, stage in built:
-                t0 = time.perf_counter()
-                try:
-                    ctx = await stage.run(ctx)
-                    ctx.completed_stages.append(cfg.type)
-                    status = "ok"
-                except Exception as exc:
-                    skip = cfg.on_error is OnError.SKIP
-                    ctx.errors.append(
-                        StageError(
-                            stage=cfg.type,
-                            error_type=type(exc).__name__,
-                            message=str(exc),
-                            skipped=skip,
+            finished = False
+            try:
+                total = len(built)
+                for index, (cfg, stage) in enumerate(built):
+                    log.info("pipeline.stage_start", stage=cfg.type, index=index, total=total)
+                    t0 = time.perf_counter()
+                    try:
+                        ctx = await stage.run(ctx)
+                        ctx.completed_stages.append(cfg.type)
+                        status = "ok"
+                    except Exception as exc:
+                        skip = cfg.on_error is OnError.SKIP
+                        ctx.errors.append(
+                            StageError(
+                                stage=cfg.type,
+                                error_type=type(exc).__name__,
+                                message=str(exc),
+                                skipped=skip,
+                            )
                         )
+                        log.error(
+                            "pipeline.stage_failed",
+                            stage=cfg.type,
+                            skipped=skip,
+                            error=f"{type(exc).__name__}: {exc}",
+                        )
+                        status = "failed_skipped" if skip else "failed"
+                    timings[cfg.type] = {
+                        "status": status,
+                        "seconds": round(time.perf_counter() - t0, 3),
+                    }
+                    log.info(
+                        "pipeline.stage_done", stage=cfg.type, index=index, **timings[cfg.type]
                     )
-                    log.error(
-                        "pipeline.stage_failed",
-                        stage=cfg.type,
-                        skipped=skip,
-                        error=f"{type(exc).__name__}: {exc}",
+                    if ctx.aborted:
+                        break  # fail-safe: later stages (and so trading) never run
+                finished = True
+            finally:
+                # Also on cancellation (e.g. stopped from the web UI): release the gateway
+                # connections and never leave the run marked as running.
+                if services is not None:
+                    await self._close(services, stages)
+                if not finished:
+                    await self.repos.runs.finish_run(
+                        run_id,
+                        RunStatus.FAILED,
+                        error="cancelled before completion",
+                        summary=summarize(ctx, timings),
                     )
-                    status = "failed_skipped" if skip else "failed"
-                timings[cfg.type] = {
-                    "status": status,
-                    "seconds": round(time.perf_counter() - t0, 3),
-                }
-                if ctx.aborted:
-                    break  # fail-safe: later stages (and so trading) never run
-            if services is not None:
-                await self._close(services, stages)
+                    log.warning("pipeline.cancelled")
 
-            status = RunStatus.FAILED if ctx.aborted else RunStatus.SUCCEEDED
+            run_status = RunStatus.FAILED if ctx.aborted else RunStatus.SUCCEEDED
             summary = summarize(ctx, timings)
             await self.repos.runs.finish_run(
                 run_id,
-                status,
+                run_status,
                 error="; ".join(f"{e.stage}: {e.message}" for e in ctx.errors if not e.skipped)
                 or None,
                 summary=summary,
             )
-            log.info("pipeline.finish", status=status.value, summary=summary)
-        return RunReport(run_id, pipeline.name, mode, status, summary, ctx, list(ctx.errors))
+            log.info("pipeline.finish", status=run_status.value, summary=summary)
+        return RunReport(run_id, pipeline.name, mode, run_status, summary, ctx, list(ctx.errors))
 
 
 def summarize(ctx: PipelineContext, timings: dict[str, dict[str, Any]]) -> dict[str, Any]:

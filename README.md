@@ -9,6 +9,7 @@
 ```
 configs/      运行时 YAML 配置（不打包）
 packages/     每个子目录是一个独立 Poetry 包（quant-<name>，源码在 src/quant_<name>/）
+web/          Web 控制台前端（React + MUI + Vite），后端是 packages/webapi
 tests/        跨包集成测试（默认不运行）
 tasks.py      跨平台任务入口（Makefile 只是它的封装）
 ```
@@ -16,7 +17,7 @@ tasks.py      跨平台任务入口（Makefile 只是它的封装）
 包依赖（由 import-linter 在 `lint` 中强制检查）：
 
 ```
-core ← database ← {market_data, selection, sentiment, decision, risk, trading} ← pipeline ← scheduler
+core ← database ← {market_data, selection, sentiment, decision, risk, trading} ← pipeline ← scheduler ← webapi
 ```
 
 中间层的业务包之间禁止互相 import。
@@ -36,6 +37,17 @@ poetry run quant run -p long_term_stocks --offline         # 无需网关、API 
 4. 定时运行：用 `quant-scheduler plan` 查看排程，再用 `quant-scheduler run` 启动；也可以用 `docker compose up -d` 一次性启动 postgres、ib-gateway 和 scheduler（见 `packages/scheduler/README.md`）。
 
 各包的详细说明见 `packages/*/README.md`。
+
+## Web 控制台
+
+```bash
+python tasks.py web                 # 安装前端依赖并构建 web/dist（需要 Node.js）
+poetry run quant-web serve          # http://127.0.0.1:8765
+```
+
+可视化编辑 `configs/` 下的所有 YAML（流水线与各阶段、agent、提示词模板、风控规则、账户、LLM 供应商、调度），
+启动流水线并实时查看进度和日志，启停调度器，浏览数据库中的所有数据（运行、LLM 调用、订单、持仓、K 线）。
+控制台没有登录且能下单，默认只监听本机，不要对外暴露。详见 `packages/webapi/README.md` 和 `web/README.md`。
 
 ## 开发环境
 

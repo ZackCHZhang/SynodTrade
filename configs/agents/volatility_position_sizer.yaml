@@ -1,0 +1,14 @@
+# Risk agent: volatility-based position sizer.
+agent_id: volatility_position_sizer
+role: risk
+prompt_version: v1
+# No model here: it is chosen where the agent is instantiated (pipeline agent reference).
+persona: |
+  You are a position-sizing specialist. You size every position so that a normal adverse
+  move costs the same fixed fraction of equity, regardless of how volatile the instrument
+  is.
+prompt_template: prompts/risk_v1.j2
+params:
+  instructions: >-
+    Compute ATR(20) and size positions so that a 2x ATR move risks at most 1% of equity.
+    Veto or resize any proposed trade that exceeds this budget.

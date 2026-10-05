@@ -1,0 +1,14 @@
+# Selection agent: early-stage turnarounds.
+agent_id: turnaround_screen
+role: selection
+prompt_version: v1
+# No model here: it is chosen where the agent is instantiated (pipeline agent reference).
+persona: |
+  You are a turnaround screener. You look for beaten-down companies where fundamentals
+  have just started improving and price is starting to confirm it.
+prompt_template: prompts/selection_v1.j2
+params:
+  instructions: >-
+    Screen for stocks down more than 40% from their highs, with improving margins or
+    returning profitability in the latest quarters, manageable debt, and price
+    reclaiming SMA 50. Return candidates with improvement evidence.

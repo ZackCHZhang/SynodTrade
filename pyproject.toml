@@ -22,6 +22,7 @@ quant-risk = { path = "packages/risk", develop = true }
 quant-trading = { path = "packages/trading", develop = true }
 quant-pipeline = { path = "packages/pipeline", develop = true }
 quant-scheduler = { path = "packages/scheduler", develop = true }
+quant-webapi = { path = "packages/webapi", develop = true }
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.8"
@@ -65,6 +66,7 @@ ignore = [
 known-first-party = [
     "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
     "quant_decision", "quant_risk", "quant_trading", "quant_pipeline", "quant_scheduler",
+    "quant_webapi",
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]
@@ -81,7 +83,7 @@ plugins = ["pydantic.mypy"]
 disable_error_code = ["type-abstract"]
 
 [[tool.mypy.overrides]]
-module = ["exchange_calendars", "exchange_calendars.*", "pandas", "pandas.*", "apscheduler", "apscheduler.*"]
+module = ["exchange_calendars", "exchange_calendars.*", "pandas", "pandas.*", "apscheduler", "apscheduler.*", "uvicorn", "uvicorn.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]
@@ -112,6 +114,7 @@ branch = true
 source = [
     "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
     "quant_decision", "quant_risk", "quant_trading", "quant_pipeline", "quant_scheduler",
+    "quant_webapi",
 ]
 
 [tool.coverage.report]
@@ -122,18 +125,20 @@ exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
 # ---------------------------------------------------------------- import-linter
 # Enforces the package DAG:
 #   core <- database <- {market_data, selection, sentiment, decision, risk, trading}
-#        <- pipeline <- scheduler
+#        <- pipeline <- scheduler <- webapi
 # Business packages in the middle layer must not import each other.
 [tool.importlinter]
 root_packages = [
     "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
     "quant_decision", "quant_risk", "quant_trading", "quant_pipeline", "quant_scheduler",
+    "quant_webapi",
 ]
 
 [[tool.importlinter.contracts]]
 name = "Package dependency DAG"
 type = "layers"
 layers = [
+    "quant_webapi",
     "quant_scheduler",
     "quant_pipeline",
     "quant_market_data | quant_selection | quant_sentiment | quant_decision | quant_risk | quant_trading",

@@ -29,6 +29,11 @@ Thumbs.db
 
 # runtime
 logs/
+configs/.web_backups/
+
+# web console
+web/node_modules/
+web/dist/
 *.log
 *.sqlite
 *.db

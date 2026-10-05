@@ -12,7 +12,7 @@
 # 模型：DeepSeek（configs/llm_providers.yaml 的 deepseek，key 放在 .env 的 DEEPSEEK_API_KEY）。
 
 name: demo_all_modules
-mode: dry_run                 # dry_run | paper | live（live 还需要 QUANT_ALLOW_LIVE=1）
+mode: paper                 # dry_run | paper | live（live 还需要 QUANT_ALLOW_LIVE=1）
 account: ibkr_main            # configs/accounts/ibkr_main.yaml
 # 有 selection 阶段时，universe 是选股的候选池（再加上扫描器的结果）
 universe: [AAPL, MSFT, NVDA, AMZN, GOOGL, META, JPM, V, COST, LLY]
@@ -35,6 +35,9 @@ stages:
           model: { provider: deepseek, name: deepseek-chat } }
       - { agent: defensive_screener, count: 1, weight: 1.0,
           model: { provider: deepseek, name: deepseek-chat } }
+      - { agent: thematic_innovation, count: 1, model: { provider: deepseek, name: deepseek-chat } }
+      - { agent: earnings_surprise_screen, count: 1, model: { provider: deepseek, name: deepseek-chat } }
+      - { agent: shareholder_yield_screen, count: 1, model: { provider: deepseek, name: deepseek-chat } }
     aggregation: { method: weighted_score, top_n: 3, min_score: 0.2 }
     max_picks_per_agent: 5
     keep_holdings: true          # 已持有的股票始终保留，落选后仍可卖出
@@ -62,7 +65,10 @@ stages:
           model: { provider: deepseek, name: deepseek-chat } }
       - { agent: trend_follower, count: 1, weight: 0.8,
           model: { provider: deepseek, name: deepseek-chat } }
-    aggregation: { method: weighted_vote, min_confidence: 0.6 }
+      - { agent: breakout_trader, count: 1, model: { provider: deepseek, name: deepseek-chat } }
+      - { agent: pullback_buyer, count: 1, model: { provider: deepseek, name: deepseek-chat } }
+      - { agent: value_investor, count: 1, model: { provider: deepseek, name: deepseek-chat } }
+    aggregation: { method: weighted_vote, min_confidence: 0.5 }
     bars_lookback: 260
     history_limit: 5
 
@@ -72,6 +78,7 @@ stages:
     agents:
       - { agent: conservative_risk_officer, count: 1,
           model: { provider: deepseek, name: deepseek-chat } }
+      - { agent: liquidity_checker, count: 1, model: { provider: deepseek, name: deepseek-chat } }
     combine: most_conservative
     on_agent_failure: reject
 

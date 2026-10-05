@@ -10,10 +10,12 @@ Usage:
     python tasks.py cov              # all unit tests with coverage report
     python tasks.py integration      # tests marked @pytest.mark.integration (real services)
     python tasks.py check            # lint + typecheck + test
+    python tasks.py web              # install and build the web console (web/ -> web/dist)
 """
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable
@@ -67,6 +69,16 @@ def integration() -> None:
     run("pytest", "-m", "integration")
 
 
+def web() -> None:
+    npm = shutil.which("npm")
+    if npm is None:
+        sys.exit("npm not found: install Node.js (>= 20) to build the web console")
+    for args in (["install"], ["run", "build"]):
+        print("$ npm", " ".join(args), flush=True)
+        if subprocess.run([npm, *args], cwd=ROOT / "web", check=False).returncode != 0:
+            sys.exit(1)
+
+
 def check() -> None:
     lint()
     typecheck()
@@ -82,6 +94,7 @@ TASKS: dict[str, Callable[[], None]] = {
     "cov": cov,
     "integration": integration,
     "check": check,
+    "web": web,
 }
 
 
