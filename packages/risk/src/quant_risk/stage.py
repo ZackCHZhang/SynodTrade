@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from quant_core.agent_factory import AgentSlot, instantiate_agents
 from quant_core.config import AccountConfig, AgentRole, ConfigStore, PipelineConfig, StageConfig
-from quant_core.indicators import compute_indicators
+from quant_core.indicators import compute_indicators, indicator_rows, unavailable_notes
 from quant_core.llm import LLMClientPool
 from quant_core.logging import get_logger
 from quant_core.models import Action, AggregatedDecision, PipelineContext, RiskVerdict, Timeframe
@@ -182,12 +182,7 @@ class RiskStage:
         bars = await self._repos.bars.get_latest_bars(
             symbol, 260, self.options.timeframe, as_of=ctx.as_of
         )
-        snap = compute_indicators(bars)
-
-        def f(value: float | None, pct: bool = True) -> str:
-            if value is None:
-                return "n/a"
-            return f"{value * 100:+.2f}%" if pct else f"{value:.2f}"
+        snap = compute_indicators(bars, warn=False)  # the decision stage already logged gaps
 
         sized = outcome.sized
         return {
@@ -203,14 +198,10 @@ class RiskStage:
                 **state_before,
             },
             "portfolio": state_before,
-            "market": {
-                "last_close": f(snap.last_close, pct=False),
-                "return_1d": f(snap.return_1d),
-                "return_20d": f(snap.return_20d),
-                "volatility_20d": f(snap.volatility_20d),
-                "from_52w_high": f(snap.from_52w_high),
-                "rsi_14": f(snap.rsi_14, pct=False),
-            },
+            "indicators": [
+                {"label": r["label"], "value": r["value"]} for r in indicator_rows(snap)
+            ],
+            "indicators_unavailable": unavailable_notes(snap),
             "aggregation": {"method": agg.method, "score": f"{agg.score:+.3f}"},
             "decisions": [
                 {

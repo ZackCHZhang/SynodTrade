@@ -1,12 +1,14 @@
 """Shared fixtures for quant_core tests."""
 
 import copy
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
+
+from quant_core.indicators import BarSeries
 
 PIPELINE: dict[str, Any] = {
     "name": "long_term_stocks",
@@ -103,3 +105,29 @@ def write_yaml_fixture() -> Callable[[Path, Any], Path]:
 @pytest.fixture(name="agent_yaml")
 def agent_yaml_fixture() -> Callable[[str, str], dict[str, Any]]:
     return agent_yaml
+
+
+# ---------------------------------------------------------------- indicators (tests/indicators)
+def make_series(
+    closes: Sequence[float],
+    *,
+    spread: float = 1.0,
+    volumes: Sequence[float] | None = None,
+    opens: Sequence[float] | None = None,
+    highs: Sequence[float] | None = None,
+    lows: Sequence[float] | None = None,
+) -> BarSeries:
+    """Bars around `closes`: open = close, high/low = close ± spread unless given."""
+    c = [float(x) for x in closes]
+    return BarSeries(
+        opens=[float(x) for x in opens] if opens is not None else list(c),
+        highs=[float(x) for x in highs] if highs is not None else [x + spread for x in c],
+        lows=[float(x) for x in lows] if lows is not None else [x - spread for x in c],
+        closes=c,
+        volumes=[float(x) for x in volumes] if volumes is not None else [1000.0] * len(c),
+    )
+
+
+@pytest.fixture
+def series() -> Callable[..., BarSeries]:
+    return make_series

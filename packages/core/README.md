@@ -30,18 +30,43 @@
 
 ### 技术指标（`quant_core.indicators`）
 
-全部由代码计算，LLM 不做任何计算。输入是按时间正序的日线，历史不够时对应字段为 `None`：
+全部由代码计算，LLM 不做任何计算。输入是按时间正序的已收盘 K 线。
 
-- 收益率：1、5、20、60、120、250 日
-- 年化波动率：20 日、60 日（日对数收益）
-- SMA 20/50/200，以及收盘价相对各均线的偏离
-- RSI 14（Wilder 平滑）
-- MACD(12,26,9)：MACD 线、信号线、柱
-- 52 周高点、低点，以及当前价与它们的距离（需要至少 252 根 K 线）
-- 近一年最大回撤
-- 最后一根 K 线的成交量相对前 20 日均量的倍数
+**每个指标一个文件**（`quant_core/indicators/<name>.py`），各自导出一个 `Indicator`：要填的快照字段、每个字段需要的最少 K 线数，以及一个纯函数 `compute(BarSeries)`。`compute_indicators(bars)` 依次运行所有指标，返回 `TechnicalSnapshot`。
 
-目前**没有** ATR、z 分数、ADX、OBV、VWAP、跳空统计等指标。
+| 文件 | 字段 | 最少 K 线 |
+|---|---|---|
+| `returns.py` | `return_1d` / `5d` / `20d` / `60d` / `120d` / `250d` | 周期 + 1 |
+| `volatility.py` | `volatility_20d`、`volatility_60d`（收盘价对数收益，年化） | 21 / 61 |
+| `parkinson.py` | `parkinson_vol_20d`（用最高 / 最低价计算的年化波动率，不含跳空） | 20 |
+| `atr.py` | `atr_14`（价格单位）、`atr_pct`（占收盘价比例），Wilder 平滑，含跳空 | 15 |
+| `moving_average.py` | `sma_20` / `50` / `200`，`price_vs_sma_*` | 20 / 50 / 200 |
+| `zscore.py` | `zscore_20`：(收盘价 − SMA20) / 20 日标准差 | 20 |
+| `bollinger.py` | `bollinger_pct_b_20`（0 = 下轨，1 = 上轨）、`bollinger_width_20` | 20 |
+| `rsi.py` | `rsi_14`（Wilder） | 15 |
+| `macd.py` | `macd`、`macd_signal`、`macd_histogram`（12, 26, 9） | 26 / 34 |
+| `adx.py` | `adx_14`（趋势强度）、`plus_di_14`、`minus_di_14` | 28 / 15 |
+| `range_52w.py` | `high_52w`、`low_52w`、`from_52w_high`、`from_52w_low` | 252 |
+| `drawdown.py` | `max_drawdown_1y` | 252 |
+| `gap_share.py` | `gap_variance_share_60d`：60 日价格波动中来自隔夜跳空的比例 | 61 |
+| `max_gap.py` | `max_gap_60d`：60 日内最大的隔夜跳空（带符号） | 61 |
+| `gap_frequency.py` | `gap_freq_2atr_60d`：60 日中跳空超过前一日 2 倍 ATR 的天数比例 | 75 |
+| `volume_ratio.py` | `volume_ratio_20d`：最后一根成交量 / 前 20 根均量 | 21 |
+| `updown_volume.py` | `updown_volume_ratio_10d`：近 10 天上涨日均量 / 下跌日均量 | 11 |
+| `obv.py` | `obv_trend_20d`（−1..1）、`obv_from_high_250d`（≤ 0，0 = OBV 处于 250 日新高） | 21 / 251 |
+| `vwap.py` | `vwap_5d` / `20d` / `60d`、`price_vs_vwap_20d` | 5 / 20 / 60 |
+| `return_volume_corr.py` | `return_volume_corr_20d`：日收益与成交量变化的相关系数 | 21 |
+| `amihud.py` | `amihud_illiquidity_20d`：每成交 100 万美元对应的平均涨跌幅 | 21 |
+
+`_math.py` 只放共用的计算函数（SMA、EMA、Wilder 平滑、真实波幅、相关系数），`format.py` 定义每个字段在 prompt 里的标签和格式（`FIELDS`、`indicator_rows()`、`unavailable_notes()`），决策、风控 agent 共用。
+
+**数据不够时只警告，不报错**：
+- 某个字段算不出来时值为 `None`，原因写进 `TechnicalSnapshot.warnings`（`IndicatorWarning`：指标名、字段、原因、需要 / 实际的 K 线数）。原因分三种：`insufficient_data`（K 线不够）、`degenerate_data`（K 线够了，但数据无法计算，例如没有成交量、价格完全不变）、`error`（指标内部的算术错误，被捕获后记录）。
+- 一个指标出错不影响其他指标。
+- `compute_indicators(bars)` 默认把缺失的字段汇总成一条 `indicators.unavailable` 警告日志（`warn=False` 时不写日志，例如风控阶段，因为决策阶段已经对同样的 K 线记过一次）。
+- 决策和风控的 prompt 会列出"本标的不可用的指标及原因"，并要求模型把缺失的数据当作未知，不要自行估算。
+
+新增指标：在 `indicators/` 下新建一个文件导出 `INDICATOR`，加入 `snapshot.INDICATORS`，在 `TechnicalSnapshot` 和 `format.FIELDS` 里加上字段，并在 `tests/indicators/` 下写一个测试文件（`test_snapshot.py` 会检查三者一致）。
 
 ### 接入不同厂商的模型
 
@@ -149,18 +174,43 @@ It is the root of the dependency graph and depends on no other `quant-*` package
 
 ### Technical indicators (`quant_core.indicators`)
 
-All computed in code; the LLM never does arithmetic. Input is daily bars, oldest first; a field is `None` when there is not enough history:
+All computed in code; the LLM never does arithmetic. Input is completed bars, oldest first.
 
-- Returns over 1, 5, 20, 60, 120 and 250 days
-- Annualised volatility over 20 and 60 days (daily log returns)
-- SMA 20/50/200 and the close's distance from each
-- RSI 14 (Wilder smoothing)
-- MACD(12,26,9): line, signal, histogram
-- 52-week high and low and the distance from each (needs at least 252 bars)
-- Maximum drawdown over one year
-- Last bar's volume relative to the previous 20-day average
+**One file per indicator** (`quant_core/indicators/<name>.py`), each exporting one `Indicator`: the snapshot fields it fills, the minimum number of completed bars each field needs, and a pure function `compute(BarSeries)`. `compute_indicators(bars)` runs them all and returns a `TechnicalSnapshot`.
 
-There is currently **no** ATR, z-score, ADX, OBV, VWAP or gap statistic.
+| File | Fields | Minimum bars |
+|---|---|---|
+| `returns.py` | `return_1d` / `5d` / `20d` / `60d` / `120d` / `250d` | period + 1 |
+| `volatility.py` | `volatility_20d`, `volatility_60d` (close-to-close log returns, annualised) | 21 / 61 |
+| `parkinson.py` | `parkinson_vol_20d` (annualised volatility from high / low ranges, excludes gaps) | 20 |
+| `atr.py` | `atr_14` (price units), `atr_pct` (fraction of the close); Wilder smoothing, includes gaps | 15 |
+| `moving_average.py` | `sma_20` / `50` / `200`, `price_vs_sma_*` | 20 / 50 / 200 |
+| `zscore.py` | `zscore_20`: (close − SMA20) / 20-day standard deviation | 20 |
+| `bollinger.py` | `bollinger_pct_b_20` (0 = lower band, 1 = upper band), `bollinger_width_20` | 20 |
+| `rsi.py` | `rsi_14` (Wilder) | 15 |
+| `macd.py` | `macd`, `macd_signal`, `macd_histogram` (12, 26, 9) | 26 / 34 |
+| `adx.py` | `adx_14` (trend strength), `plus_di_14`, `minus_di_14` | 28 / 15 |
+| `range_52w.py` | `high_52w`, `low_52w`, `from_52w_high`, `from_52w_low` | 252 |
+| `drawdown.py` | `max_drawdown_1y` | 252 |
+| `gap_share.py` | `gap_variance_share_60d`: share of 60-day price variation from overnight gaps | 61 |
+| `max_gap.py` | `max_gap_60d`: largest overnight gap in 60 days (signed) | 61 |
+| `gap_frequency.py` | `gap_freq_2atr_60d`: share of the last 60 days that gapped more than 2× the previous day's ATR | 75 |
+| `volume_ratio.py` | `volume_ratio_20d`: last volume / average of the previous 20 | 21 |
+| `updown_volume.py` | `updown_volume_ratio_10d`: average volume on up days / down days over 10 days | 11 |
+| `obv.py` | `obv_trend_20d` (−1..1), `obv_from_high_250d` (≤ 0; 0 = OBV at a 250-day high) | 21 / 251 |
+| `vwap.py` | `vwap_5d` / `20d` / `60d`, `price_vs_vwap_20d` | 5 / 20 / 60 |
+| `return_volume_corr.py` | `return_volume_corr_20d`: correlation of daily returns with volume changes | 21 |
+| `amihud.py` | `amihud_illiquidity_20d`: average absolute return per USD 1 million traded | 21 |
+
+`_math.py` holds shared helpers only (SMA, EMA, Wilder smoothing, true range, correlation); `format.py` defines each field's prompt label and format (`FIELDS`, `indicator_rows()`, `unavailable_notes()`), shared by decision and risk agents.
+
+**Missing data warns, it never raises**:
+- A field that cannot be computed is `None`, and the reason goes into `TechnicalSnapshot.warnings` (`IndicatorWarning`: indicator, fields, reason, bars needed / available). Three reasons: `insufficient_data` (too few bars), `degenerate_data` (enough bars, but the data cannot produce a value, e.g. no volume or completely flat prices), `error` (an arithmetic error inside an indicator, caught and recorded).
+- One failing indicator never affects the others.
+- By default `compute_indicators(bars)` logs all missing fields as one `indicators.unavailable` warning (`warn=False` skips the log, e.g. in the risk stage, since the decision stage already logged the same bars).
+- Decision and risk prompts list "indicators not available for this symbol, and why", and tell the model to treat missing data as unknown instead of estimating it.
+
+To add an indicator: create a file in `indicators/` exporting `INDICATOR`, add it to `snapshot.INDICATORS`, add its fields to `TechnicalSnapshot` and `format.FIELDS`, and write a test file in `tests/indicators/` (`test_snapshot.py` checks that the three agree).
 
 ### Using models from different vendors
 

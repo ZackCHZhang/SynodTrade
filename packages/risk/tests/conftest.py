@@ -81,14 +81,14 @@ def sample_inputs(**overrides: Any) -> dict[str, Any]:
             "daily_return": "+0.00%",
             "weekly_return": "+0.00%",
         },
-        "market": {
-            "last_close": "100.00",
-            "return_1d": "+1.00%",
-            "return_20d": "+5.00%",
-            "volatility_20d": "+20.00%",
-            "from_52w_high": "-2.00%",
-            "rsi_14": "61.00",
-        },
+        "indicators": [
+            {"label": "Last close", "value": "100.00"},
+            {"label": "Return 1 day", "value": "+1.00%"},
+            {"label": "ATR 14 as % of last close", "value": "+2.00%"},
+        ],
+        "indicators_unavailable": [
+            "range_52w: high_52w: needs 252 completed bars, only 60 available"
+        ],
         "aggregation": {"method": "weighted_vote(min_confidence=0.6)", "score": "+0.200"},
         "decisions": [
             {

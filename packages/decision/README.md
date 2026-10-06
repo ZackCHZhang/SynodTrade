@@ -24,13 +24,14 @@
 
 全部由代码计算，LLM 不做任何计算：
 
-- 技术指标（见 `packages/core/README.md`）：1/5/20/60/120/250 日收益率；20 日、60 日年化波动率；SMA 20/50/200 及偏离；RSI 14；MACD(12,26,9)；52 周高低点及距离；近一年最大回撤；成交量相对前 20 日均量的倍数。历史数据不够时，对应指标为空，不会出现在 prompt 里。
+- 技术指标（完整列表见 `packages/core/README.md`）：收益率、波动率（收盘价、Parkinson、ATR）、均线及偏离、z 分数、布林带、RSI、MACD、ADX / DI、52 周区间、最大回撤、跳空统计、量价指标（成交量比、上涨 / 下跌日量比、OBV、VWAP、量价相关性、Amihud 非流动性）。
+- 算不出来的指标不会出现在列表里，而是在"不可用的指标"一节说明原因（例如"需要 252 根 K 线，只有 60 根"）。
 - 最近 `recent_bars_in_prompt` 根 K 线（开高低收量）。
 - 这条流水线的可用现金、净值，以及该标的的持仓（数量、成本、市值、浮动盈亏、占比）。
 - 本次运行的舆情摘要。
 - 历史最终决策及之后的价格变化。
 
-**没有提供**基本面、财报、宏观、ATR 等数据。部分决策 agent 的 `instructions` 提到了这些数据（例如 `earnings_drift` 要求 EPS 意外、`garp_investor` 要求 PEG、`macro_regime` 要求利率和收益率曲线），模型只能根据上面的信息推断。
+**没有提供**基本面、财报、宏观数据。部分决策 agent 的 `instructions` 提到了这些数据（例如 `earnings_drift` 要求 EPS 意外、`garp_investor` 要求 PEG、`macro_regime` 要求利率和收益率曲线）。prompt 会明确要求模型把这些数据当作未知，不要估算或编造，并在缺失数据影响判断时降低置信度。
 
 ### Prompt 中的数据引用
 
@@ -99,13 +100,14 @@ Decision: builds each symbol's decision context, runs the decision agents and ag
 
 All computed in code; the LLM does no arithmetic:
 
-- Technical indicators (see `packages/core/README.md`): returns over 1/5/20/60/120/250 days; annualised 20- and 60-day volatility; SMA 20/50/200 and distances; RSI 14; MACD(12,26,9); 52-week high / low and distances; 1-year maximum drawdown; volume relative to the previous 20-day average. An indicator without enough history is omitted from the prompt.
+- Technical indicators (full list in `packages/core/README.md`): returns, volatility (close-to-close, Parkinson, ATR), moving averages and distances, z-score, Bollinger Bands, RSI, MACD, ADX / DI, 52-week range, maximum drawdown, gap statistics, and volume-price indicators (volume ratio, up / down-day volume ratio, OBV, VWAP, return-volume correlation, Amihud illiquidity).
+- Indicators that cannot be computed are left out of the list and explained in a "not available" section (e.g. "needs 252 bars, only 60 available").
 - The latest `recent_bars_in_prompt` bars (OHLCV).
 - The pipeline's available cash and NAV, and the position in the symbol (quantity, cost, market value, unrealised P&L, weight).
 - This run's sentiment summaries.
 - Past final decisions and the price move since.
 
-Fundamentals, earnings, macro data and ATR are **not provided**. Some decision agents' `instructions` mention such data (e.g. `earnings_drift` asks for EPS surprises, `garp_investor` for PEG, `macro_regime` for rates and the yield curve); the model can only infer it from the information above.
+Fundamentals, earnings and macro data are **not provided**. Some decision agents' `instructions` mention such data (e.g. `earnings_drift` asks for EPS surprises, `garp_investor` for PEG, `macro_regime` for rates and the yield curve). The prompt explicitly tells the model to treat such data as unknown, never to estimate or invent it, and to lower its confidence when the missing data matters.
 
 ### Data references in the prompt
 
