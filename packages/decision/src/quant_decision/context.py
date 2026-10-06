@@ -13,56 +13,9 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
-from quant_core.indicators import TechnicalSnapshot
+from quant_core.indicators import TechnicalSnapshot, fmt_pct, indicator_rows, unavailable_notes
 from quant_core.models import AggregatedDecision, Bar, SentimentResult
 from quant_database import LedgerState
-
-_PERCENT = {
-    "return_1d", "return_5d", "return_20d", "return_60d", "return_120d", "return_250d",
-    "volatility_20d", "volatility_60d", "price_vs_sma_20", "price_vs_sma_50",
-    "price_vs_sma_200", "from_52w_high", "from_52w_low", "max_drawdown_1y",
-}  # fmt: skip
-_LABELS = {
-    "last_close": "Last close",
-    "return_1d": "Return 1 day",
-    "return_5d": "Return 5 days",
-    "return_20d": "Return 20 days",
-    "return_60d": "Return 60 days",
-    "return_120d": "Return 120 days",
-    "return_250d": "Return 250 days",
-    "volatility_20d": "Volatility 20d (annualised)",
-    "volatility_60d": "Volatility 60d (annualised)",
-    "sma_20": "SMA 20",
-    "sma_50": "SMA 50",
-    "sma_200": "SMA 200",
-    "price_vs_sma_20": "Close vs SMA 20",
-    "price_vs_sma_50": "Close vs SMA 50",
-    "price_vs_sma_200": "Close vs SMA 200",
-    "rsi_14": "RSI 14",
-    "macd": "MACD (12,26)",
-    "macd_signal": "MACD signal (9)",
-    "macd_histogram": "MACD histogram",
-    "high_52w": "52-week high",
-    "low_52w": "52-week low",
-    "from_52w_high": "Distance from 52-week high",
-    "from_52w_low": "Distance from 52-week low",
-    "max_drawdown_1y": "Max drawdown 1 year",
-    "volume_ratio_20d": "Volume vs 20-day average",
-}
-
-
-def fmt_pct(value: float | Decimal) -> str:
-    return f"{float(value) * 100:+.2f}%"
-
-
-def fmt_indicator(name: str, value: float) -> str:
-    if name in _PERCENT:
-        return fmt_pct(value)
-    if name == "rsi_14":
-        return f"{value:.1f}"
-    if name == "volume_ratio_20d":
-        return f"{value:.2f}x"
-    return f"{value:.4f}" if name.startswith("macd") else f"{value:.2f}"
 
 
 @dataclass(slots=True)
@@ -89,14 +42,11 @@ class SymbolContext:
         """Template inputs and the set of data ids shown in them."""
         ids: set[str] = set()
 
-        indicators = []
-        for name, label in _LABELS.items():
-            value = getattr(self.indicators, name)
-            if value is not None:
-                ids.add(f"ind:{name}")
-                indicators.append(
-                    {"id": f"ind:{name}", "label": label, "value": fmt_indicator(name, value)}
-                )
+        indicators = [
+            {"id": r["id"], "label": r["label"], "value": r["value"]}
+            for r in indicator_rows(self.indicators)
+        ]
+        ids.update(r["id"] for r in indicators)
 
         bars = []
         for bar in self.bars[-self.recent_bars_in_prompt :]:
@@ -153,6 +103,7 @@ class SymbolContext:
             "symbol": self.symbol,
             "as_of": self.as_of.isoformat(timespec="minutes"),
             "indicators": indicators,
+            "indicators_unavailable": unavailable_notes(self.indicators),
             "bars": bars,
             "position": position,
             "cash": {

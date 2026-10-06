@@ -9,6 +9,7 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Review historical gap sizes, news sensitivity and upcoming events. Reduce size for
-    names with frequent large gaps so that a typical worst-case gap stays within the
-    risk budget.
+    Review the provided gap statistics (share of price variation from overnight gaps,
+    largest gap and frequency of gaps above 2 ATR over 60 days, Parkinson versus close-to-
+    close volatility), news sensitivity and upcoming events. Reduce size for names with
+    frequent large gaps so that a typical worst-case gap stays within the risk budget.

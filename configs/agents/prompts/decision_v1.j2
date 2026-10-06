@@ -25,6 +25,12 @@ Position: none.
 {% for i in indicators -%}
 - [{{ i.id }}] {{ i.label }}: {{ i.value }}
 {% endfor %}
+{%- if indicators_unavailable %}
+Not available for this symbol (too little history or unusable data):
+{% for u in indicators_unavailable -%}
+- {{ u }}
+{% endfor %}
+{%- endif %}
 ## Recent daily bars (oldest first)
 {% for b in bars -%}
 [{{ b.id }}] O {{ b.open }} H {{ b.high }} L {{ b.low }} C {{ b.close }} V {{ b.volume }}
@@ -55,6 +61,10 @@ None.
 {{ instructions }}
 
 {% endif -%}
+If your approach relies on data that is not shown here (for example fundamentals, earnings
+dates, analyst estimates or index data), treat it as unknown: never estimate or invent it,
+and lower your confidence when the missing data matters for your decision.
+
 Respond with a JSON object containing:
 - "action": one of "strong_buy", "buy", "hold", "sell", "strong_sell"
 - "confidence": number from 0 to 1 — your conviction. Use low values when the evidence is

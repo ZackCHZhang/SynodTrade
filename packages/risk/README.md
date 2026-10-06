@@ -70,12 +70,12 @@
 - 看到的内容：
   - 最初的决策和规则调整后的动作；
   - 拟下订单（方向、数量、金额）和组合状态（现金、敞口、今日 / 本周收益等）；
-  - 6 个市场指标（由 `quant_core.indicators` 计算）：最新收盘价、1 日收益、20 日收益、20 日波动率、距 52 周高点、RSI 14；
+  - 与决策 agent 相同的全部技术指标（由 `quant_core.indicators` 计算，包括 ATR、跳空统计、量价指标），以及不可用指标的说明；
   - 各决策 agent 的动作、置信度和理由，舆情摘要，规则命中情况。
 - **"只能降低风险"由代码强制执行**：每次调用都用一个绑定了本次拟定动作的输出模型来校验（`bounded_output`）。模型给出的动作如果比拟定的更激进或方向相反，就算校验失败：先把错误信息反馈给模型重试，仍不合格则按失败策略处理。之后 `RiskVerdict` 模型还会再校验一次。
 - 失败策略 `on_agent_failure`：默认 `reject`，LLM 不可用时拒绝交易（fail-safe）；也可以设为 `approve`，放行硬规则已通过的动作。
 - 模型在实例化时选择：流水线 agent 引用里的 `model`，或者代码里 `RiskAgent(..., model=...)`。
-- 仓库自带 21 个风控 agent 配置（`role: risk`），例如 `conservative_risk_officer`、`volatility_position_sizer`、`earnings_event_risk`、`gap_risk_monitor`。它们共用模板 `configs/agents/prompts/risk_v1.j2`。其中一些 agent 的 `instructions` 要求 ATR、财报日期、历史跳空、相关性等数据，但风控 agent 只看到上面列出的数据，模型只能据此推断。
+- 仓库自带 21 个风控 agent 配置（`role: risk`），例如 `conservative_risk_officer`、`volatility_position_sizer`、`earnings_event_risk`、`gap_risk_monitor`。它们共用模板 `configs/agents/prompts/risk_v1.j2`。`volatility_position_sizer`、`stop_loss_enforcer`、`gap_risk_monitor` 的指令已改为直接使用提供的 ATR 和跳空统计。财报日期、相关性等数据仍然没有提供，prompt 要求模型把它们当作未知，并在影响判断时偏向更保守的结论。
 
 ### 配置项
 
@@ -168,12 +168,12 @@ The hard rules have **no** volatility-based sizing, transaction-cost check, sect
 - What they see:
   - the original decision and the action after the rules;
   - the proposed order (side, quantity, value) and portfolio state (cash, exposure, today's / this week's return...);
-  - 6 market indicators (computed by `quant_core.indicators`): last close, 1-day return, 20-day return, 20-day volatility, distance from the 52-week high, RSI 14;
+  - the same full set of technical indicators as the decision agents (computed by `quant_core.indicators`, including ATR, gap statistics and volume-price indicators), plus notes on unavailable indicators;
   - each decision agent's action, confidence and reasoning, sentiment summaries and the rule hits.
 - **"Reduce only" is enforced in code**: every call is validated against an output model bound to the proposed action (`bounded_output`). An action more aggressive than proposed, or in the opposite direction, fails validation: the error is fed back for a retry, and if it still fails the failure policy applies. `RiskVerdict` validates once more afterwards.
 - Failure policy `on_agent_failure`: `reject` by default (no trade when the LLM is unavailable — fail-safe); `approve` lets through whatever the hard rules passed.
 - The model is chosen at instantiation: `model` in the pipeline's agent reference, or `RiskAgent(..., model=...)` in code.
-- The repository ships 21 risk agent configs (`role: risk`), e.g. `conservative_risk_officer`, `volatility_position_sizer`, `earnings_event_risk`, `gap_risk_monitor`, all using the template `configs/agents/prompts/risk_v1.j2`. Some of their `instructions` ask for ATR, earnings dates, historical gaps or correlations, but risk agents only see the data listed above; the model can only infer from it.
+- The repository ships 21 risk agent configs (`role: risk`), e.g. `conservative_risk_officer`, `volatility_position_sizer`, `earnings_event_risk`, `gap_risk_monitor`, all using the template `configs/agents/prompts/risk_v1.j2`. The instructions of `volatility_position_sizer`, `stop_loss_enforcer` and `gap_risk_monitor` now use the provided ATR and gap statistics directly. Earnings dates and correlations are still not provided; the prompt tells the model to treat them as unknown and lean toward the more conservative verdict when they matter.
 
 ### Configuration
 
