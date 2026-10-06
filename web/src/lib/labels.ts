@@ -8,6 +8,7 @@ const L: Record<string, Entry> = {
   mode: ['运行模式', 'dry_run 只记录不下单；paper 向模拟账户下单；live 实盘（还需 QUANT_ALLOW_LIVE=1）'],
   account: ['账户'],
   universe: ['股票池', '有选股阶段时作为候选池的一部分'],
+  benchmark: ['大盘基准', '例如 SPY：data_update 自动更新它的日线，后续阶段展示市场状态、beta 和相对强弱；留空不使用'],
   budget: ['资金预算'],
   max_capital: ['资金上限', '这条流水线虚拟子账本的资金'],
   currency: ['币种'],
@@ -65,6 +66,9 @@ const L: Record<string, Entry> = {
   timeframes: ['K 线周期'],
   quotes: ['报价快照'],
   fail_on_error: ['有错误即失败', '任一股票更新失败时让阶段失败'],
+  fundamentals: ['基本面', '从 SEC EDGAR 财报获取基本面（需要 .env 的 SEC_EDGAR_USER_AGENT）；失败不影响阶段'],
+  fundamentals_max_age_hours: ['基本面刷新间隔（小时）', '已存的基本面比这更旧时才重新获取'],
+  stored_sentiment_hours: ['历史舆情（小时）', '本次没有舆情结果时，使用最近 N 小时内已存的舆情分析；0 不使用'],
   // sentiment
   source_options: ['来源选项'],
   lookback_hours: ['回溯小时数'],
@@ -88,7 +92,7 @@ const L: Record<string, Entry> = {
   // decision
   min_confidence: ['最低置信度', '低于该置信度的决策视为 hold'],
   recent_bars_in_prompt: ['提示词中的 K 线数'],
-  history_limit: ['历史决策条数', '展示给 agent 的过去最终决策（及其后的价格变化）'],
+  history_limit: ['历史决策条数', '展示给 agent 的本策略过去最终决策（执行结果及其后的价格变化）'],
   // risk stage
   rules: ['风控规则', 'configs/risk/<名称>.yaml，硬规则先于风控 agent 执行'],
   combine: ['合并方式', 'most_conservative 取最保守；median 取中位'],
@@ -141,6 +145,13 @@ const L: Record<string, Entry> = {
   require_quote: ['必须有双边报价'],
   trading_hours: ['交易时段'],
   calendar: ['交易日历'],
+  watchlist: ['关注列表', '开启后选出的股票加入关注列表并持续跟踪，而不是每次运行重新替换股票池'],
+  max_age_days: ['最长保留天数', '超过这么多天没再被选中就移出（固定的和已持仓的不会）'],
+  max_size: ['最多股票数', '超出时移出最久没被选中的'],
+  scan_codes: ['扫描榜单', '一个连接里依次跑多个 IBKR 扫描，例如 TOP_PERC_GAIN、HOT_BY_VOLUME、HIGH_VS_52W_HL；设置后替代 scan_code'],
+  hold_weight: ['HOLD 票权重', 'HOLD 票按这个倍数计权；0.5 = 一半，"没看到我的形态"不会完全抵消别人的买入票'],
+  position_check: ['持仓核对', '券商账户真实持仓少于各策略子账本之和时，该股票禁止交易'],
+  max_snapshot_age_minutes: ['账户快照最长时效（分钟）', '更旧的快照不做核对'],
   // providers
   kind: ['接口类型', 'anthropic：Anthropic Messages API；openai_compatible：OpenAI Chat Completions 兼容接口'],
   base_url: ['Base URL', '留空使用 SDK 默认地址'],

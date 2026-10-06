@@ -285,6 +285,21 @@ const q = (params: Record<string, string | number | boolean | undefined | null>)
   return text ? `?${text}` : '';
 };
 
+export type WatchlistEntry = {
+  pipeline_name: string;
+  symbol: string;
+  added_at: string;
+  last_selected_at: string | null;
+  times_selected: number;
+  last_score: number | null;
+  last_reason: string | null;
+  pinned: boolean;
+  note: string | null;
+  removed_at: string | null;
+  removed_reason: string | null;
+  active: boolean;
+};
+
 export const api = {
   meta: () => http.get<Meta>('/api/meta'),
   configs: () => http.get<ConfigList>('/api/configs'),
@@ -325,6 +340,11 @@ export const api = {
   bars: (symbol: string, timeframe: string, limit: number) =>
     http.get<{ symbol: string; timeframe: string; bars: Bar[]; quotes: any[] }>(`/api/market/bars${q({ symbol, timeframe, limit })}`),
   portfolio: () => http.get<Portfolio>('/api/portfolio'),
+  watchlists: () => http.get<{ pipeline: string; entries: WatchlistEntry[] }[]>('/api/watchlists'),
+  watchlistAdd: (pipeline: string, body: { symbol: string; pinned: boolean; note: string | null }) =>
+    http.post<WatchlistEntry>(`/api/watchlists/${encodeURIComponent(pipeline)}`, body),
+  watchlistRemove: (pipeline: string, symbol: string) =>
+    http.del<{ removed: string }>(`/api/watchlists/${encodeURIComponent(pipeline)}/${encodeURIComponent(symbol)}`),
   overview: () => http.get<Overview>('/api/overview'),
 
   killSwitch: () => http.get<{ active: boolean; reason: string | null }>('/api/system/kill-switch'),

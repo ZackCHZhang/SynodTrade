@@ -150,6 +150,16 @@ def test_quote_from_ticker() -> None:
     assert crossed.bid is None
     assert crossed.ask is None
     assert crossed.ts.tzinfo is not None
+    assert q.ts == NOW  # live data (marketDataType 1): stamped when received
+
+
+def test_delayed_ticks_carry_their_real_age() -> None:
+    """Delayed data arrives ~15 min late: stamping it with the receipt time made stale
+    prices look live, and limit orders priced from them did not fill."""
+    delayed = ticker(Stock("AAPL"), time=NOW, bid=99.5, ask=100.5, marketDataType=3)
+    assert quote_from_ticker("AAPL", delayed).ts == NOW - timedelta(minutes=15)
+    frozen = ticker(Stock("AAPL"), time=NOW, last=100, marketDataType=4)
+    assert quote_from_ticker("AAPL", frozen).ts == NOW - timedelta(minutes=15)
 
 
 # ------------------------------------------------------------------ connection
@@ -259,7 +269,7 @@ async def test_fetch_bars_uses_pacing_limiter() -> None:
     keys: list[str] = []
 
     class RecordingLimiter(PacingLimiter):
-        async def acquire(self, key: str) -> None:
+        async def acquire(self, key: str, *, small_bars: bool = False) -> None:
             keys.append(key)
 
     ib = StubIB()

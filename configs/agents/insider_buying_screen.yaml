@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for open-market insider purchases in the last 90 days, ideally by multiple
-    insiders or senior management, with significant size relative to their holdings.
-    Return candidates with transaction details.
+    Pick candidates with open-market insider purchases in the last 90 days, ideally
+    several of them and larger in value than insider sales. Ignore candidates without
+    insider data.

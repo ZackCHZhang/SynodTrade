@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on consolidation range width, a close above resistance or the
-    52-week high, and volume at least 1.5x the 50-day average. Buy confirmed breakouts;
-    exit if price closes back inside the range.
+    Base the action on the consolidation visible in the recent daily bars (range width,
+    20- and 55-day highs), a close above the 20/55-day high or the 52-week high, and the
+    last volume versus its 20-day average (want 1.5x or more). Buy confirmed breakouts;
+    sell if price closes back inside the prior range.

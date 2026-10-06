@@ -34,6 +34,7 @@ from sqlalchemy import (
 
 from quant_core.config import ConfigError, ConfigStore
 from quant_core.models import OrderStatus, Timeframe
+from quant_core.timeutil import utcnow
 from quant_database import Database, Repositories
 from quant_database.column_types import DecimalType, UtcDateTime
 from quant_database.models import (
@@ -442,6 +443,22 @@ class DataService:
         if quote is not None and quote.last is not None and (not bars or quote.ts >= bars[-1].ts):
             return quote.last
         return bars[-1].close if bars else None
+
+    async def watchlists(self) -> list[dict[str, Any]]:
+        """Every pipeline's watchlist: active entries plus those removed in the last 30 days."""
+        store = ConfigStore(self._configs, env=self._env)
+        recent = utcnow() - timedelta(days=30)
+        out = []
+        for name in store.list("pipelines"):
+            entries = await self.repos.watchlist.get_all(name)
+            shown = [e for e in entries if e.active or (e.removed_at and e.removed_at >= recent)]
+            out.append(
+                {
+                    "pipeline": name,
+                    "entries": [{**jsonable(e), "active": e.active} for e in shown],
+                }
+            )
+        return out
 
     async def portfolio(self) -> dict[str, Any]:
         store = ConfigStore(self._configs, env=self._env)

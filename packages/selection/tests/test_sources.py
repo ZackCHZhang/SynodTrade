@@ -179,3 +179,21 @@ def test_scanner_factory() -> None:
     assert source.name == "gainers"
     with pytest.raises(ValidationError):
         build_ibkr_scanner_source({"rows": 500})
+
+
+async def test_scanner_runs_several_scans_on_one_connection() -> None:
+    ib = StubIB(
+        rows=[scan_row(0, Stock("NVDA", "SMART", "USD")), scan_row(1, Stock("AMD", "SMART", "USD"))]
+    )
+    options = IBKRScannerOptions(scan_codes=["TOP_PERC_GAIN", "HOT_BY_VOLUME", "TOP_PERC_GAIN"])
+    source = IBKRScannerSource(options, env={}, ib=ib)  # type: ignore[arg-type]
+    found = await source.fetch(NOW)
+    assert len(ib.connects) == 1
+    assert [r[0].scanCode for r in ib.requests] == ["TOP_PERC_GAIN", "HOT_BY_VOLUME"]
+    # a symbol found by an earlier scan is not repeated
+    assert [(c.symbol, c.note) for c in found] == [
+        ("NVDA", "TOP_PERC_GAIN #1"),
+        ("AMD", "TOP_PERC_GAIN #2"),
+    ]
+    with pytest.raises(CandidateSourceError, match="every scan failed"):
+        await IBKRScannerSource(options, env={}, ib=StubIB(rows=None)).fetch(NOW)  # type: ignore[arg-type]

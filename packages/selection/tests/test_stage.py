@@ -5,7 +5,7 @@ from collections.abc import Callable, Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -15,6 +15,7 @@ from quant_core.models import (
     Action,
     Bar,
     Fill,
+    Fundamentals,
     OrderIntent,
     OrderResult,
     OrderSide,
@@ -22,6 +23,7 @@ from quant_core.models import (
     OrderType,
     PipelineContext,
     RunMode,
+    SentimentResult,
     Timeframe,
 )
 from quant_core.services import Services
@@ -400,3 +402,159 @@ async def test_scanner_from_registry_is_closed(repos: Repositories, store: Confi
     stage = build_selection_stage(stage_config(), services)
     assert [s.name for s in stage.sources] == ["universe", "static", "ibkr_scanner"]
     await stage.aclose()  # never connected: nothing to do
+
+
+class FakeFundamentals:
+    """FundamentalsRefresher storing a small company profile per symbol."""
+
+    def __init__(self, repos: Repositories) -> None:
+        self._repos = repos
+        self.refreshed: list[str] = []
+
+    async def refresh_fundamentals(
+        self, symbols: Sequence[str], *, now: datetime, max_age: timedelta
+    ) -> dict[str, str]:
+        self.refreshed += symbols
+        await self._repos.fundamentals.add(
+            [
+                Fundamentals(
+                    symbol=s,
+                    as_of=now,
+                    industry="Test Industry",
+                    shares_outstanding=1e6,
+                    eps_diluted=2.0,
+                )
+                for s in symbols
+            ]
+        )
+        return {}
+
+
+async def test_candidates_get_fundamentals_relative_strength_and_sentiment(
+    repos: Repositories, store: ConfigStore, new_run: NewRun
+) -> None:
+    llm = FakeLLMClient(default=picks_reply)
+    pool = LLMClientPool({}, env={})
+    pool.set("deepseek", llm)
+    pool.set("anthropic", llm)
+    bars = FakeBars(repos, {**BARS, "SPY": bars_from_closes("SPY", FLAT)})
+    fundamentals = FakeFundamentals(repos)
+    earlier = await new_run(NOW - timedelta(days=1))
+    await repos.sentiment.add_results(
+        [
+            SentimentResult(
+                run_id=earlier,
+                instance_id=uuid4(),
+                agent_id="event_extractor",
+                prompt_version="v1",
+                symbol="AAPL",
+                sentiment=0.5,
+                confidence=0.7,
+                summary="beat",
+                key_events=["earnings beat"],
+                created_at=NOW - timedelta(hours=3),
+            )
+        ]
+    )
+    services = Services(
+        repos=repos,
+        config_store=store,
+        llm=pool,
+        pipeline=pipeline_config(["AAPL", "MSFT"]).model_copy(update={"benchmark": "SPY"}),
+        bars_refresher=bars,
+        fundamentals=fundamentals,
+        candidate_sources={"ibkr_scanner": FakeCandidateSource("ibkr_scanner", ["AMD"])},
+    )
+    stage = build_selection_stage(stage_config(fundamentals=True), services)
+    run_id = await new_run()
+    await stage.run(context(run_id))
+
+    assert bars.calls[0][-1] == "SPY"  # refreshed with the candidates, never a candidate
+    selection = await repos.selection.get_by_run(run_id)
+    assert selection is not None
+    assert "SPY" not in selection.candidates
+    assert "SPY" not in selection.rejected
+    # only screened candidates are looked up (PENNY fails the price screen)
+    assert "PENNY" not in fundamentals.refreshed
+    assert "AAPL" in fundamentals.refreshed
+    prompt = llm.requests[0].messages[0].content
+    aapl = prompt.split("[cand:AAPL]", 1)[1].split("- [cand:", 1)[0]
+    assert "| relative strength: vs SPY 60d" in aapl
+    assert "| fundamentals: Test Industry; mcap $" in aapl
+    assert "P/E" in aapl
+    assert "| recent sentiment: +0.50 from 1 analyses; events: earnings beat" in aapl
+    assert "| last volume vs 20-day average 1.00x" in aapl
+
+
+async def test_fundamentals_option_without_a_source(
+    repos: Repositories, store: ConfigStore, new_run: NewRun
+) -> None:
+    stage, _ = build(
+        repos, store, FakeLLMClient(default=picks_reply), config=stage_config(fundamentals=True)
+    )
+    ctx = await stage.run(context(await new_run()))  # logs a warning, selects anyway
+    assert ctx.selection is not None
+    assert ctx.selection.selected
+
+
+async def test_watchlist_accumulates_picks_across_runs(
+    repos: Repositories, store: ConfigStore, new_run: NewRun
+) -> None:
+    def picker(*symbols: str) -> Callable[[LLMRequest], str]:
+        def reply(request: LLMRequest) -> str:
+            shown = request.messages[0].content
+            return json.dumps(
+                {
+                    "picks": [
+                        {"symbol": s, "score": 0.9, "reason": f"{s} looks good"}
+                        for s in symbols
+                        if f"[cand:{s}]" in shown
+                    ],
+                    "summary": "x",
+                }
+            )
+
+        return reply
+
+    config = stage_config(
+        aggregation={"top_n": 1}, watchlist={"enabled": True, "max_age_days": 3, "max_size": 5}
+    )
+
+    async def run(day: int, *symbols: str) -> PipelineContext:
+        stage, _ = build(repos, store, FakeLLMClient(default=picker(*symbols)), config=config)
+        at = NOW + timedelta(days=day)
+        return await stage.run(context(await new_run(at), as_of=at))
+
+    first = await run(0, "AAPL")
+    assert first.universe == ["AAPL"]
+    second = await run(1, "NVDA")  # AAPL is not picked again but stays followed
+    assert second.selection is not None
+    assert second.selection.selected == ["NVDA"]
+    assert second.selection.watchlist == ["AAPL"]
+    assert second.universe == ["NVDA", "AAPL"]
+    # watchlist members are candidates again, with a note the agents can see
+    profiles = second.selection.candidates
+    assert "AAPL" in profiles
+    fourth = await run(4, "NVDA")  # AAPL last picked on day 0: older than 3 days
+    assert fourth.universe == ["NVDA"]
+    entries = {e.symbol: e for e in await repos.watchlist.get_all(PIPELINE)}
+    assert entries["AAPL"].removed_reason == "not selected for 3 days"
+    assert entries["NVDA"].times_selected == 2
+    assert entries["NVDA"].last_reason == "NVDA looks good"
+
+
+async def test_watchlist_kept_when_every_agent_fails(
+    repos: Repositories, store: ConfigStore, new_run: NewRun
+) -> None:
+    await repos.watchlist.record_selection(PIPELINE, [("JPM", 0.5, "steady")], NOW)
+    config = stage_config(watchlist={"enabled": True}, fallback="holdings")
+    broken = FakeLLMClient(default=lambda request: "not json")
+    stage, _ = build(repos, store, broken, config=config)
+    later = NOW + timedelta(hours=1)
+    ctx = await stage.run(context(await new_run(later), as_of=later))
+    assert ctx.selection is not None
+    assert ctx.selection.method == "fallback_holdings"
+    assert ctx.universe == ["JPM"]  # still followed
+    prompt = broken.requests[0].messages[0].content
+    assert "on the watchlist since" in prompt
+    assert "stay followed for 10 days" in prompt

@@ -14,10 +14,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from quant_core.config import ConfigError
 from quant_core.logging import configure_logging
+from quant_core.timeutil import utcnow
 from quant_database import KILL_SWITCH, Database
 from quant_webapi.catalog import catalog
 from quant_webapi.configs import (
@@ -26,7 +27,7 @@ from quant_webapi.configs import (
     InvalidConfigError,
     NotFoundError,
 )
-from quant_webapi.data import DataService
+from quant_webapi.data import DataService, jsonable
 from quant_webapi.events import EventHub
 from quant_webapi.jobs import JobManager, RunRequest
 from quant_webapi.scheduling import SchedulerController
@@ -41,6 +42,7 @@ WATCHED_ENV = (
     "IBKR_CLIENT_ID",
     "REDDIT_CLIENT_ID",
     "REDDIT_CLIENT_SECRET",
+    "SEC_EDGAR_USER_AGENT",
     "TELEGRAM_BOT_TOKEN",
 )
 
@@ -133,6 +135,14 @@ class TextBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     text: str
+
+
+class WatchlistBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    symbol: str = Field(min_length=1, max_length=32, pattern=r"^[A-Za-z0-9.\- ]+$")
+    pinned: bool = False
+    note: str | None = Field(default=None, max_length=500)
 
 
 class KillSwitchBody(BaseModel):
@@ -353,6 +363,30 @@ async def market_bars(
 @api.get("/portfolio")
 async def portfolio(request: Request) -> dict[str, Any]:
     return await state(request).data.portfolio()
+
+
+@api.get("/watchlists")
+async def watchlists(request: Request) -> list[dict[str, Any]]:
+    return await state(request).data.watchlists()
+
+
+@api.post("/watchlists/{pipeline}")
+async def watchlist_add(request: Request, pipeline: str, body: WatchlistBody) -> dict[str, Any]:
+    web = state(request)
+    if pipeline not in web.configs.names(web.configs.kind("pipelines")):
+        raise HTTPException(404, f"unknown pipeline {pipeline!r}")
+    entry = await web.data.repos.watchlist.add(
+        pipeline, body.symbol, utcnow(), pinned=body.pinned, note=body.note
+    )
+    return {**jsonable(entry), "active": entry.active}
+
+
+@api.delete("/watchlists/{pipeline}/{symbol}")
+async def watchlist_remove(request: Request, pipeline: str, symbol: str) -> dict[str, Any]:
+    removed = await state(request).data.repos.watchlist.remove(pipeline, symbol, utcnow())
+    if not removed:
+        raise HTTPException(404, f"{symbol} is not on the watchlist of {pipeline}")
+    return {"removed": symbol.upper()}
 
 
 @api.get("/overview")

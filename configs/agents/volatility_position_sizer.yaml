@@ -10,5 +10,6 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Compute ATR(20) and size positions so that a 2x ATR move risks at most 1% of equity.
-    Veto or resize any proposed trade that exceeds this budget.
+    Use the loss from a 2 x ATR(14) adverse move shown for the proposed order. Reduce if
+    it exceeds 1% of the strategy's value and reject if even the reduced tier would
+    exceed 1.5%.

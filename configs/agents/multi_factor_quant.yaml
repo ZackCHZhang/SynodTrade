@@ -9,6 +9,8 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on a combined z-score of value (EV/EBIT, FCF yield), quality (ROIC,
-    accruals), momentum (12-1 month return) and volatility. Buy names in the top decile
-    of the combined score; sell when they fall out of the top quartile.
+    Combine four factors into one judgement: value (EV/EBIT, free cash flow yield),
+    quality (ROIC, accruals), momentum (1-year return minus the last 20 days) and low
+    volatility (60-day volatility). Buy when most factors are clearly favourable; sell
+    when they turn unfavourable. Without fundamental data use only momentum and
+    volatility, with lower confidence.

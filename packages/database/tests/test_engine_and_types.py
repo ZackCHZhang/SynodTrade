@@ -94,3 +94,28 @@ def test_from_env() -> None:
     assert db.dialect == "sqlite"
     with pytest.raises(RuntimeError, match=DATABASE_URL_ENV):
         Database.from_env({})
+
+
+async def test_create_all_adds_columns_missing_from_older_tables(db: Database) -> None:
+    if db.dialect != "sqlite":
+        pytest.skip("rebuilds a table with SQLite DDL")
+    async with db.transaction() as s:  # stock_selections as created before `watchlist` existed
+        await s.execute(text("DROP TABLE stock_selections"))
+        await s.execute(
+            text(
+                "CREATE TABLE stock_selections (id CHAR(32) PRIMARY KEY, run_id CHAR(32),"
+                " pipeline_name VARCHAR(64), method VARCHAR(64), candidates JSON,"
+                " selected JSON, holdings JSON, scores JSON, rejected JSON, created_at TEXT)"
+            )
+        )
+        await s.execute(
+            text(
+                "INSERT INTO stock_selections VALUES ('a', NULL, 'p', 'm', '[]', '[]', '[]',"
+                " '{}', '{}', '2026-09-24T14:00:00+00:00')"
+            )
+        )
+    await db.create_all()
+    async with db.transaction() as s:
+        rows = (await s.execute(text("SELECT watchlist FROM stock_selections"))).all()
+    assert [tuple(r) for r in rows] == [("[]",)]
+    await db.create_all()  # idempotent

@@ -3,6 +3,7 @@ name: etf_allocation
 mode: paper
 account: ibkr_etf
 universe: [SPY, QQQ, IWM, TLT, IEF, GLD]
+benchmark: SPY       # ETFs have no company filings: no fundamentals, but market context
 budget:
   max_capital: 5000
 sizing:

@@ -130,3 +130,24 @@ def test_options_validation() -> None:
         AggregationOptions.model_validate({"method": "average"})
     with pytest.raises(ValueError, match="less than or equal"):
         AggregationOptions(min_confidence=1.5)
+
+
+def test_hold_weight_lets_directional_votes_through() -> None:
+    """Two specialists buy, four say hold: equal weights keep HOLD; half-weight holds let the
+    buy through (the case seen in paper runs: NVDA scored +0.045 < +0.075)."""
+    votes = [(vote(A.BUY, 0.6), 1.0), (vote(A.BUY, 0.6), 1.0)] + [
+        (vote(A.HOLD, 0.6), 1.0) for _ in range(3)
+    ]
+    full = AggregationOptions(min_confidence=0.5)
+    half = AggregationOptions(min_confidence=0.5, hold_weight=0.5)
+    assert aggregate(RUN, "AAPL", votes, full).final_action is A.HOLD
+    result = aggregate(RUN, "AAPL", votes, half)
+    assert result.final_action is A.BUY
+    assert result.method == "weighted_vote(min_confidence=0.5, hold_weight=0.5)"
+    assert [v.weight for v in result.votes] == [1.0] * 5  # stored votes keep agent weights
+    # majority: buys 2 vs holds 3 x 0.5 -> buys hold more than half of the weight
+    maj = AggregationOptions(method=AggregationMethod.MAJORITY, hold_weight=0.5)
+    assert aggregate(RUN, "AAPL", votes, maj).final_action is A.BUY
+    # all holds stay HOLD even with weight 0 (no division by zero)
+    zero = AggregationOptions(hold_weight=0.0)
+    assert aggregate(RUN, "AAPL", [(vote(A.HOLD), 1.0)], zero).final_action is A.HOLD

@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on a series of narrowing pullbacks, falling volume during the base,
-    price above rising SMA 50/150/200, and a pivot breakout on volume expansion. Use
-    tight stops just below the last contraction low.
+    Base the action on a series of narrowing pullbacks visible in the recent daily bars,
+    falling volume during the base, price above rising 50- and 200-day averages, and a
+    breakout above the 20-day high on volume expansion. Use a tight stop just below the
+    last contraction low (sell if price closes below it).

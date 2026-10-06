@@ -9,6 +9,7 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for free cash flow yield above 6%, positive FCF in at least four of the last
-    five years and FCF growth. Exclude companies where FCF is boosted by working capital
-    release. Return candidates with FCF history.
+    Pick candidates with free cash flow yield above about 6%, positive free cash flow
+    and accruals that are not strongly positive (cash earnings, not accounting
+    earnings). Only the last twelve months of cash flow are available; prefer stable
+    margins.

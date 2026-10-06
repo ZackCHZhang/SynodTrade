@@ -150,3 +150,25 @@ def test_helpers() -> None:
     )
     assert mask_url("sqlite+aiosqlite:///./x.db") == "sqlite+aiosqlite:///./x.db"
     assert jsonable({"a": Decimal("1.50"), "b": [Decimal("2")]}) == {"a": 1.5, "b": [2.0]}
+
+
+def test_watchlist_api(client: TestClient) -> None:
+    added = client.post(
+        "/api/watchlists/demo_all_modules", json={"symbol": "nvda", "pinned": True, "note": "x"}
+    )
+    assert added.status_code == 200, added.text
+    assert added.json()["symbol"] == "NVDA"
+    assert added.json()["pinned"] is True
+    lists = {p["pipeline"]: p["entries"] for p in client.get("/api/watchlists").json()}
+    assert [e["symbol"] for e in lists["demo_all_modules"]] == ["NVDA"]
+    assert lists["long_term_stocks"] == []
+    assert client.post("/api/watchlists/nope", json={"symbol": "NVDA"}).status_code == 404
+    assert (
+        client.post("/api/watchlists/demo_all_modules", json={"symbol": "x;y"}).status_code == 422
+    )
+    assert client.delete("/api/watchlists/demo_all_modules/NVDA").json() == {"removed": "NVDA"}
+    assert client.delete("/api/watchlists/demo_all_modules/NVDA").status_code == 404
+    lists = {p["pipeline"]: p["entries"] for p in client.get("/api/watchlists").json()}
+    [entry] = lists["demo_all_modules"]
+    assert entry["active"] is False  # removed entries stay visible for 30 days
+    assert entry["removed_reason"] == "removed by hand"

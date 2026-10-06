@@ -9,6 +9,7 @@ still be sold by the decision stage.
 from __future__ import annotations
 
 import asyncio
+import statistics
 from datetime import timedelta
 from decimal import Decimal
 from enum import StrEnum
@@ -18,11 +19,21 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from quant_core.agent_factory import AgentSlot, instantiate_agents
 from quant_core.config import AgentRole, ConfigStore, PipelineConfig, StageConfig
-from quant_core.indicators import compute_indicators
-from quant_core.interfaces import BarsRefresher, CandidateSource
+from quant_core.fundamentals import fundamental_summary
+from quant_core.indicators import compute_indicators, relative_to
+from quant_core.interfaces import BarsRefresher, CandidateSource, FundamentalsRefresher
 from quant_core.llm import LLMClientPool
 from quant_core.logging import get_logger
-from quant_core.models import Candidate, PipelineContext, SelectionResult, StockSelection, Timeframe
+from quant_core.models import (
+    Bar,
+    Candidate,
+    PipelineContext,
+    SelectionPick,
+    SelectionResult,
+    StockSelection,
+    Timeframe,
+    WatchlistEntry,
+)
 from quant_core.registry import CANDIDATE_SOURCES
 from quant_core.services import Services
 from quant_database import AgentInstance, Repositories
@@ -34,6 +45,7 @@ from quant_selection.sources import CandidateSourceError, StaticCandidateSource,
 log = get_logger(__name__)
 
 UNIVERSE_SOURCE = "universe"
+WATCHLIST_SOURCE = "watchlist"  # entries of the pipeline's watchlist (`watchlist.enabled`)
 
 
 class SelectionFallback(StrEnum):
@@ -60,6 +72,17 @@ class CandidateSourceConfig(BaseModel):
         return {**(self.model_extra or {}), "name": self.source_name}
 
 
+class WatchlistOptions(BaseModel):
+    """`watchlist:` of the selection stage: follow picks across runs instead of replacing
+    the universe every run."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    enabled: bool = False
+    max_age_days: int = Field(default=10, ge=1, le=365)  # removed after N days not picked
+    max_size: int = Field(default=15, ge=1, le=100)  # stalest entries beyond this are removed
+
+
 class SelectionOptions(BaseModel):
     """Options of the `selection` stage in configs/pipelines/*.yaml."""
 
@@ -77,6 +100,13 @@ class SelectionOptions(BaseModel):
     aggregation: SelectionAggregation = Field(default_factory=SelectionAggregation)
     max_picks_per_agent: int = Field(default=10, ge=1, le=50)
     fallback: SelectionFallback = SelectionFallback.PREVIOUS
+    # Company fundamentals (SEC EDGAR) of the screened candidates, refreshed when older than
+    # `fundamentals_max_age_hours` and shown to the agents. Needs the `fundamentals` service.
+    fundamentals: bool = False
+    fundamentals_max_age_hours: float = Field(default=20, gt=0)
+    # Newest stored sentiment analyses (earlier runs, any pipeline) of the last N hours. 0: off.
+    stored_sentiment_hours: int = Field(default=48, ge=0, le=24 * 30)
+    watchlist: WatchlistOptions = Field(default_factory=WatchlistOptions)
 
     @model_validator(mode="after")
     def _check(self) -> Self:
@@ -106,6 +136,9 @@ class SelectionStage:
         repos: Repositories,
         max_capital: Decimal,
         bars: BarsRefresher | None = None,
+        *,
+        benchmark: str | None = None,
+        fundamentals: FundamentalsRefresher | None = None,
     ) -> None:
         self.options = options
         self.sources = sources
@@ -113,6 +146,8 @@ class SelectionStage:
         self._repos = repos
         self._max_capital = max_capital
         self._bars = bars
+        self._benchmark = benchmark
+        self._fundamentals = fundamentals
 
     async def aclose(self) -> None:
         for source in self.sources:
@@ -147,12 +182,15 @@ class SelectionStage:
     ) -> tuple[list[CandidateProfile], dict[str, str]]:
         errors: dict[str, str] = {}
         if self._bars is not None and self.options.refresh_bars and found:
+            extra = [self._benchmark] if self._benchmark and self._benchmark not in found else []
             errors = await self._bars.refresh_bars(
-                list(found),
+                [*found, *extra],
                 timeframe=self.options.timeframe,
                 lookback=timedelta(days=self.options.lookback_days),
                 now=ctx.as_of,
             )
+        if self._benchmark is not None and self._benchmark not in found:
+            errors.pop(self._benchmark, None)  # the benchmark is context, not a candidate
         profiles = []
         for symbol, candidates in found.items():
             bars = await self._repos.bars.get_latest_bars(
@@ -169,17 +207,93 @@ class SelectionStage:
             )
         return profiles, errors
 
+    async def _refresh_fundamentals(self, symbols: list[str], ctx: PipelineContext) -> None:
+        if not self.options.fundamentals:
+            return
+        if self._fundamentals is None:
+            log.warning("selection.fundamentals_unavailable", reason="no fundamentals source")
+            return
+        try:
+            errors = await self._fundamentals.refresh_fundamentals(
+                symbols,
+                now=ctx.as_of,
+                max_age=timedelta(hours=self.options.fundamentals_max_age_hours),
+            )
+        except Exception as exc:  # context only: selection goes on without it
+            log.warning("selection.fundamentals_failed", error=f"{type(exc).__name__}: {exc}")
+            return
+        if errors:
+            log.warning("selection.fundamentals_errors", errors=errors)
+
+    async def _relative(self, symbol: str, benchmark: list[Bar], ctx: PipelineContext) -> str:
+        if self._benchmark is None or len(benchmark) < 30:
+            return ""
+        bars = await self._repos.bars.get_latest_bars(
+            symbol, self.options.bars_lookback, self.options.timeframe, as_of=ctx.as_of
+        )
+        rel = relative_to(bars, benchmark, self._benchmark)
+        parts = [
+            f"{label} {value * 100:+.1f}%"
+            for label, value in (
+                (f"vs {self._benchmark} 60d", rel.relative_return_60d),
+                ("1y", rel.relative_return_250d),
+            )
+            if value is not None
+        ]
+        if rel.beta_1y is not None:
+            parts.append(f"beta {rel.beta_1y:.2f}")
+        return ", ".join(parts)
+
+    async def _sentiment(self, symbol: str, ctx: PipelineContext) -> str:
+        hours = self.options.stored_sentiment_hours
+        if hours <= 0:
+            return ""
+        results = await self._repos.sentiment.get_latest_results(
+            symbol, ctx.as_of - timedelta(hours=hours), ctx.as_of
+        )
+        if not results:
+            return ""
+        mean = statistics.fmean(r.sentiment for r in results)
+        events = [e for r in results for e in r.key_events][:3]
+        text = f"{mean:+.2f} from {len(results)} analyses"
+        return text + (f"; events: {'; '.join(events)}" if events else "")
+
+    async def _enrich(self, profiles: list[CandidateProfile], ctx: PipelineContext) -> None:
+        """Add fundamentals, relative strength and stored sentiment to the screened
+        candidates (one-line summaries; every number computed in code)."""
+        symbols = [p.symbol for p in profiles]
+        if not symbols:
+            return
+        await self._refresh_fundamentals(symbols, ctx)
+        stored = await self._repos.fundamentals.get_latest_many(symbols, ctx.as_of)
+        benchmark: list[Bar] = []
+        if self._benchmark is not None:
+            benchmark = await self._repos.bars.get_latest_bars(
+                self._benchmark, self.options.bars_lookback, self.options.timeframe, as_of=ctx.as_of
+            )
+        for profile in profiles:
+            summary = fundamental_summary(stored.get(profile.symbol), profile.indicators.last_close)
+            for key, value in (
+                ("fundamentals", summary),
+                ("relative", await self._relative(profile.symbol, benchmark, ctx)),
+                ("sentiment", await self._sentiment(profile.symbol, ctx)),
+            ):
+                if value:
+                    profile.extra[key] = value
+
     async def run(self, ctx: PipelineContext) -> PipelineContext:
         ledger = await self._repos.ledger.get_state(
             ctx.pipeline_name, self._max_capital, as_of=ctx.as_of
         )
         holdings = sorted(ledger.positions) if self.options.keep_holdings else []
         found = await self._collect(ctx)
+        watched = await self._watched(ctx, found)
         profiles, bar_errors = await self._profiles(found, set(ledger.positions), ctx)
         kept, rejected = screen(profiles, self.options.screen)
         for symbol, error in bar_errors.items():
             if symbol in rejected:
                 rejected[symbol] += f"; data update failed: {error}"
+        await self._enrich(kept, ctx)
 
         previous = await self._repos.selection.get_latest(ctx.pipeline_name, as_of=ctx.as_of)
         await self._repos.runs.register_agent_instances(
@@ -198,6 +312,9 @@ class SelectionStage:
                             max_picks=self.options.max_picks_per_agent,
                             previous=previous,
                             holdings=holdings,
+                            watchlist_days=self.options.watchlist.max_age_days
+                            if self.options.watchlist.enabled
+                            else None,
                         )
                         for slot in self.agents
                     )
@@ -226,6 +343,10 @@ class SelectionStage:
                 self.options.aggregation,
             )
 
+        agents_failed = method.startswith("fallback_")
+        watchlist = await self._update_watchlist(
+            ctx, selected, scores, results, holdings, watched, update=not agents_failed
+        )
         selection = StockSelection(
             created_at=ctx.as_of,
             run_id=ctx.run_id,
@@ -234,6 +355,7 @@ class SelectionStage:
             candidates=candidates,
             selected=selected,
             holdings=holdings,
+            watchlist=[s for s in watchlist if s not in selected],
             scores=scores,
             rejected=rejected,
         )
@@ -245,19 +367,75 @@ class SelectionStage:
             candidates=len(found),
             screened=len(kept),
             selected=selected,
+            watchlist=selection.watchlist,
             holdings=holdings,
             fallbacks=sum(r.error is not None for r in results),
         )
         return ctx
+
+    async def _watched(
+        self, ctx: PipelineContext, found: dict[str, list[Candidate]]
+    ) -> list[WatchlistEntry]:
+        """Active watchlist entries; each becomes a candidate again (re-screened, re-scored)."""
+        if not self.options.watchlist.enabled:
+            return []
+        entries = await self._repos.watchlist.get_active(ctx.pipeline_name, ctx.as_of)
+        for e in entries:
+            since = e.added_at.date().isoformat()
+            note = f"on the watchlist since {since}, picked {e.times_selected}x"
+            if e.pinned:
+                note += ", pinned"
+            found.setdefault(e.symbol, []).append(
+                Candidate(symbol=e.symbol, source=WATCHLIST_SOURCE, note=note)
+            )
+        return entries
+
+    async def _update_watchlist(
+        self,
+        ctx: PipelineContext,
+        selected: list[str],
+        scores: dict[str, float],
+        results: list[SelectionResult],
+        holdings: list[str],
+        watched: list[WatchlistEntry],
+        *,
+        update: bool,
+    ) -> list[str]:
+        """Add this run's picks, drop stale entries; returns the watchlist's symbols."""
+        opts = self.options.watchlist
+        if not opts.enabled:
+            return []
+        if not update:  # every agent failed: leave the list as it is
+            return [e.symbol for e in watched]
+        best: dict[str, SelectionPick] = {}
+        for r in results:
+            for pick in r.picks:
+                if pick.symbol not in best or pick.score > best[pick.symbol].score:
+                    best[pick.symbol] = pick
+        added = await self._repos.watchlist.record_selection(
+            ctx.pipeline_name,
+            [(s, scores.get(s), best[s].reason if s in best else None) for s in selected],
+            ctx.as_of,
+        )
+        removed = await self._repos.watchlist.expire(
+            ctx.pipeline_name,
+            ctx.as_of,
+            max_age=timedelta(days=opts.max_age_days),
+            max_size=opts.max_size,
+            keep=[*holdings, *selected],
+        )
+        active = await self._repos.watchlist.get_active(ctx.pipeline_name, ctx.as_of)
+        log.info("selection.watchlist", added=added, removed=removed, size=len(active))
+        return [e.symbol for e in active]
 
 
 def build_selection_stage(config: StageConfig, services: Services) -> SelectionStage:
     """Stage factory (entry point `quant.stages: selection`).
 
     Services: `repos`, `config_store`, `llm` (LLMClientPool), `pipeline` (PipelineConfig:
-    universe and budget); optional `bars_refresher` (BarsRefresher) to fetch bars of the
-    candidates, and `candidate_sources` (dict name -> CandidateSource) overriding the
-    registry, e.g. fakes.
+    universe, budget and benchmark); optional `bars_refresher` (BarsRefresher) to fetch bars
+    of the candidates, `fundamentals` (FundamentalsRefresher) for their fundamentals, and
+    `candidate_sources` (dict name -> CandidateSource) overriding the registry, e.g. fakes.
     """
     options = config.options(SelectionOptions)
     repos = services.get("repos", Repositories)
@@ -293,4 +471,6 @@ def build_selection_stage(config: StageConfig, services: Services) -> SelectionS
         repos,
         pipeline.budget.max_capital,
         services.optional("bars_refresher", BarsRefresher),
+        benchmark=pipeline.benchmark,
+        fundamentals=services.optional("fundamentals", FundamentalsRefresher),
     )

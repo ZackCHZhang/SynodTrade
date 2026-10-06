@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Estimate 1-day 95% VaR and 97.5% expected shortfall using historical returns. Reject
-    trades that push either measure above the budget and recommend which positions to
-    trim when the budget is exceeded.
+    Use the order's one-day 95% value at risk and the 2 x ATR loss estimate. Reject buys
+    whose 95% VaR exceeds 1% of the strategy's value, reduce above 0.5%; expected
+    shortfall is not available, so be stricter for stocks with large overnight gaps.

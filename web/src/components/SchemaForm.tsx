@@ -407,13 +407,20 @@ export function FieldEditor({
   options,
 }: {
   name: string | number;
-  field: Field;
+  field: Field | undefined;
   value: any;
   onChange: (v: any) => void;
   path: Path;
   required?: boolean;
   options?: string[];
 }) {
+  if (!field) {
+    return (
+      <Typography variant="body2" color="warning.main" sx={{ py: 1 }}>
+        {String(name)}：服务器的配置结构里没有这个字段。网页比后台服务新，请重启 quant-web serve。
+      </Typography>
+    );
+  }
   const common = { name, field, value, onChange, path, required };
   // A value of an unexpected type (e.g. "${ENV}" in a number field) is edited as such.
   if (typeof value === 'string' && (field.kind === 'number' || field.kind === 'integer')) return <NumberInput {...common} />;
@@ -466,7 +473,7 @@ export function SchemaFields({
   options = {},
   columns = 3,
 }: {
-  field: Field;
+  field: Field | undefined;
   value: any;
   onChange: (v: any) => void;
   path: Path;
@@ -475,6 +482,7 @@ export function SchemaFields({
   options?: Record<string, string[]>;
   columns?: 2 | 3 | 4;
 }) {
+  if (!field) return null; // unknown to an older server: nothing to edit
   const obj = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   const keys = (only ?? field.order ?? Object.keys(field.properties ?? {})).filter((k) => !omit.includes(k) && field.properties?.[k]);
   const set = (k: string, v: any) => {

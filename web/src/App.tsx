@@ -1,6 +1,7 @@
 import {
   AppBar,
   Box,
+  Button,
   Chip,
   CssBaseline,
   Divider,
@@ -32,12 +33,20 @@ import EventIcon from '@mui/icons-material/Event';
 import PieChartIcon from '@mui/icons-material/PieChart';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import StorageIcon from '@mui/icons-material/Storage';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { Outlet, Link as RouterLink, createBrowserRouter, useLocation } from 'react-router-dom';
+import {
+  Outlet,
+  Link as RouterLink,
+  createBrowserRouter,
+  isRouteErrorResponse,
+  useLocation,
+  useRouteError,
+} from 'react-router-dom';
 import { api } from './api/client';
 import { ConfigEditPage, ConfigListPage } from './pages/ConfigsPage';
 import { Dashboard } from './pages/Dashboard';
@@ -47,6 +56,7 @@ import { PortfolioPage } from './pages/PortfolioPage';
 import { RunDetailPage } from './pages/RunDetailPage';
 import { RunsPage } from './pages/RunsPage';
 import { SchedulerPage } from './pages/SchedulerPage';
+import { WatchlistPage } from './pages/WatchlistPage';
 
 const DRAWER = 232;
 
@@ -74,6 +84,7 @@ const NAV: { section?: string; items: { to: string; label: string; icon: React.R
     section: '数据',
     items: [
       { to: '/portfolio', label: '持仓与账户', icon: <PieChartIcon /> },
+      { to: '/watchlist', label: '关注列表', icon: <VisibilityIcon /> },
       { to: '/market', label: '行情', icon: <ShowChartIcon /> },
       { to: '/data', label: '数据库', icon: <StorageIcon /> },
     ],
@@ -189,9 +200,36 @@ function Layout() {
   );
 }
 
+/** Shown instead of a blank page when a page throws: the error, and a way back. */
+function RouteError() {
+  const error = useRouteError();
+  const message = isRouteErrorResponse(error)
+    ? `${error.status} ${error.statusText}`
+    : error instanceof Error
+      ? error.message
+      : String(error);
+  return (
+    <Box sx={{ p: 3, maxWidth: 720 }}>
+      <Typography variant="h6" gutterBottom>
+        页面出错了
+      </Typography>
+      <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 2, whiteSpace: 'pre-wrap' }}>
+        {message}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        如果刚更新过代码，可能是网页和后台服务的版本不一致：请重启 quant-web serve 后刷新页面。
+      </Typography>
+      <Button variant="outlined" onClick={() => window.location.assign('/')}>
+        回到总览
+      </Button>
+    </Box>
+  );
+}
+
 export const router = createBrowserRouter([
   {
     element: <Layout />,
+    errorElement: <RouteError />,
     children: [
       { path: '/', element: <Dashboard /> },
       { path: '/runs', element: <RunsPage /> },
@@ -200,6 +238,7 @@ export const router = createBrowserRouter([
       { path: '/configs/:kind', element: <ConfigListPage /> },
       { path: '/configs/:kind/:name', element: <ConfigEditPage /> },
       { path: '/portfolio', element: <PortfolioPage /> },
+      { path: '/watchlist', element: <WatchlistPage /> },
       { path: '/market', element: <MarketPage /> },
       { path: '/data', element: <DataPage /> },
       { path: '*', element: <Typography>页面不存在</Typography> },

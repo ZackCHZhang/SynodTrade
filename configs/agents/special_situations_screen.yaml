@@ -9,6 +9,7 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for recent spin-offs (last 12 months), index deletions, emerging
-    restructurings and activist stakes. Return candidates with event type, date and the
-    forced-selling rationale.
+    Spin-off, index change and activist data are not available as such. Look for events
+    of that kind in the recent sentiment summaries and candidate notes, plus unusual
+    insider buying or buybacks, and pick candidates where a concrete event is visible;
+    pick none rather than guessing.
