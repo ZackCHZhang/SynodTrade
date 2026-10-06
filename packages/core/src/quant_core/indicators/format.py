@@ -73,7 +73,7 @@ def fmt_value(field: str, value: float) -> str:
     if kind == "macd":
         return f"{value:.4f}"
     if kind == "frac":
-        return f"{value:.6f}"
+        return f"{value:.3g}"  # tiny for large caps (e.g. 1.27e-06): 3 significant digits
     if kind == "signed":
         return f"{value:+.2f}"
     if kind == "level":
