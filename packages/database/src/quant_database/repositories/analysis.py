@@ -4,14 +4,17 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import select
 
 from quant_core.models import (
+    Action,
     AggregatedDecision,
     Decision,
+    DecisionOutcome,
     RiskVerdict,
     SentimentItem,
     SentimentResult,
@@ -19,6 +22,8 @@ from quant_core.models import (
 from quant_database.models import (
     AggregatedDecisionRow,
     DecisionRow,
+    OrderRow,
+    PipelineRunRow,
     RiskAssessmentRow,
     SentimentItemRow,
     SentimentResultRow,
@@ -114,6 +119,18 @@ class SentimentRepository(Repository):
             rows = (await s.execute(stmt)).scalars().all()
         return [SentimentResult.model_validate(row_dict(r)) for r in rows]
 
+    async def get_latest_results(
+        self, symbol: str, since: datetime, as_of: datetime | None = None
+    ) -> list[SentimentResult]:
+        """The newest successful analysis of each sentiment agent for `symbol` made in
+        [since, as_of], from any run or pipeline (sentiment is about the stock, not about a
+        strategy). Used when the current run has no sentiment of its own."""
+        latest: dict[str, SentimentResult] = {}
+        for result in await self.get_sentiment(symbol, since, as_of):
+            if result.error is None:
+                latest[result.agent_id] = result  # ascending by time: the last one wins
+        return sorted(latest.values(), key=lambda r: r.agent_id)
+
     async def get_results_by_run(self, run_id: UUID) -> list[SentimentResult]:
         stmt = (
             select(SentimentResultRow)
@@ -169,9 +186,16 @@ class DecisionRepository(Repository):
         return [AggregatedDecision.model_validate(row_dict(r)) for r in rows]
 
     async def get_recent_aggregated(
-        self, symbol: str, limit: int, as_of: datetime | None = None
+        self,
+        symbol: str,
+        limit: int,
+        as_of: datetime | None = None,
+        *,
+        pipeline_name: str | None = None,
+        exclude_methods: Sequence[str] = (),
     ) -> list[AggregatedDecision]:
-        """Past final decisions for a symbol, newest first (decision history for prompts)."""
+        """Past final decisions for a symbol, newest first (decision history for prompts).
+        `pipeline_name` limits them to one strategy's runs."""
         stmt = (
             select(AggregatedDecisionRow)
             .where(
@@ -181,9 +205,45 @@ class DecisionRepository(Repository):
             .order_by(AggregatedDecisionRow.created_at.desc())
             .limit(limit)
         )
+        if pipeline_name is not None:
+            stmt = stmt.join(
+                PipelineRunRow, PipelineRunRow.run_id == AggregatedDecisionRow.run_id
+            ).where(PipelineRunRow.pipeline_name == pipeline_name)
+        if exclude_methods:
+            stmt = stmt.where(AggregatedDecisionRow.method.not_in(list(exclude_methods)))
         async with self._db.transaction() as s:
             rows = (await s.execute(stmt)).scalars().all()
         return [AggregatedDecision.model_validate(row_dict(r)) for r in rows]
+
+    async def get_outcomes(
+        self, decisions: Sequence[AggregatedDecision]
+    ) -> dict[UUID, DecisionOutcome]:
+        """decision id -> what the risk layer and the broker made of it."""
+        if not decisions:
+            return {}
+        ids = [d.id for d in decisions]
+        risk_stmt = select(RiskAssessmentRow).where(
+            RiskAssessmentRow.decision_id.in_(ids), RiskAssessmentRow.source == "final"
+        )
+        run_ids = list({d.run_id for d in decisions})
+        order_stmt = select(OrderRow).where(OrderRow.run_id.in_(run_ids))
+        async with self._db.transaction() as s:
+            risk = {r.decision_id: r for r in (await s.execute(risk_stmt)).scalars().all()}
+            orders = {
+                (o.run_id, o.symbol): o for o in (await s.execute(order_stmt)).scalars().all()
+            }
+        out: dict[UUID, DecisionOutcome] = {}
+        for d in decisions:
+            verdict = risk.get(d.id)
+            order = orders.get((d.run_id, d.symbol))
+            out[d.id] = DecisionOutcome(
+                risk_action=Action(verdict.adjusted_action) if verdict is not None else None,
+                risk_reason=verdict.reason if verdict is not None else None,
+                order_status=order.status if order is not None else None,
+                filled_qty=order.filled_qty if order is not None else Decimal(0),
+                avg_fill_price=order.avg_fill_price if order is not None else None,
+            )
+        return out
 
 
 class RiskRepository(Repository):

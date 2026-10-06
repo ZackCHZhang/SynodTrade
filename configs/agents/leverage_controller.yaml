@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Check gross and net leverage and margin usage. Keep gross exposure at or below 1.0x
-    by default and margin utilization below 30%; force deleveraging when limits are
-    breached.
+    This strategy trades cash only (no margin, no shorting), so leverage comes only from
+    high exposure. Keep invested at most 100% of the strategy's value and reject buys
+    when cash is already near zero or the strategy is losing money this week.

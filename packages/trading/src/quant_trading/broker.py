@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Protocol, runtime_checkable
 from uuid import UUID
@@ -113,10 +115,12 @@ class SimulatedBroker:
         *,
         market_price: Decimal | None = None,
         commission: Decimal = Decimal(1),
+        clock: Callable[[], datetime] = utcnow,  # fill timestamps (tests pin it)
     ) -> None:
         self.fill_mode = fill_mode
         self.market_price = market_price
         self.commission = commission
+        self._clock = clock
         self.orders: dict[str, _SimOrder] = {}
         self.submit_count = 0
         self.healthy = True
@@ -142,7 +146,7 @@ class SimulatedBroker:
             qty=qty,
             price=price,
             commission=self.commission,
-            ts=utcnow(),
+            ts=self._clock(),
         )
 
     async def submit(self, intent: OrderIntent, instrument: Instrument) -> OrderResult:

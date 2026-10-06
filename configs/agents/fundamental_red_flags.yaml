@@ -9,6 +9,8 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Check accruals versus cash flow, receivables and inventory growth versus sales, net
-    debt to EBITDA, interest coverage, share count dilution and auditor changes. Veto or
-    downsize positions with multiple red flags.
+    Check accruals (net income well above operating cash flow), negative or falling free
+    cash flow, rising long-term debt, a falling current ratio, share count dilution,
+    shrinking gross margin and a low Piotroski F-score. Receivables, inventory, interest
+    coverage and auditor data are not available. Reject or reduce buys with two or more
+    red flags.

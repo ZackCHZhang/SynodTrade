@@ -280,7 +280,7 @@ async def test_end_to_end(
     assert "Upbeat chatter" in prompt
     assert "failed" not in prompt  # failed sentiment is not shown
     assert "untrusted" in prompt
-    assert "Previous final decisions" in prompt
+    assert "previous final decisions" in prompt
     assert "None." in prompt
 
     assert len(await repos.decisions.get_decisions_by_run(run_id)) == 6
@@ -307,7 +307,11 @@ async def test_end_to_end(
     await build(repos, store, llm2).run(ctx2)
     later_prompt = llm2.requests[0].messages[0].content
     assert f"[hist:{aapl.id}]" in later_prompt
-    assert re.search(r"buy at 399\.00; price change since \+0\.00%", later_prompt)
+    assert re.search(
+        r"buy at 399\.00; outcome: not executed, no risk review recorded; "
+        r"price change since \+0\.00%",
+        later_prompt,
+    )
 
 
 async def test_llm_failure_means_hold(

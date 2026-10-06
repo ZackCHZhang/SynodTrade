@@ -14,8 +14,10 @@
 name: demo_all_modules
 mode: paper                 # dry_run | paper | live（live 还需要 QUANT_ALLOW_LIVE=1）
 account: ibkr_main            # configs/accounts/ibkr_main.yaml
-# 有 selection 阶段时，universe 是选股的候选池（再加上扫描器的结果）
+# 有 selection 阶段时，universe 是选股的候选池；这里关掉了（include_universe: false），
+# 候选全部来自全市场扫描器，这个列表只作备用
 universe: [AAPL, MSFT, NVDA, AMZN, GOOGL, META, JPM, V, COST, LLY]
+benchmark: SPY                # 大盘基准：市场状态、beta、相对强弱（data_update 自动更新它的日线）
 budget:
   max_capital: 10000          # 这条流水线自己的虚拟子账本资金
 sizing:
@@ -23,13 +25,19 @@ sizing:
   min_one_lot_on_sell: true
 
 stages:
-  # 0. 选股：候选池 + IBKR 扫描器 -> 量化初筛 -> 两种选股 agent 各自挑 -> 聚合取前 3
+  # 0. 选股：全市场扫描（4 个榜单）+ 关注列表 -> 量化初筛 -> 选股 agent 各自挑 -> 聚合取前 3
+  #    -> 前 3 名加入关注列表（10 天没再被选中就移出，最多 12 只），后面阶段处理整个关注列表
   - type: selection
+    include_universe: false      # 不用上面固定的 universe，候选全部来自扫描器
     sources:
-      - { type: ibkr_scanner, scan_code: MOST_ACTIVE, rows: 15, above_price: 10,
-          market_cap_above: 10000,                  # 市值单位：百万美元
+      - { type: ibkr_scanner,
+          scan_codes: [MOST_ACTIVE, TOP_PERC_GAIN, HOT_BY_VOLUME, HIGH_VS_52W_HL],
+          rows: 15, above_price: 10,
+          market_cap_above: 2000,                   # 市值单位：百万美元（20 亿美元以上）
           stock_type: CORP }                        # 只要普通股，排除 ETF
-    screen: { min_price: 5, min_avg_dollar_volume: 20000000, max_candidates: 20 }
+    screen: { min_price: 5, min_avg_dollar_volume: 20000000, max_candidates: 25 }
+    watchlist: { enabled: true, max_age_days: 10, max_size: 12 }
+    fundamentals: true           # 初筛后的候选拉取 SEC EDGAR 基本面（需要 .env 的 SEC_EDGAR_USER_AGENT）
     agents:
       - { agent: momentum_screener,  count: 1, weight: 1.0,
           model: { provider: deepseek, name: deepseek-chat } }
@@ -46,7 +54,8 @@ stages:
   # 1. 行情：IBKR 历史日线（只补缺失部分）、报价快照、账户与持仓快照
   - type: data_update
     timeframes: [1d]
-    lookback_days: 300
+    lookback_days: 400          # 超过一年的交易日：52 周 / 1 年指标需要
+    fundamentals: true          # 持仓等不在候选里的股票也补上基本面
 
   # 2. 舆情：三个数据源 + 两个舆情 agent；失败时跳过，不影响后续
   - type: sentiment
@@ -58,17 +67,19 @@ stages:
       - { agent: retail_mood,     count: 1, model: { provider: deepseek, name: deepseek-chat } }
       - { agent: event_extractor, count: 1, model: { provider: deepseek, name: deepseek-chat } }
 
-  # 3. 决策：两个决策 agent（价值型 ×2 实例、趋势型 ×1），加权投票聚合
+  # 3. 决策：与选股风格一致的趋势 / 动量型 agent 为主，价值型只作估值刹车（权重 0.5）
+  #    HOLD 票按一半权重计（hold_weight: 0.5）："没看到我的形态"不应该完全抵消别人的买入票
   - type: decision
     agents:
-      - { agent: value_investor, count: 2, weight: 1.0,
+      - { agent: trend_follower, count: 1, weight: 1.0,
           model: { provider: deepseek, name: deepseek-chat } }
-      - { agent: trend_follower, count: 1, weight: 0.8,
+      - { agent: canslim_momentum, count: 1, weight: 1.0,
           model: { provider: deepseek, name: deepseek-chat } }
       - { agent: breakout_trader, count: 1, model: { provider: deepseek, name: deepseek-chat } }
       - { agent: pullback_buyer, count: 1, model: { provider: deepseek, name: deepseek-chat } }
-      - { agent: value_investor, count: 1, model: { provider: deepseek, name: deepseek-chat } }
-    aggregation: { method: weighted_vote, min_confidence: 0.5 }
+      - { agent: value_investor, count: 1, weight: 0.5,
+          model: { provider: deepseek, name: deepseek-chat } }
+    aggregation: { method: weighted_vote, min_confidence: 0.5, hold_weight: 0.5 }
     bars_lookback: 260
     history_limit: 5
 
@@ -79,7 +90,11 @@ stages:
       - { agent: conservative_risk_officer, count: 1,
           model: { provider: deepseek, name: deepseek-chat } }
       - { agent: liquidity_checker, count: 1, model: { provider: deepseek, name: deepseek-chat } }
-    combine: most_conservative
+      - { agent: volatility_position_sizer, count: 1,
+          model: { provider: deepseek, name: deepseek-chat } }
+    # median：取三个风控 agent 结论的中位数（平局取更保守的一方），一个反对不再一票否决；
+    # 风控 agent 数量保持奇数，偶数时较低中位数仍偏保守
+    combine: median
     on_agent_failure: reject
 
   # 5. 交易：限价单，幂等下单，跟踪到成交/撤销（dry_run 时只记录）

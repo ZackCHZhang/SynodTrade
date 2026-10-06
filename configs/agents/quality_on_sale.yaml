@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for quality (high ROIC, stable margins) combined with a 15-30% drawdown from
-    the 52-week high and RSI below 40, without fundamental deterioration. Return
-    candidates with drawdown and quality scores.
+    Pick candidates with high ROIC and stable or rising gross margins that are 15-30%
+    below their 52-week high with RSI below about 40, as long as revenue and EPS are not
+    falling.

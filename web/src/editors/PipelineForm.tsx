@@ -36,7 +36,7 @@ import { setIn } from '../lib/yamlDoc';
 
 const STAGE_TEMPLATES: Record<string, any> = {
   selection: { type: 'selection', sources: [], agents: [], aggregation: { method: 'weighted_score', top_n: 5 } },
-  data_update: { type: 'data_update', timeframes: ['1d'], lookback_days: 365 },
+  data_update: { type: 'data_update', timeframes: ['1d'], lookback_days: 400, fundamentals: true },
   sentiment: { type: 'sentiment', on_error: 'skip', sources: ['reddit', 'stocktwits', 'ibkr_news'], lookback_hours: 24, agents: [] },
   decision: { type: 'decision', agents: [], aggregation: { method: 'weighted_vote', min_confidence: 0.6 } },
   risk: { type: 'risk', rules: 'default', agents: [], combine: 'most_conservative', on_agent_failure: 'reject' },
@@ -105,6 +105,9 @@ export function PipelineForm({ data, onChange, name }: FormProps) {
             </Grid>
             <Grid size={12}>
               <FieldEditor name="universe" field={pipelineSchema.properties!.universe} value={data.universe} path={['universe']} onChange={(v) => set(['universe'], v)} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <FieldEditor name="benchmark" field={pipelineSchema.properties!.benchmark} value={data.benchmark} path={['benchmark']} onChange={(v) => set(['benchmark'], v)} />
             </Grid>
             <Grid size={12}>
               <SchemaFields field={pipelineSchema.properties!.sizing} value={data.sizing} path={['sizing']} onChange={(v) => set(['sizing'], v)} />

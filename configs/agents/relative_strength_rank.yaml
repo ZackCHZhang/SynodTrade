@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Compute weighted performance (40% last 3 months, 20% each of the previous three
-    quarters) and convert to a 1-99 percentile rating. Return names rated 85 or higher
-    that are above SMA 50.
+    Rank candidates by a weighted performance score (40% the 60-day return, 30% the
+    120-day return, 30% the 1-year return) and by relative return versus the benchmark;
+    pick the top names that are above their 50-day average.

@@ -1,7 +1,9 @@
 """Combine several agents' decisions on one symbol into a final five-tier action.
 
 Before any method runs, a vote counts as HOLD if its confidence is below `min_confidence`
-or its agent failed (fell back to HOLD). Methods:
+or its agent failed (fell back to HOLD). HOLD votes then carry `hold_weight` times their
+usual weight in weighted_vote and majority (1: a HOLD weighs as much as a buy or sell;
+0.5: half, so specialists saying "my setup is absent" dilute the others less). Methods:
 
 - weighted_vote: average of tier weights, weighted by agent weight x confidence, mapped
   back to the nearest tier (ties toward HOLD). Zero total weight -> HOLD.
@@ -37,6 +39,7 @@ class AggregationOptions(BaseModel):
 
     method: AggregationMethod = AggregationMethod.WEIGHTED_VOTE
     min_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    hold_weight: float = Field(default=1.0, ge=0.0, le=1.0)
 
 
 def effective_action(decision: Decision, min_confidence: float) -> Action:
@@ -59,7 +62,10 @@ def aggregate(
 ) -> AggregatedDecision:
     """`votes` are (decision, agent weight) pairs for one symbol. `created_at` should be
     the run's `as_of`, so later runs "as of" a moment see exactly what existed then."""
-    effective = [(effective_action(d, options.min_confidence), d, w) for d, w in votes]
+    effective = [
+        (a, d, w * options.hold_weight if a is Action.HOLD else w)
+        for a, d, w in ((effective_action(d, options.min_confidence), d, w) for d, w in votes)
+    ]
 
     if options.method is AggregationMethod.WEIGHTED_VOTE:
         total = sum(w * d.confidence for _, d, w in effective)
@@ -94,7 +100,8 @@ def aggregate(
         run_id=run_id,
         symbol=symbol,
         final_action=final,
-        method=f"{options.method.value}(min_confidence={options.min_confidence})",
+        method=f"{options.method.value}(min_confidence={options.min_confidence}"
+        + (f", hold_weight={options.hold_weight})" if options.hold_weight != 1 else ")"),
         score=score,
         votes=[
             Vote(

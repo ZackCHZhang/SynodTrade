@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Compute the nine-point F-score (profitability, leverage, liquidity, operating
-    efficiency). Combine with low P/B; keep names scoring 8-9. Return candidates with
-    score breakdown.
+    Use the Piotroski F-score shown (computed from the filings) together with
+    price/book. Prefer scores of 7-9 with low price/book; ignore candidates without
+    enough signals.

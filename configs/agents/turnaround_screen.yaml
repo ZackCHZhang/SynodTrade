@@ -9,6 +9,7 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for stocks down more than 40% from their highs, with improving margins or
-    returning profitability in the latest quarters, manageable debt, and price
-    reclaiming SMA 50. Return candidates with improvement evidence.
+    Pick candidates more than 40% below their 52-week high whose latest quarter shows
+    improving profitability (EPS or operating income growth versus a year earlier), with
+    manageable long-term debt / equity, and whose price has reclaimed its 50-day
+    average.

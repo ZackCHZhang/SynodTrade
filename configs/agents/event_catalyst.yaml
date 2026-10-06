@@ -10,6 +10,9 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on the presence and timing of a concrete catalyst, the valuation gap
-    it can close and downside if it fails. Buy when the catalyst is credible and near;
-    exit when it is realized or invalidated.
+    Base the action on concrete catalysts visible in the data: events named in the
+    sentiment summaries (spin-offs, restructurings, index changes, activists, legal or
+    regulatory news), buyback yield, insider buying and the next earnings date. Weigh
+    the valuation gap the catalyst could close against the downside if it fails. Buy
+    only when the catalyst is credible and near; hold or sell when it is realised or
+    invalidated.

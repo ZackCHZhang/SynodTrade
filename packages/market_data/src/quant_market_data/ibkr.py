@@ -39,6 +39,9 @@ BAR_SIZE = {
 # IBKR market data types: 1 live, 2 frozen, 3 delayed, 4 delayed-frozen.
 # Paper accounts without a data subscription usually need 3.
 DELAYED = 3
+# How far IBKR's delayed US equity data lags; a delayed tick is stamped this much earlier
+# than it was received, so every consumer sees its real age.
+DELAYED_DATA_LAG = timedelta(minutes=15)
 
 
 def price(value: float | None) -> Decimal | None:
@@ -82,9 +85,12 @@ def quote_from_ticker(symbol: str, ticker: Ticker) -> Quote:
     bid, ask = price(ticker.bid), price(ticker.ask)
     if bid is not None and ask is not None and bid > ask:
         bid = ask = None  # crossed/stale book: keep only `last`
+    ts = ticker.time or utcnow()
+    if getattr(ticker, "marketDataType", 1) in (3, 4):  # delayed / delayed-frozen
+        ts -= DELAYED_DATA_LAG
     return Quote(
         symbol=symbol,
-        ts=ticker.time or utcnow(),
+        ts=ts,
         bid=bid,
         ask=ask,
         last=price(ticker.last) or price(ticker.close),

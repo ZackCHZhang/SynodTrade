@@ -29,6 +29,17 @@ class TradingHoursRules(BaseModel):
     calendar: str = "XNYS"  # exchange_calendars code (NYSE)
 
 
+class PositionCheckRules(BaseModel):
+    """Compare the broker account's real positions with the strategies' virtual ledgers."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    # Close a symbol (no buys, no sells) when the account holds fewer shares than the
+    # ledgers of all strategies trading this account say: the books are out of sync.
+    enabled: bool = True
+    max_snapshot_age_minutes: int = Field(default=120, ge=1)  # older snapshots: not checked
+
+
 class RiskRulesConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -51,6 +62,7 @@ class RiskRulesConfig(BaseModel):
 
     liquidity: LiquidityRules = Field(default_factory=LiquidityRules)
     trading_hours: TradingHoursRules = Field(default_factory=TradingHoursRules)
+    position_check: PositionCheckRules = Field(default_factory=PositionCheckRules)
 
     @field_validator("whitelist", "blacklist")
     @classmethod

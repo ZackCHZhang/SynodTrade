@@ -5,6 +5,7 @@ from quant_core.models.analysis import (
     AggregatedDecision,
     Candidate,
     Decision,
+    DecisionOutcome,
     RiskVerdict,
     RuleHit,
     SelectionPick,
@@ -13,6 +14,7 @@ from quant_core.models.analysis import (
     SentimentResult,
     StockSelection,
     Vote,
+    WatchlistEntry,
 )
 from quant_core.models.base import CoreModel
 from quant_core.models.context import PipelineContext, StageError
@@ -26,6 +28,7 @@ from quant_core.models.enums import (
     Timeframe,
     Verdict,
 )
+from quant_core.models.fundamentals import Fundamentals, InsiderActivity
 from quant_core.models.market import AccountSnapshot, Bar, Instrument, Position, Quote
 from quant_core.models.orders import Fill, OrderIntent, OrderResult
 
@@ -39,7 +42,10 @@ __all__ = [
     "Candidate",
     "CoreModel",
     "Decision",
+    "DecisionOutcome",
     "Fill",
+    "Fundamentals",
+    "InsiderActivity",
     "Instrument",
     "OrderIntent",
     "OrderResult",
@@ -61,4 +67,5 @@ __all__ = [
     "Timeframe",
     "Verdict",
     "Vote",
+    "WatchlistEntry",
 ]

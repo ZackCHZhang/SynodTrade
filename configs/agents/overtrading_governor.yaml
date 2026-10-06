@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Estimate round-trip costs and compare with expected edge. Reject trades where costs
-    exceed one third of expected gain, and flag strategies whose turnover exceeds their
-    stated holding period.
+    Estimate costs from the bid/ask spread (round trip about one spread plus
+    commissions) and compare them with the expected move implied by the decision. Reject
+    trades whose edge does not clearly exceed costs, and reduce when the strategy has
+    traded the same stock repeatedly in its recent decisions or many orders in 30 days.

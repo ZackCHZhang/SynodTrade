@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Compute portfolio beta to the benchmark. Keep beta within the configured range
-    (default 0.6-1.2); flag trades that push beta outside it and suggest lower-beta
-    alternatives or hedges.
+    Use the portfolio beta and the proposed stock's beta versus the benchmark. Keep the
+    portfolio beta within 0.6-1.2: reduce or reject buys of high-beta stocks that would
+    push it above 1.2. Hedging instruments are not available to this strategy.

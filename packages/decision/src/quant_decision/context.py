@@ -1,26 +1,40 @@
 """Everything a decision agent sees about one symbol, pre-computed and pre-formatted.
 
 Each piece of data carries a stable id (e.g. `ind:rsi_14`, `bar:2026-09-23`, `sent:<uuid>`,
-`hist:<uuid>`, `pos:AAPL`). Agents cite these ids in `referenced_data_ids`, and only ids
-that were actually shown are kept.
+`hist:<uuid>`, `pos:AAPL`, `quote:AAPL`, `fund:pe`, `mkt:SPY`, `sel:AAPL`). Agents cite
+these ids in `referenced_data_ids`, and only ids that were actually shown are kept.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from quant_core.indicators import TechnicalSnapshot
-from quant_core.models import AggregatedDecision, Bar, SentimentResult
+from quant_core.fundamentals import fundamentals_inputs
+from quant_core.indicators import RelativeSnapshot, TechnicalSnapshot
+from quant_core.models import Bar, Fundamentals, Quote, SentimentResult
+from quant_core.research import (
+    HistoryEntry,
+    earnings_reaction,
+    fmt_pct,
+    history_entries,
+    history_inputs,
+    market_inputs,
+    quote_inputs,
+    sentiment_inputs,
+)
 from quant_database import LedgerState
+
+__all__ = ["HistoryEntry", "SymbolContext", "fmt_indicator", "fmt_pct", "history_entries"]
 
 _PERCENT = {
     "return_1d", "return_5d", "return_20d", "return_60d", "return_120d", "return_250d",
     "volatility_20d", "volatility_60d", "price_vs_sma_20", "price_vs_sma_50",
-    "price_vs_sma_200", "from_52w_high", "from_52w_low", "max_drawdown_1y",
+    "price_vs_sma_200", "from_52w_high", "from_52w_low", "max_drawdown_1y", "atr_14_pct",
+    "max_gap_60d",
 }  # fmt: skip
 _LABELS = {
     "last_close": "Last close",
@@ -48,11 +62,14 @@ _LABELS = {
     "from_52w_low": "Distance from 52-week low",
     "max_drawdown_1y": "Max drawdown 1 year",
     "volume_ratio_20d": "Volume vs 20-day average",
+    "atr_14": "Average true range 14 (price units)",
+    "atr_14_pct": "Average true range 14 / close",
+    "max_gap_60d": "Largest overnight gap, 60 days",
+    "high_20d": "20-day high",
+    "low_20d": "20-day low",
+    "high_55d": "55-day high",
+    "low_55d": "55-day low",
 }
-
-
-def fmt_pct(value: float | Decimal) -> str:
-    return f"{float(value) * 100:+.2f}%"
 
 
 def fmt_indicator(name: str, value: float) -> str:
@@ -66,13 +83,6 @@ def fmt_indicator(name: str, value: float) -> str:
 
 
 @dataclass(slots=True)
-class HistoryEntry:
-    decision: AggregatedDecision
-    price_then: Decimal | None  # close of the last bar completed before the decision
-    change_since: float | None  # last close / price_then - 1
-
-
-@dataclass(slots=True)
 class SymbolContext:
     symbol: str
     as_of: datetime
@@ -81,9 +91,23 @@ class SymbolContext:
     ledger: LedgerState
     nav: Decimal
     sentiment: Sequence[SentimentResult] = ()
+    sentiment_from_this_run: bool = True  # False: newest stored results of earlier runs
     history: Sequence[HistoryEntry] = ()
     recent_bars_in_prompt: int = 20
+    quote: Quote | None = None  # a fresh quote from this run's data update
+    fundamentals: Fundamentals | None = None
+    benchmark: str | None = None
+    benchmark_indicators: TechnicalSnapshot | None = None
+    relative: RelativeSnapshot | None = None
+    selection: dict[str, Any] | None = None  # see `selection_inputs` in the stage
     extra: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def price(self) -> float | None:
+        """Current price: the fresh quote, else the last close."""
+        if self.quote is not None and self.quote.reference_price is not None:
+            return float(self.quote.reference_price)
+        return self.indicators.last_close
 
     def to_inputs(self) -> tuple[dict[str, Any], set[str]]:
         """Template inputs and the set of data ids shown in them."""
@@ -118,36 +142,33 @@ class SymbolContext:
         if position is not None:
             ids.add(position["id"])
 
-        sentiment = []
-        for s in self.sentiment:
-            if s.error is not None:
-                continue  # failed analyses carry no information
-            ids.add(f"sent:{s.id}")
-            sentiment.append(
-                {
-                    "id": f"sent:{s.id}",
-                    "agent": s.agent_id,
-                    "sentiment": f"{s.sentiment:+.2f}",
-                    "confidence": f"{s.confidence:.2f}",
-                    "summary": s.summary,
-                    "key_events": s.key_events,
-                }
-            )
+        sentiment = sentiment_inputs(
+            self.sentiment, self.as_of, this_run=self.sentiment_from_this_run
+        )
+        ids.update(item["id"] for item in sentiment)
 
-        history = []
-        for h in self.history:
-            ids.add(f"hist:{h.decision.id}")
-            history.append(
-                {
-                    "id": f"hist:{h.decision.id}",
-                    "date": h.decision.created_at.date().isoformat(),
-                    "action": h.decision.final_action.value,
-                    "price_then": f"{h.price_then:.2f}" if h.price_then is not None else "n/a",
-                    "change_since": fmt_pct(h.change_since)
-                    if h.change_since is not None
-                    else "n/a",
-                }
-            )
+        history = history_inputs(self.history)
+        ids.update(item["id"] for item in history)
+
+        quote = quote_inputs(self.symbol, self.quote, self.indicators.last_close, self.as_of)
+        if quote is not None:
+            ids.add(quote["id"])
+
+        fundamentals = fundamentals_inputs(self.fundamentals, self.price, self.as_of.date())
+        if fundamentals is not None:
+            reaction = earnings_reaction(self.fundamentals, self.bars, self.price)
+            if reaction is not None:
+                fundamentals["lines"].append(reaction)
+            ids.update(line["id"] for line in fundamentals["lines"])
+
+        market = None
+        if self.benchmark is not None and self.benchmark_indicators is not None:
+            market = market_inputs(self.benchmark, self.benchmark_indicators, self.relative)
+            if market is not None:
+                ids.add(market["id"])
+
+        if self.selection is not None:
+            ids.add(self.selection["id"])
 
         inputs = {
             "symbol": self.symbol,
@@ -161,7 +182,12 @@ class SymbolContext:
                 "max_capital": f"{self.ledger.max_capital:,.2f}",
             },
             "sentiment": sentiment,
+            "sentiment_from_this_run": self.sentiment_from_this_run,
             "history": history,
+            "quote": quote,
+            "fundamentals": fundamentals,
+            "market": market,
+            "selection": self.selection,
             **self.extra,
         }
         return inputs, ids
@@ -170,7 +196,7 @@ class SymbolContext:
         pos = self.ledger.positions.get(self.symbol)
         if pos is None or pos.qty == 0:
             return None
-        last = self.indicators.last_close
+        last = self.price
         value = pos.qty * Decimal(str(last)) if last is not None else pos.cost_basis
         return {
             "id": f"pos:{self.symbol}",
@@ -180,17 +206,3 @@ class SymbolContext:
             "unrealized": fmt_pct(value / pos.cost_basis - 1) if pos.cost_basis else "n/a",
             "weight": fmt_pct(value / self.nav) if self.nav else "n/a",
         }
-
-
-def history_entries(
-    decisions: Sequence[AggregatedDecision], bars: Sequence[Bar], bar_length: timedelta
-) -> list[HistoryEntry]:
-    """Past decisions with the price move since (computed in code, never by the LLM)."""
-    last = bars[-1].close if bars else None
-    entries = []
-    for d in decisions:
-        completed = [b for b in bars if b.ts + bar_length <= d.created_at]
-        then = completed[-1].close if completed else None
-        change = float(last / then - 1) if last is not None and then else None
-        entries.append(HistoryEntry(d, then, change))
-    return entries

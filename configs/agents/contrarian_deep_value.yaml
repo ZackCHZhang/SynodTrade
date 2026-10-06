@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on asset value versus market cap, free cash flow yield, insider
-    buying and extremely negative sentiment or drawdown. Buy only with a hard asset or
-    cash-flow floor; size small and add as the thesis is confirmed.
+    Base the action on net current asset value / market cap, price/book, free cash flow
+    yield, insider open-market buying, very negative sentiment and a deep drawdown from
+    the 52-week high. Buy only with a hard floor (NCAV, cash or positive free cash
+    flow); act small and add only as the evidence improves.

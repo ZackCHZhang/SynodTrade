@@ -10,6 +10,8 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on accelerating price trend, narrative strength, credit and capital-
-    raising conditions and signs of exhaustion (divergences, failing rallies). Join
-    early-stage booms; exit aggressively when the feedback loop weakens.
+    Base the action on an accelerating price trend (returns 20/60/120 days, MACD), the
+    strength of the narrative in the sentiment summaries, capital-raising signs (diluted
+    share count change, rising debt) and signs of exhaustion (RSI divergence, failing
+    rallies, volume spikes on down days). Join early-stage booms; sell aggressively when
+    the feedback loop weakens.

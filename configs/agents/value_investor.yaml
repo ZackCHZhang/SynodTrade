@@ -11,7 +11,9 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on valuation (P/E, P/B, EV/EBIT versus history and peers), balance-
-    sheet strength and earnings stability. Buy only with a clear discount to intrinsic
-    value; trim when price approaches fair value. Ignore short-term momentum unless it
-    signals a fundamental break.
+    Base the action on valuation (P/E, price/book, EV/EBIT, free cash flow yield),
+    balance-sheet strength (long-term debt / equity, current ratio) and earnings
+    stability (TTM net income and EPS growth). History and peer valuations are not
+    available, so judge absolute levels. Buy only with a clear margin of safety; trim
+    when the price approaches a fair multiple. Ignore short-term momentum unless it
+    signals a business problem.

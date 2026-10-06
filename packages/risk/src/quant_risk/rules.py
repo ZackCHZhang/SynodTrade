@@ -41,6 +41,9 @@ class PortfolioState:
     weekly_return: Decimal | None = None
     kill_switch: str | None = None  # reason, if the database kill switch is on
     market_open: bool = True
+    # symbol -> (shares in the broker account, shares in all strategies' ledgers) where the
+    # account holds fewer than the ledgers claim
+    position_mismatch: dict[str, tuple[Decimal, Decimal]] = field(default_factory=dict)
 
     @property
     def gross_value(self) -> Decimal:
@@ -159,6 +162,16 @@ class RuleEngine:
             gate(Gate.CLOSED, "trading_hours", f"market closed at {state.as_of.isoformat()}")
         if market.price is None:
             gate(Gate.CLOSED, "no_price", f"no current price for {symbol}")
+        if cfg.position_check.enabled and symbol in state.position_mismatch:
+            broker, ledgers = state.position_mismatch[symbol]
+            gate(
+                Gate.CLOSED,
+                "position_mismatch",
+                f"broker account holds {broker} {symbol} but the strategy ledgers hold "
+                f"{ledgers}: reconcile before trading it",
+                broker_qty=float(broker),
+                ledger_qty=float(ledgers),
+            )
         if cfg.max_trades_per_day is not None and state.trades_today >= cfg.max_trades_per_day:
             gate(
                 Gate.CLOSED,

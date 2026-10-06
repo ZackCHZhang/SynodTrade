@@ -29,10 +29,13 @@ async def test_global_window_limit() -> None:
         max_requests=3, window_s=10, per_key_max=100, clock=clock, sleep=clock.sleep
     )
     for key in "abc":
-        await limiter.acquire(key)
+        await limiter.acquire(key, small_bars=True)
         clock.now += 1
     assert clock.sleeps == []
-    await limiter.acquire("d")  # 4th request must wait until the first leaves the window
+    for key in "xyz":  # 1 min / 1 day bars: not limited by (nor counted in) the window
+        await limiter.acquire(key)
+    assert clock.sleeps == []
+    await limiter.acquire("d", small_bars=True)  # 4th small-bar request waits
     assert clock.sleeps == [pytest.approx(7.0)]
     assert clock.now == pytest.approx(10.0)
 
@@ -53,9 +56,9 @@ async def test_per_key_limit() -> None:
 async def test_old_requests_expire() -> None:
     clock = FakeClock()
     limiter = PacingLimiter(max_requests=1, window_s=5, clock=clock, sleep=clock.sleep)
-    await limiter.acquire("a")
+    await limiter.acquire("a", small_bars=True)
     clock.now = 6
-    await limiter.acquire("a")
+    await limiter.acquire("a", small_bars=True)
     assert clock.sleeps == []
 
 

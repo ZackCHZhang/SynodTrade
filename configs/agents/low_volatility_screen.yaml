@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for low 1-year realized volatility, low beta, shallow historical drawdowns
-    and stable earnings. Exclude names in downtrends below SMA 200. Return candidates
-    with volatility metrics.
+    Pick candidates with low 60-day volatility, low beta versus the benchmark, a small
+    1-year max drawdown and positive earnings. Exclude names below their 200-day
+    average.

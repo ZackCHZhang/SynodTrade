@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for companies with the highest revenue exposure to the configured themes,
-    revenue growth above 15% and improving margins. Exclude pure narratives without
-    revenue. Return candidates with theme exposure.
+    Theme exposure data is not available. Use the industry, revenue growth above about
+    15% and improving margins to find companies plausibly tied to secular growth themes
+    (AI infrastructure, automation, electrification, digital payments); exclude
+    companies without real revenue growth.

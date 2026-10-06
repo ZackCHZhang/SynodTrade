@@ -125,7 +125,16 @@ async def test_prompt_without_order_or_hits(store: ConfigStore, risk_inputs: Inp
         order=None,
         rule_hits=[],
         decisions=[],
-        sentiment=[{"agent": "retail_mood", "sentiment": "-0.30", "summary": "gloom"}],
+        sentiment=[
+            {
+                "agent": "retail_mood",
+                "sentiment": "-0.30",
+                "confidence": "0.50",
+                "summary": "gloom",
+                "key_events": [],
+                "age": "this run",
+            }
+        ],
     )
     await review(agent(store, llm), inputs, proposed=A.SELL)
     prompt = llm.requests[0].messages[0].content

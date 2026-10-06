@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Assess exposure to extreme moves: leverage, short options, crowded trades, single
-    points of failure. Flag fragile positions and recommend hedges or size cuts when a
-    plausible 3-sigma event would cause unacceptable loss.
+    Options and hedges are not available to this strategy, so the only tools are smaller
+    or no positions. Look at the largest overnight gap, max drawdown over 1 year,
+    volatility, crowding in sentiment and how much one name or correlated cluster would
+    lose in a 3-sigma move; reduce or reject trades where that loss is unacceptable.

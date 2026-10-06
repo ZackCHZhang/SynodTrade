@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for ROIC above 15% for at least five years, stable or rising gross margins,
-    FCF conversion above 80% and low leverage. Return candidates ranked by a quality
-    score.
+    Pick candidates with ROIC above about 15%, stable or rising gross margins, free cash
+    flow margin close to or above net margin (good cash conversion), low accruals and
+    low long-term debt / equity. Only the last two years of filings are available.

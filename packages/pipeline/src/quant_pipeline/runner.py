@@ -20,7 +20,7 @@ from quant_core.config import (
     config_hash,
     resolve_model,
 )
-from quant_core.interfaces import Stage
+from quant_core.interfaces import FundamentalsRefresher, Stage
 from quant_core.llm import LLMClientPool
 from quant_core.logging import bind_run, get_logger
 from quant_core.models import PipelineContext, RunMode, StageError
@@ -29,7 +29,15 @@ from quant_core.safety import ensure_mode_allowed
 from quant_core.services import Services
 from quant_core.timeutil import utcnow
 from quant_database import Database, PipelineRun, Repositories, RunStatus
-from quant_market_data import DataUpdater, IBKRMarketDataProvider, MarketDataProvider
+from quant_market_data import (
+    DataUpdater,
+    FakeFundamentalsRefresher,
+    FundamentalsUpdater,
+    IBKRMarketDataProvider,
+    MarketDataProvider,
+    SecEdgarClient,
+    SecEdgarError,
+)
 from quant_pipeline.offline import (
     OfflineLLMStyle,
     offline_candidate_sources,
@@ -123,6 +131,7 @@ class PipelineRunner:
         mode: RunMode,
         options: RunOptions,
         as_of: datetime,
+        holdings: Sequence[str] = (),
     ) -> Services:
         types = {s.type for s in stages}
         o = self._overrides
@@ -156,6 +165,9 @@ class PipelineRunner:
 
         # Symbols the run may touch: the universe, or with a selection stage every candidate.
         symbols = offline_symbols(pipeline, stages) if options.offline else pipeline.universe
+        symbols = list(dict.fromkeys([*symbols, *holdings]))
+        if pipeline.benchmark:
+            symbols.append(pipeline.benchmark)
         if types & {"selection", "data_update"}:  # one market data connection for both
             if "market_data" in o:
                 items["market_data"] = o["market_data"]
@@ -183,6 +195,19 @@ class PipelineRunner:
                     symbols,
                     as_of,
                 )
+        if wants_fundamentals(stages):
+            fundamentals = o.get("fundamentals")
+            if fundamentals is None and options.offline:
+                fundamentals = FakeFundamentalsRefresher(self.repos)
+            elif fundamentals is None:
+                try:
+                    fundamentals = FundamentalsUpdater(
+                        SecEdgarClient.from_env(env=self._env), self.repos
+                    )
+                except SecEdgarError as exc:  # stages log that fundamentals are unavailable
+                    log.warning("pipeline.fundamentals_unavailable", error=str(exc))
+            if fundamentals is not None:
+                items["fundamentals"] = fundamentals
         if "trading" in types:
             items["broker"] = o.get("broker") or create_broker(mode, account, self._env)
         for name in ("market_clock",):
@@ -205,8 +230,28 @@ class PipelineRunner:
         llm = services.optional("llm", LLMClientPool)
         if llm is not None:
             await llm.aclose()
+        fundamentals = services.optional("fundamentals", FundamentalsRefresher)
+        close = getattr(fundamentals, "aclose", None)
+        if close is not None:
+            await close()
 
     # ------------------------------------------------------------ run
+
+    @staticmethod
+    async def _prepare(built: Sequence[tuple[StageConfig, Stage]], ctx: PipelineContext) -> None:
+        """Optional `prepare(ctx)` hooks run before the first stage (e.g. trading brings open
+        orders up to date so every stage sees their fills). A failing hook is logged; the
+        stage itself still runs (and fails) in its turn."""
+        for cfg, stage in built:
+            prepare = getattr(stage, "prepare", None)
+            if prepare is None:
+                continue
+            try:
+                await prepare(ctx)
+            except Exception as exc:
+                log.warning(
+                    "pipeline.prepare_failed", stage=cfg.type, error=f"{type(exc).__name__}: {exc}"
+                )
 
     async def _check_not_running(self, pipeline: str, now: datetime, max_minutes: int) -> None:
         for run in await self.repos.runs.running_runs(pipeline):
@@ -266,13 +311,25 @@ class PipelineRunner:
                 started_at=started,
             )
         )
+        # Held symbols always stay in the universe, so a position the config no longer lists
+        # still gets data, decisions and (if decided) a sell; so do watchlist entries (e.g.
+        # added by hand in the web console). A selection stage re-applies both.
+        ledger = await self.repos.ledger.get_state(
+            pipeline.name, pipeline.budget.max_capital, as_of=as_of
+        )
+        watched = [e.symbol for e in await self.repos.watchlist.get_active(pipeline.name, as_of)]
+        held = [
+            s for s in dict.fromkeys([*watched, *sorted(ledger.positions)])
+            if s not in pipeline.universe
+        ]  # fmt: skip
         ctx = PipelineContext(
             run_id=run_id,
             pipeline_name=pipeline.name,
             mode=mode,
-            universe=pipeline.universe,
+            universe=[*pipeline.universe, *held],
             as_of=as_of,
             started_at=started,
+            live=options.as_of is None,
         )
         timings: dict[str, dict[str, Any]] = {}
         services: Services | None = None
@@ -283,9 +340,10 @@ class PipelineRunner:
                 mode=mode.value,
                 stages=[s.type for s in stage_configs],
                 as_of=as_of.isoformat(),
+                added_to_universe=held,
             )
             try:
-                services = self._services(pipeline, stage_configs, mode, options, as_of)
+                services = self._services(pipeline, stage_configs, mode, options, as_of, held)
                 built = [(cfg, STAGES.get(cfg.type)(cfg, services)) for cfg in stage_configs]
                 stages = [stage for _, stage in built]
             except Exception as exc:  # configuration / credentials: nothing ran
@@ -300,6 +358,7 @@ class PipelineRunner:
                 built = []
             finished = False
             try:
+                await self._prepare(built, ctx)
                 total = len(built)
                 for index, (cfg, stage) in enumerate(built):
                     log.info("pipeline.stage_start", stage=cfg.type, index=index, total=total)
@@ -360,6 +419,14 @@ class PipelineRunner:
             )
             log.info("pipeline.finish", status=run_status.value, summary=summary)
         return RunReport(run_id, pipeline.name, mode, run_status, summary, ctx, list(ctx.errors))
+
+
+def wants_fundamentals(stages: Sequence[StageConfig]) -> bool:
+    """Whether a stage refreshes fundamentals (`fundamentals: true` on data_update/selection)."""
+    return any(
+        s.type in ("data_update", "selection") and bool(getattr(s, "fundamentals", False))
+        for s in stages
+    )
 
 
 def summarize(ctx: PipelineContext, timings: dict[str, dict[str, Any]]) -> dict[str, Any]:

@@ -3,6 +3,7 @@ name: long_term_stocks
 mode: paper            # dry_run | paper | live  (live also needs QUANT_ALLOW_LIVE=1)
 account: ibkr_main
 universe: [AAPL, MSFT, GOOGL, NVDA]
+benchmark: SPY         # market regime, beta and relative strength (bars kept by data_update)
 budget:
   max_capital: 5000    # this pipeline's capital ceiling (sub-ledger), base currency
 sizing:
@@ -11,7 +12,8 @@ sizing:
 stages:
   - type: data_update
     timeframes: [1d]
-    lookback_days: 365
+    lookback_days: 400         # > 1 year of trading days: 52-week and 1-year indicators
+    fundamentals: true         # SEC EDGAR filings (needs SEC_EDGAR_USER_AGENT in .env)
   - type: sentiment
     on_error: skip             # sentiment is optional: a failure here does not stop the run
     sources: [reddit, stocktwits, ibkr_news]

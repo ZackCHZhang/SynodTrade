@@ -9,6 +9,7 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Estimate win probability and payoff ratio from the signal history. Compute Kelly
-    fraction and cap allowed size at one quarter Kelly, never above the hard position
-    limit. Reject trades with no measurable edge.
+    Estimate the edge from this strategy's previous decisions for the stock (what was
+    executed and the price change since) and the decision agents' confidence. With
+    little or mixed history, treat the edge as unmeasured: reduce strong actions by a
+    tier and reject when the history shows the signal has mostly lost money.

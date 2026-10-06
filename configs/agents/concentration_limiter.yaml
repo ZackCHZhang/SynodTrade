@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Enforce limits: single position at most 10% of equity, single sector at most 30%,
-    single theme at most 40%. Reject or downsize proposals that breach limits and flag
-    existing breaches for trimming.
+    Enforce limits: a single position at most 10% of the strategy's value and a single
+    industry (SIC, from the holdings list) at most 30%. Reject or reduce proposals that
+    breach them; theme data is not available.

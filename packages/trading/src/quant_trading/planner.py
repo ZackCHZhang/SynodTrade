@@ -31,6 +31,10 @@ class TradingOptions(BaseModel):
 
     order_type: OrderType = OrderType.LIMIT
     limit_offset_bps: Decimal = Field(default=Decimal(5), ge=0, le=500)
+    # With a quote older than `fresh_quote_seconds` (e.g. 15-minute delayed data) the price
+    # may have moved: use this wider offset so the "marketable" limit is still marketable.
+    stale_limit_offset_bps: Decimal = Field(default=Decimal(50), ge=0, le=500)
+    fresh_quote_seconds: float = Field(default=120, gt=0)
     time_in_force: Literal["DAY", "GTC"] = "DAY"
     cancel_after_minutes: float = Field(default=30, gt=0)
     poll_interval_seconds: float = Field(default=5, ge=0)
@@ -101,9 +105,12 @@ class OrderPlanner:
         self._max_capital = max_capital
         self._account_id = account_id
 
-    async def _prices(self, symbol: str, as_of: datetime) -> tuple[Quote | None, Decimal | None]:
-        quote = await self._repos.quotes.get_latest_quote(symbol, as_of=as_of)
-        if quote is not None and as_of - quote.ts > timedelta(
+    async def _prices(
+        self, symbol: str, as_of: datetime, cutoff: datetime
+    ) -> tuple[Quote | None, Decimal | None]:
+        """Quote up to `cutoff` (see PipelineContext.snapshot_cutoff), else the last close."""
+        quote = await self._repos.quotes.get_latest_quote(symbol, as_of=cutoff)
+        if quote is not None and cutoff - quote.ts > timedelta(
             minutes=self.options.max_quote_age_minutes
         ):
             quote = None
@@ -115,13 +122,21 @@ class OrderPlanner:
             reference = bars[-1].close if bars else None
         return quote, reference
 
+    def _offset(self, quote: Quote | None, now: datetime) -> Decimal:
+        """Limit offset: tight for a fresh quote, wide for a stale or missing one."""
+        fresh = quote is not None and (now - quote.ts).total_seconds() <= (
+            self.options.fresh_quote_seconds
+        )
+        return self.options.limit_offset_bps if fresh else self.options.stale_limit_offset_bps
+
     async def plan(self, ctx: PipelineContext) -> tuple[list[PlannedOrder], list[SkippedOrder]]:
         ledger = await self._repos.ledger.get_state(
             ctx.pipeline_name, self._max_capital, as_of=ctx.as_of
         )
         cash = ledger.available_cash
+        cutoff = ctx.snapshot_cutoff()
         if self._account_id is not None:
-            account = await self._repos.accounts.get_latest_account(self._account_id, ctx.as_of)
+            account = await self._repos.accounts.get_latest_account(self._account_id, cutoff)
             if account is not None:
                 available = (
                     account.available_funds if account.available_funds is not None else account.cash
@@ -129,7 +144,7 @@ class OrderPlanner:
                 cash = spendable_cash(ledger_cash=cash, account_available_cash=available)
         prices: dict[str, Decimal] = {}
         for symbol in ledger.positions:
-            _, ref = await self._prices(symbol, ctx.as_of)
+            _, ref = await self._prices(symbol, ctx.as_of, cutoff)
             if ref is not None:
                 prices[symbol] = ref
         nav = ledger.nav(prices)
@@ -140,13 +155,13 @@ class OrderPlanner:
             action = ctx.risk_verdicts[symbol].adjusted_action
             if action is Action.HOLD:
                 continue
-            quote, reference = await self._prices(symbol, ctx.as_of)
+            quote, reference = await self._prices(symbol, ctx.as_of, cutoff)
             if reference is None:
                 skipped.append(SkippedOrder(symbol, action, "no price"))
                 continue
             side = OrderSide.BUY if action.direction > 0 else OrderSide.SELL
             limit = (
-                limit_price(side, quote, reference, self.options.limit_offset_bps)
+                limit_price(side, quote, reference, self._offset(quote, cutoff))
                 if self.options.order_type is OrderType.LIMIT
                 else None
             )

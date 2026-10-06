@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for low EV/EBIT, low P/B and high FCF yield versus sector. Exclude companies
-    with net debt to EBITDA above 3 or negative free cash flow. Return the cheapest
-    candidates with valuation metrics.
+    Pick the cheapest candidates by EV/EBIT, price/book and free cash flow yield,
+    excluding those with negative free cash flow or long-term debt / equity above about
+    1.5. Sector comparisons are not available; judge absolute levels.
