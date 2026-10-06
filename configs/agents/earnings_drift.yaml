@@ -10,6 +10,8 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on EPS and revenue surprise, guidance revision, the earnings-day gap
-    and its volume, and whether the gap holds in the following days. Buy strong positive
-    surprises whose gap holds; exit if the gap is filled.
+    Analyst consensus is not available, so treat the latest quarter's EPS and revenue
+    growth versus the year-ago quarter as the surprise proxy. Base the action on that
+    growth, the price reaction to the last earnings release (the gap and whether it
+    held) and the days since the release. Buy strong growth whose positive gap held
+    within a few weeks of the release; sell if the gap is filled.

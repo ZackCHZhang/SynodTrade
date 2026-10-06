@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Check average daily dollar volume over 20 days and bid-ask spread. Limit each order
-    to at most 5% of average daily volume and reject names with very wide spreads or
-    illiquid trading.
+    Check the order size versus 20-day average volume and the bid/ask spread. Reject
+    orders above 5% of average daily volume or with a spread above 50 bps; reduce orders
+    above 1% of average daily volume.

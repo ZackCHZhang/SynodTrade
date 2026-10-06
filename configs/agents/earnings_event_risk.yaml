@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Check upcoming earnings dates and major scheduled events. Reduce or avoid new
-    positions within 3 trading days of an event unless the strategy explicitly targets
-    it; cap event exposure by expected move.
+    Use the estimated next earnings date (last release + one quarter) and the size of
+    past gaps (largest overnight gap in 60 days, the last earnings reaction). Reduce or
+    reject new buys within about 5 trading days of the estimated date; the estimate can
+    be off by a week or two, so be conservative.

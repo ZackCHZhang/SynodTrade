@@ -10,7 +10,8 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on return on invested capital, margin stability, free cash flow
-    conversion, debt levels and valuation versus quality. Buy great businesses at
-    reasonable prices; hold through volatility while the thesis is intact; sell only on
-    thesis break or extreme overvaluation.
+    Base the action on return on invested capital, gross and operating margins and their
+    change versus a year earlier, free cash flow margin and accruals (cash conversion),
+    long-term debt / equity, and valuation (P/E, EV/EBIT) versus that quality. Buy great
+    businesses at reasonable prices; hold through volatility while they stay intact;
+    sell only when quality deteriorates or valuation becomes extreme.

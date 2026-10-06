@@ -55,7 +55,11 @@ def candidate_inputs(profile: CandidateProfile) -> dict[str, Any]:
         "last_close": f"{ind.last_close:.2f}" if ind.last_close is not None else "n/a",
         "return_20d": _pct(ind.return_20d),
         "return_60d": _pct(ind.return_60d),
+        "return_120d": _pct(ind.return_120d),
         "return_250d": _pct(ind.return_250d),
+        "volume_ratio_20d": f"{ind.volume_ratio_20d:.2f}x"
+        if ind.volume_ratio_20d is not None
+        else "n/a",
         "volatility_60d": _pct(ind.volatility_60d),
         "price_vs_sma_50": _pct(ind.price_vs_sma_50),
         "price_vs_sma_200": _pct(ind.price_vs_sma_200),
@@ -63,6 +67,9 @@ def candidate_inputs(profile: CandidateProfile) -> dict[str, Any]:
         "from_52w_high": _pct(ind.from_52w_high),
         "max_drawdown_1y": _pct(ind.max_drawdown_1y),
         "avg_dollar_volume": _money(profile.avg_dollar_volume),
+        "fundamentals": "",  # one-line summaries, filled by the stage when available
+        "relative": "",
+        "sentiment": "",
         **profile.extra,
     }
 
@@ -96,6 +103,7 @@ class SelectionAgent(Agent[SelectionOutput]):
         max_picks: int,
         previous: StockSelection | None = None,
         holdings: Sequence[str] = (),
+        watchlist_days: int | None = None,
     ) -> SelectionResult:
         symbols = [p.symbol for p in profiles]
         inputs: dict[str, Any] = {
@@ -103,6 +111,7 @@ class SelectionAgent(Agent[SelectionOutput]):
             "candidates": [candidate_inputs(p) for p in profiles],
             "max_picks": max_picks,
             "holdings": list(holdings),
+            "watchlist_days": watchlist_days,
             "previous": (
                 {
                     "date": previous.created_at.date().isoformat(),

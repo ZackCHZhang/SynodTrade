@@ -14,7 +14,7 @@ from sqlalchemy import func, select
 
 from quant_core.config import ConfigError, ConfigStore
 from quant_core.logging import configure_logging
-from quant_core.models import RunMode
+from quant_core.models import OrderStatus, RunMode
 from quant_core.safety import LiveTradingNotAllowedError
 from quant_database import Database, PipelineRun, Repositories, RunStatus
 from quant_database.models import (
@@ -34,6 +34,7 @@ from quant_database.models import (
 from quant_market_data import FakeMarketDataProvider
 from quant_pipeline import PipelineBusyError, PipelineRunner, RunOptions, select_stages
 from quant_pipeline.offline import offline_market_data, schema_reply
+from quant_pipeline.runner import wants_fundamentals
 from quant_sentiment.sources import FakeSentimentSource
 from quant_trading import SimulatedBroker
 
@@ -237,8 +238,9 @@ async def test_selection_uses_the_shared_market_data_provider(
         "demo_all_modules", RunOptions(dry_run=True, as_of=AS_OF, stages=["select", "data"])
     )
     assert report.ok, report.errors
-    assert report.summary["selection"]["candidates"] == 11
-    assert len(report.summary["universe"]) == 3
+    # the demo scans the market only (include_universe: false): the scanner's AMD
+    assert report.summary["selection"]["candidates"] == 1
+    assert report.summary["universe"] == ["AMD"]
     assert ("fetch_bars", "AMD") in provider.calls
     stored = await Repositories.create(db).bars.get_latest_bars("AMD", 5, as_of=AS_OF)
     assert len(stored) == 5  # the scanner's candidate got bars through the provider
@@ -332,6 +334,19 @@ async def test_offline_mode(store: ConfigStore, db: Database) -> None:
 
 async def test_demo_pipeline_exercises_every_module(store: ConfigStore, db: Database) -> None:
     """configs/pipelines/demo_all_modules.yaml, offline with the bullish fake LLM."""
+    config = store.pipeline("demo_all_modules")
+
+    def agents(stage: str) -> int:  # agent counts are edited in the web UI: read them
+        found = config.stage(stage)
+        assert found is not None
+        return sum(ref.count for ref in found.agents)
+
+    n_sel, n_sent, instances, n_risk = (
+        agents("selection"),
+        agents("sentiment"),
+        agents("decision"),
+        agents("risk"),
+    )
     report = await PipelineRunner(store, db, env={}).run(
         "demo_all_modules", RunOptions(offline=True, offline_llm="bullish", as_of=AS_OF)
     )
@@ -345,28 +360,32 @@ async def test_demo_pipeline_exercises_every_module(store: ConfigStore, db: Data
         "risk": "ok",
         "trading": "ok",
     }
-    # 10 pool symbols + the offline scanner's (NVDA, AMZN, GOOGL, META, JPM, XOM): 11
+    # only the offline scanner's NVDA, AMZN, GOOGL, META, JPM, XOM (include_universe: false)
     selection = summary["selection"]
-    assert selection["candidates"] == 11
+    assert selection["candidates"] == 6
     selected = selection["selected"]
     assert len(selected) == 3  # top_n; the offline agents both pick the 3 first shown
     assert list(selection["scores"].values()) == [0.7, 0.6, 0.5]
     assert summary["universe"] == selected  # nothing held yet
-    assert summary["sentiment_results"] == 2 * 3  # 2 sentiment agents x 3 symbols
-    assert summary["decisions"] == 3 * 3  # 3 decision instances x 3 symbols
+    assert summary["sentiment_results"] == n_sent * 3  # every sentiment agent x 3 symbols
+    assert summary["decisions"] == instances * 3  # every decision instance x 3 symbols
     assert summary["final_decisions"] == dict.fromkeys(selected, "buy")
     assert summary["risk"] == dict.fromkeys(selected, "buy")
     assert summary["orders"] == dict.fromkeys(selected, "dry_run")  # recorded, never sent
 
     run_id = report.run_id
     assert await count(db, StockSelectionRow, run_id=run_id) == 1
-    assert await count(db, SelectionResultRow, run_id=run_id) == 2
-    assert await count(db, AgentInstanceRow, run_id=run_id) == 2 + 2 + 3 + 1
-    assert await count(db, SentimentResultRow, run_id=run_id) == 6
-    assert await count(db, RiskAssessmentRow, run_id=run_id) == 3 * 3  # rules, agent, final
+    assert await count(db, SelectionResultRow, run_id=run_id) == n_sel
+    assert await count(db, AgentInstanceRow, run_id=run_id) == (n_sel + n_sent + instances + n_risk)
+    assert await count(db, SentimentResultRow, run_id=run_id) == n_sent * 3
+    assert await count(db, RiskAssessmentRow, run_id=run_id) == 3 * (
+        2 + n_risk
+    )  # rules, agents, final
     assert await count(db, OrderRow, run_id=run_id) == 3
     assert await count(db, FillRow) == 0  # dry run: nothing fills
-    assert await count(db, LLMCallRow, run_id=run_id) == 2 + 6 + 9 + 3
+    assert await count(db, LLMCallRow, run_id=run_id) == (
+        n_sel + n_sent * 3 + instances * 3 + n_risk * 3
+    )
 
 
 async def test_offline_neutral_llm_never_trades_but_analyses(
@@ -446,3 +465,102 @@ async def test_cancelled_run_is_closed_and_marked_failed(
     assert row.status == RunStatus.FAILED.value
     assert row.error == "cancelled before completion"
     assert row.ended_at is not None
+
+
+# ------------------------------------------------------------------ data flow between runs
+
+
+def edit_pipeline(configs: Path, name: str, change: Callable[[dict[str, Any]], None]) -> None:
+    path = configs / "pipelines" / f"{name}.yaml"
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    change(data)
+    path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+
+async def test_held_symbols_outside_the_universe_stay_tradable(
+    configs: Path, store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    broker = SimulatedBroker(commission=Decimal(1), clock=lambda: AS_OF + timedelta(hours=1))
+    first = await runner(store, db, fakes(broker=broker)).run(
+        "long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF)
+    )
+    universe = ["AAPL", "MSFT", "GOOGL", "NVDA"]
+    assert first.ok
+    assert set(first.summary["orders"]) == set(universe)
+
+    edit_pipeline(configs, "long_term_stocks", lambda d: d.update(universe=["AAPL"]))
+    second = await runner(store, db, fakes()).run(
+        "long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF + timedelta(days=1))
+    )
+    assert second.ok, second.errors
+    assert second.summary["universe"] == ["AAPL", "GOOGL", "MSFT", "NVDA"]
+    assert set(second.summary["final_decisions"]) == set(universe)  # held ones get decisions
+
+
+async def test_open_orders_are_reconciled_before_any_stage(
+    configs: Path, store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    def no_waiting(data: dict[str, Any]) -> None:
+        trading = next(s for s in data["stages"] if s["type"] == "trading")
+        trading["wait_for_fills"] = False
+
+    edit_pipeline(configs, "long_term_stocks", no_waiting)
+    broker = SimulatedBroker("never", clock=lambda: AS_OF + timedelta(hours=1))
+    first = await runner(store, db, fakes(broker=broker)).run(
+        "long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF)
+    )
+    assert set(first.summary["orders"].values()) == {"submitted"}
+    # the orders fill at the broker after the run ended
+    for order in broker.orders.values():
+        fill = broker._fill(order.intent, order.intent.quantity, 1)
+        order.result = order.result.model_copy(
+            update={
+                "status": OrderStatus.FILLED,
+                "filled_qty": fill.qty,
+                "avg_fill_price": fill.price,
+                "fills": [fill],
+            }
+        )
+
+    overrides = fakes(broker=broker)
+    llm = overrides["llm"].get("anthropic")  # the runner closes the pool at the end
+    second = await runner(store, db, overrides).run(
+        "long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF + timedelta(days=1))
+    )
+    assert second.ok, second.errors
+    prompts = [r.messages[0].content for r in llm.requests]
+    decision_prompts = [p for p in prompts if "You decide on ONE action" in p]
+    # the decision stage already saw the fills that the trading stage of run 2 reconciled
+    assert decision_prompts
+    assert all("Position [pos:" in p for p in decision_prompts)
+
+
+async def test_offline_runs_use_fake_fundamentals(store: ConfigStore, db: Database) -> None:
+    report = await PipelineRunner(store, db, env={}).run(
+        "long_term_stocks", RunOptions(offline=True, as_of=AS_OF)
+    )
+    assert report.ok, report.errors
+    stored = await Repositories.create(db).fundamentals.get_latest("AAPL", AS_OF)
+    assert stored is not None
+    assert stored.source == "fake"
+    spy = await Repositories.create(db).bars.get_latest_bars("SPY", 5, as_of=AS_OF)
+    assert spy  # the benchmark's bars were kept up to date
+
+
+def test_wants_fundamentals(store: ConfigStore) -> None:
+    assert wants_fundamentals(store.pipeline("long_term_stocks").stages)
+    assert not wants_fundamentals(store.pipeline("etf_allocation").stages)
+
+
+async def test_watchlist_entries_join_pipelines_without_selection(
+    store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    repos = Repositories.create(db)
+    await repos.watchlist.add("long_term_stocks", "AMD", AS_OF - timedelta(days=1), pinned=True)
+    provider = offline_market_data(["AAPL", "MSFT", "GOOGL", "NVDA", "AMD", "SPY"], AS_OF)
+    report = await runner(store, db, fakes(market_data=provider)).run(
+        "long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF, stages=["data", "decision"])
+    )
+    assert report.ok, report.errors
+    assert report.summary["universe"] == ["AAPL", "MSFT", "GOOGL", "NVDA", "AMD"]
+    assert "AMD" in report.summary["final_decisions"]

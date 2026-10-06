@@ -10,6 +10,7 @@ from quant_database.repositories.analysis import (
     RiskRepository,
     SentimentRepository,
 )
+from quant_database.repositories.fundamentals import FundamentalsRepository
 from quant_database.repositories.market import (
     TIMEFRAME_DURATION,
     AccountRepository,
@@ -21,6 +22,7 @@ from quant_database.repositories.orders import LedgerRepository, OrderRepository
 from quant_database.repositories.runs import LLMCallRepository, RunRepository
 from quant_database.repositories.selection import SelectionRepository
 from quant_database.repositories.system import KILL_SWITCH, FlagRepository
+from quant_database.repositories.watchlist import WatchlistRepository
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,9 +33,11 @@ class Repositories:
     bars: BarRepository
     quotes: QuoteRepository
     accounts: AccountRepository
+    fundamentals: FundamentalsRepository
     runs: RunRepository
     llm_calls: LLMCallRepository
     selection: SelectionRepository
+    watchlist: WatchlistRepository
     sentiment: SentimentRepository
     decisions: DecisionRepository
     risk: RiskRepository
@@ -48,9 +52,11 @@ class Repositories:
             bars=BarRepository(db),
             quotes=QuoteRepository(db),
             accounts=AccountRepository(db),
+            fundamentals=FundamentalsRepository(db),
             runs=RunRepository(db),
             llm_calls=LLMCallRepository(db),
             selection=SelectionRepository(db),
+            watchlist=WatchlistRepository(db),
             sentiment=SentimentRepository(db),
             decisions=DecisionRepository(db),
             risk=RiskRepository(db),
@@ -67,6 +73,7 @@ __all__ = [
     "BarRepository",
     "DecisionRepository",
     "FlagRepository",
+    "FundamentalsRepository",
     "InstrumentRepository",
     "LLMCallRepository",
     "LedgerRepository",
@@ -77,4 +84,5 @@ __all__ = [
     "RunRepository",
     "SelectionRepository",
     "SentimentRepository",
+    "WatchlistRepository",
 ]

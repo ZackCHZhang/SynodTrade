@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on 55-day high breakouts for entry, 20-day low breakouts for exit,
-    and ATR(20) for position sizing and pyramiding. Follow signals mechanically without
-    discretionary override.
+    Follow the rules mechanically: buy on a close above the 55-day high, sell on a close
+    below the 20-day low, and use ATR 14 to judge whether the position size is sensible.
+    Add to winners only after a further move of about half an ATR; no discretionary
+    override.

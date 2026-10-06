@@ -10,6 +10,8 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on quarterly EPS and revenue acceleration, relative strength versus
-    the index, price near 52-week highs, volume on up days and the market trend (index
-    above SMA 50/200). Cut losses quickly, roughly 7-8% below entry.
+    Base the action on the latest quarter's EPS and revenue growth versus the year-ago
+    quarter and TTM EPS growth (want 25%+), relative return versus the benchmark, price
+    near the 52-week high, volume on recent up days and the market trend (benchmark
+    above its 200-day average). Institutional ownership is not available; do not assume
+    it. Cut losses quickly, roughly 7-8% below the average cost.

@@ -9,6 +9,7 @@ dependencies = [
     "quant-database",
     "ib_async>=2.0",
     "tenacity>=9.0",
+    "httpx>=0.27",
 ]
 
 [project.entry-points."quant.stages"]

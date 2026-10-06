@@ -49,6 +49,13 @@ class TechnicalSnapshot(BaseModel):
     from_52w_low: float | None = None  # close / 52w low - 1 (>= 0)
     max_drawdown_1y: float | None = None  # largest peak-to-trough fall, as a negative ratio
     volume_ratio_20d: float | None = None  # last volume / average of the previous 20
+    atr_14: float | None = None  # Wilder average true range, in price units
+    atr_14_pct: float | None = None  # ATR 14 / close
+    max_gap_60d: float | None = None  # largest open-vs-previous-close gap of 60 days (signed)
+    high_20d: float | None = None  # highest high of the last 20 bars (channel breakouts)
+    low_20d: float | None = None
+    high_55d: float | None = None
+    low_55d: float | None = None
 
 
 def pct_change(values: Sequence[float], n: int) -> float | None:
@@ -104,6 +111,29 @@ def max_drawdown(values: Sequence[float]) -> float | None:
     return worst
 
 
+def atr(bars: Sequence[Bar], n: int = 14) -> float | None:
+    """Wilder average true range over completed bars (oldest first)."""
+    if len(bars) < n + 1:
+        return None
+    ranges = [
+        max(float(b.high) - float(b.low), abs(float(b.high) - float(a.close)),
+            abs(float(b.low) - float(a.close)))
+        for a, b in pairwise(bars)
+    ]  # fmt: skip
+    value = statistics.fmean(ranges[:n])
+    for r in ranges[n:]:
+        value = (value * (n - 1) + r) / n
+    return value
+
+
+def max_gap(bars: Sequence[Bar], n: int = 60) -> float | None:
+    """The largest overnight gap (open / previous close - 1) of the last `n` bars, signed."""
+    if len(bars) < n + 1:
+        return None
+    gaps = [float(b.open) / float(a.close) - 1 for a, b in pairwise(bars[-(n + 1) :])]
+    return max(gaps, key=abs)
+
+
 def compute_indicators(bars: Sequence[Bar]) -> TechnicalSnapshot:
     """Indicators from daily bars ordered oldest first."""
     if not bars:
@@ -126,6 +156,7 @@ def compute_indicators(bars: Sequence[Bar]) -> TechnicalSnapshot:
     high = max(float(b.high) for b in year) if len(bars) >= TRADING_DAYS else None
     low = min(float(b.low) for b in year) if len(bars) >= TRADING_DAYS else None
     prior_volume = sma(volumes[:-1], 20)
+    atr_value = atr(bars, 14)
 
     return TechnicalSnapshot(
         bars_used=len(bars),
@@ -155,4 +186,70 @@ def compute_indicators(bars: Sequence[Bar]) -> TechnicalSnapshot:
         from_52w_low=last / low - 1 if low else None,
         max_drawdown_1y=max_drawdown(closes[-TRADING_DAYS:]) if len(bars) >= TRADING_DAYS else None,
         volume_ratio_20d=volumes[-1] / prior_volume if prior_volume else None,
+        atr_14=atr_value,
+        atr_14_pct=atr_value / last if atr_value is not None and last else None,
+        max_gap_60d=max_gap(bars, 60),
+        high_20d=max(float(b.high) for b in bars[-20:]) if len(bars) >= 20 else None,
+        low_20d=min(float(b.low) for b in bars[-20:]) if len(bars) >= 20 else None,
+        high_55d=max(float(b.high) for b in bars[-55:]) if len(bars) >= 55 else None,
+        low_55d=min(float(b.low) for b in bars[-55:]) if len(bars) >= 55 else None,
     )
+
+
+class RelativeSnapshot(BaseModel):
+    """A symbol against a benchmark (e.g. SPY), from daily closes on common dates."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    benchmark: str
+    days_used: int
+    beta_1y: float | None = None
+    correlation_1y: float | None = None
+    relative_return_60d: float | None = None  # (1 + symbol return) / (1 + benchmark) - 1
+    relative_return_250d: float | None = None
+
+
+def _aligned_closes(a: Sequence[Bar], b: Sequence[Bar]) -> tuple[list[float], list[float]]:
+    """Closes of both series on the dates they share, oldest first."""
+    by_day = {bar.ts.date(): float(bar.close) for bar in b}
+    xs, ys = [], []
+    for bar in a:
+        other = by_day.get(bar.ts.date())
+        if other is not None:
+            xs.append(float(bar.close))
+            ys.append(other)
+    return xs, ys
+
+
+def _returns(values: Sequence[float]) -> list[float]:
+    return [y / x - 1 for x, y in pairwise(values) if x]
+
+
+def correlation(a: Sequence[Bar], b: Sequence[Bar], n: int = 60) -> float | None:
+    """Correlation of daily returns over the last `n` common days."""
+    xs, ys = _aligned_closes(a, b)
+    if len(xs) < n + 1:
+        return None
+    rx, ry = _returns(xs[-(n + 1) :]), _returns(ys[-(n + 1) :])
+    try:
+        return statistics.correlation(rx, ry)
+    except statistics.StatisticsError:  # a constant series
+        return None
+
+
+def relative_to(bars: Sequence[Bar], benchmark: Sequence[Bar], name: str) -> RelativeSnapshot:
+    xs, ys = _aligned_closes(bars, benchmark)
+    out: dict[str, float | None] = {}
+    if len(xs) >= 61:
+        rx, ry = _returns(xs[-TRADING_DAYS - 1 :]), _returns(ys[-TRADING_DAYS - 1 :])
+        if len(rx) >= 60:
+            try:
+                out["beta_1y"] = statistics.covariance(rx, ry) / statistics.variance(ry)
+                out["correlation_1y"] = statistics.correlation(rx, ry)
+            except (statistics.StatisticsError, ZeroDivisionError):
+                pass
+    for key, n in (("relative_return_60d", 60), ("relative_return_250d", 250)):
+        own, bench = pct_change(xs, n), pct_change(ys, n)
+        if own is not None and bench is not None:
+            out[key] = (1 + own) / (1 + bench) - 1
+    return RelativeSnapshot(benchmark=name, days_used=len(xs), **out)

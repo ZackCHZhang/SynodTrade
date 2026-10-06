@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Evaluate current drawdown from equity peak. Above 5% reduce new risk by half; above
-    10% cut gross exposure to 50%; above 15% move to minimum exposure until the equity
-    curve recovers above its SMA 20.
+    The equity curve peak is not available; use the strategy's total return since start,
+    its change today and this week, and the unrealised losses of its holdings. When the
+    strategy is down more than 5% this week or since start, reduce new buys by a tier;
+    beyond 10%, reject new buys until it recovers.

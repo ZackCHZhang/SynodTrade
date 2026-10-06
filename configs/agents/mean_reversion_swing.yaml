@@ -10,7 +10,8 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on RSI(2-14) oversold readings, distance below SMA 20, and
-    confirmation that price is above SMA 200. Buy oversold dips in uptrends; exit on
-    reversion to SMA 20 or after a fixed holding period. Never buy oversold names in
-    downtrends.
+    Base the action on an oversold RSI 14 (below about 30), the distance below the
+    20-day average and confirmation that price is above the 200-day average. Buy
+    oversold dips in uptrends; sell on reversion to the 20-day average or when the
+    previous decisions show the position has been held for several weeks without
+    reverting. Never buy oversold names in downtrends.

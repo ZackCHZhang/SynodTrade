@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -174,7 +175,7 @@ async def filled_position(
         estimated_notional=D(qty) * D(price),
     )
     await repos.orders.create(order, created_at=NOW - timedelta(days=3))
-    sim = SimulatedBroker(commission=D(0))
+    sim = SimulatedBroker(commission=D(0), clock=lambda: NOW - timedelta(days=3))
     await repos.orders.apply_result(await sim.submit(order, Inst(symbol=symbol)))
 
 
@@ -191,7 +192,7 @@ async def test_end_to_end_with_simulated_fills(
     await filled_position(repos, new_run, "NVDA", "40", "50")  # cash 10,000 - 2,000 = 8,000
     run_id = await new_run()
     broker = SimulatedBroker(commission=D(1))
-    stage = build(repos, broker)
+    stage = build(repos, broker, options={"stale_limit_offset_bps": 5})  # same offset for all
     ctx = context(run_id, {"AAPL": A.STRONG_BUY, "MSFT": A.BUY, "NVDA": A.SELL, "TSLA": A.HOLD})
     ctx = await stage.run(ctx)
 
@@ -477,3 +478,53 @@ async def test_pending_order_still_pending_at_broker_is_not_resent(
     record = await repos.orders.get(intent.client_order_id)
     assert record is not None
     assert record.broker_order_id == "ib-1"
+
+
+async def test_orders_unknown_to_the_broker_are_closed(
+    repos: Repositories, new_run: NewRun, seed_market: Seed
+) -> None:
+    """An earlier run's order the broker no longer knows (not open, never executed) must not
+    keep its cash reserved forever; the current run's own pending orders are left alone."""
+    await seed_market({"AAPL": "100"})
+    old_run = await new_run()
+    broker = SimulatedBroker("never")
+    ctx = await build(repos, broker, options={"wait_for_fills": False}).run(
+        context(old_run, {"AAPL": A.BUY})
+    )
+    coid = ctx.order_intents[0].client_order_id
+    broker.orders.clear()  # e.g. cancelled inside TWS, or the gateway restarted
+    assert (await repos.ledger.get_state("long_term_stocks", D(10_000))).reserved_cash > 0
+
+    # still inside the order's own cancel window: maybe just slow, left alone
+    await build(repos, broker).run(context(await new_run(), {}))
+    record = await repos.orders.get(coid)
+    assert record is not None
+    assert record.status is OrderStatus.SUBMITTED
+    # past it (a window of ~0.06 s here): done without a fill
+    await asyncio.sleep(0.1)
+    await build(repos, broker, options={"cancel_after_minutes": 0.001}).run(
+        context(await new_run(), {})
+    )
+    record = await repos.orders.get(coid)
+    assert record is not None
+    assert record.status is OrderStatus.CANCELLED
+    assert "not found at the broker" in (record.message or "")
+    assert (await repos.ledger.get_state("long_term_stocks", D(10_000))).reserved_cash == 0
+
+
+async def test_stale_or_missing_quotes_get_a_wider_limit(
+    repos: Repositories, new_run: NewRun, seed_market: Seed
+) -> None:
+    """A 15-minute delayed quote (or none) may be far from the market: a limit only 5 bps
+    above it rarely fills. Fresh quotes keep the tight offset."""
+    await seed_market({"AAPL": "100", "MSFT": "400"})
+    await repos.quotes.add(
+        [
+            Quote(symbol="AAPL", ts=NOW - timedelta(seconds=30), bid=D("99.95"), ask=D("100.05")),
+            Quote(symbol="MSFT", ts=NOW - timedelta(minutes=16), bid=D(400), ask=D(400)),
+        ]
+    )
+    stage = build(repos, SimulatedBroker())
+    planned, _ = await stage.planner.plan(context(await new_run(), {"AAPL": A.BUY, "MSFT": A.BUY}))
+    limits = {p.intent.symbol: p.intent.limit_price for p in planned}
+    assert limits == {"AAPL": D("100.11"), "MSFT": D("402.00")}  # +5 bps vs +50 bps

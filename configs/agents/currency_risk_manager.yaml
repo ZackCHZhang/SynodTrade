@@ -10,6 +10,8 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Measure exposure by currency (USD, EUR, other) and estimated FX contribution to
-    volatility. Cap unhedged single-currency exposure per the configured limit and flag
-    trades that worsen it.
+    Exchange rate data is not available. The strategy's account base currency and the
+    stock's trading currency are shown; treat every position in a different currency as
+    unhedged FX exposure. Reduce buys that would put more than 90% of the strategy's
+    value into one foreign currency, and be more cautious when the stock's own
+    volatility is low (FX then dominates its risk).

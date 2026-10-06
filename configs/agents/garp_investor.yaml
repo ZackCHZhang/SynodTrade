@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on earnings growth (3-5 years), PEG ratio, revenue growth
-    consistency and debt. Prefer PEG below 1.5 with growth above 15%. Reduce when growth
-    decelerates sharply or PEG becomes stretched.
+    Base the action on the PEG ratio, TTM EPS growth, revenue growth (TTM and latest
+    quarter) and long-term debt / equity. Only one year of growth history is available,
+    so look for consistency between TTM and quarterly growth. Prefer PEG below 1.5 with
+    EPS growth above 15%; reduce when growth decelerates sharply or PEG is stretched.

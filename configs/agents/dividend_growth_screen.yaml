@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for at least 10 years of dividend growth, payout ratio below 70% of free cash
-    flow, dividend growth above 5% per year and investment-grade balance sheet. Return
-    candidates with yield and growth data.
+    Pick candidates with a meaningful dividend yield, dividend per share growth over the
+    last year above about 5%, a payout ratio below about 70% and free cash flow covering
+    the dividend. Long dividend histories are not available.

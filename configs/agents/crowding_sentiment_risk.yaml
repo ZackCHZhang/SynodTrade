@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Check short interest, ownership concentration, extreme RSI and social or media hype.
-    Reduce allowed size in heavily crowded longs and flag squeeze risk on crowded
-    shorts.
+    Short interest and ownership data are not available. Judge crowding from extreme
+    RSI, a large distance above the 200-day average, volume spikes, and very bullish
+    sentiment driven by social media hype. Reduce buys in crowded, hype-driven longs.

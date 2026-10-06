@@ -9,6 +9,7 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Check the index versus SMA 200, index volatility level and market breadth. In risk-
-    off regimes cut new position sizes by half and cap total equity exposure; restore
-    normal limits when the index regains SMA 200.
+    Use the benchmark's trend versus its 200-day average and its 20-day volatility
+    (market breadth is not available). When the benchmark is below its 200-day average
+    or its volatility is above about 25%, reduce new buys by a tier (strong_buy -> buy,
+    buy -> hold for weak cases); approve normally when it is back above.

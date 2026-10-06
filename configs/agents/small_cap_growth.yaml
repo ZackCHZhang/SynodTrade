@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen market cap between the configured small-cap bounds, revenue growth above 20%,
-    improving operating margin, low analyst coverage and sufficient liquidity. Return
-    candidates with growth metrics.
+    Pick smaller companies (market cap roughly 300M-5B) with revenue growth above about
+    20%, a rising operating margin and adequate liquidity. Analyst coverage is not
+    available.

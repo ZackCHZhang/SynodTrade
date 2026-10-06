@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for market cap below net current asset value (current assets minus total
-    liabilities), no large cash burn and no going-concern warnings. Return candidates
-    with discount to NCAV.
+    Pick candidates whose net current asset value / market cap is above 1 (trading below
+    NCAV) without heavy cash burn (negative free cash flow with a short cash runway).
+    Going-concern warnings are not available; be strict on cash burn.

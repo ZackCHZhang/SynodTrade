@@ -9,6 +9,5 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for price within 3% of the 52-week high, volume above the 50-day average on
-    recent up days and relative strength in the top 20%. Return candidates with
-    distance-to-high and volume ratio.
+    Pick candidates within about 3% of their 52-week high, with the last volume above
+    its 20-day average and positive relative strength versus the benchmark.
