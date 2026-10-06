@@ -1,6 +1,6 @@
 """IBKRBroker against a stub `IB` object — no gateway, no orders ever leave the process."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from uuid import uuid4
@@ -9,6 +9,7 @@ import pytest
 from ib_async import CommissionReport, Contract, Execution, Order, Stock, Trade, TradeLogEntry
 from ib_async import Fill as IBFill
 from ib_async import OrderStatus as IBOrderStatus
+from structlog.testing import capture_logs
 
 from quant_core.config import AccountConfig
 from quant_core.models import (
@@ -319,3 +320,44 @@ async def test_cancel() -> None:
     ib.session_trades = [trade("Filled", 10)]
     await b.cancel(intent())
     assert len(ib.cancelled) == 1  # done orders are not cancelled
+
+
+async def test_cancel_waits_for_confirmation() -> None:
+    ib = StubIB()
+    slept: list[float] = []
+    pending = trade("Submitted")
+
+    async def sleep(seconds: float) -> None:
+        slept.append(seconds)
+        if len(slept) == 2:  # IBKR confirms after half a second
+            pending.orderStatus.status = "Cancelled"
+
+    b = IBKRBroker(mode=RunMode.PAPER, account_id="DU123", ib=ib, env={}, sleep=sleep)  # type: ignore[arg-type]
+    await b.connect()
+    ib.session_trades = [pending]
+    result = await b.cancel(intent())
+    assert result.status is OrderStatus.CANCELLED  # not the stale "submitted"
+    assert slept == [0.25, 0.25]
+
+    stuck = trade("Submitted")
+    ib.session_trades = [stuck]
+    b.cancel_wait_s = 1.0
+    slept.clear()
+    unconfirmed = await b.cancel(intent())
+    assert unconfirmed.status is OrderStatus.SUBMITTED  # reported as is, never guessed
+    assert len(slept) == 4
+
+
+async def test_order_not_transmitted_is_flagged() -> None:
+    ib = StubIB()
+    b = broker(ib)
+    await b.connect()
+    held = trade("PreSubmitted", perm_id=0)
+    held.log[0].time = datetime.now(UTC) - timedelta(minutes=2)  # permId stays 0: still inside TWS
+    ib.session_trades = [held]
+    with capture_logs() as logs:
+        await b.lookup(intent())
+        await b.lookup(intent())
+    warnings = [e for e in logs if e["event"] == "ibkr_broker.not_transmitted"]
+    assert len(warnings) == 1  # warned once
+    assert "Bypass Order Precautions" in warnings[0]["hint"]

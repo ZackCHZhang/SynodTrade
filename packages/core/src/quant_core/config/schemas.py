@@ -143,9 +143,17 @@ class PipelineConfig(CoreModel):
     # Symbols to trade. With a `selection` stage they are (part of) the candidate pool and
     # the stage replaces the run's universe with its picks; the list may then be empty.
     universe: list[str] = Field(default_factory=list)
+    # Market benchmark (e.g. SPY): its bars are kept up to date by data_update and later
+    # stages show market regime, beta and relative strength against it. None: no benchmark.
+    benchmark: str | None = None
     budget: BudgetConfig
     sizing: SizingConfig = Field(default_factory=SizingConfig)
     stages: list[StageConfig] = Field(min_length=1)
+
+    @field_validator("benchmark")
+    @classmethod
+    def _normalise_benchmark(cls, value: str | None) -> str | None:
+        return value.strip().upper() or None if value is not None else None
 
     @field_validator("universe")
     @classmethod

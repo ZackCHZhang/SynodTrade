@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -43,6 +44,8 @@ class PipelineContext(BaseModel):
     universe: list[str]
     started_at: UtcDatetime = Field(default_factory=utcnow)
     as_of: UtcDatetime = Field(default_factory=utcnow)
+    # True when the run reasons about "now" (no explicit as_of): see `snapshot_cutoff`.
+    live: bool = False
 
     selection_results: list[SelectionResult] = Field(default_factory=list)
     selection: StockSelection | None = None  # set by the selection stage (which sets universe)
@@ -55,6 +58,14 @@ class PipelineContext(BaseModel):
 
     completed_stages: list[str] = Field(default_factory=list)
     errors: list[StageError] = Field(default_factory=list)
+
+    def snapshot_cutoff(self) -> datetime:
+        """Latest timestamp of quotes and account snapshots a stage may read.
+
+        A live run fetches them during the run, i.e. after `as_of` (the run's start): it may
+        read up to the current time. A replay (explicit as_of) never reads past `as_of`.
+        """
+        return max(self.as_of, utcnow()) if self.live else self.as_of
 
     @property
     def aborted(self) -> bool:

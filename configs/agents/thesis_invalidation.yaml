@@ -10,6 +10,8 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Require each position to have explicit invalidation conditions. Check whether any
-    are met; recommend exit when the thesis is invalidated even if price has not hit the
-    stop.
+    Read the decision agents' reasoning and ask what would prove it wrong. Check the
+    data for those conditions already appearing (a broken trend, deteriorating
+    fundamentals, negative events in sentiment, previous decisions on this stock that
+    lost money). Reject buys whose thesis is already being invalidated; approve sells
+    that act on it.

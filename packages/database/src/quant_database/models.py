@@ -128,6 +128,22 @@ class PositionSnapshotRow(Base):
     market_price: Mapped[Decimal | None]
 
 
+class FundamentalsSnapshotRow(Base):
+    """Company fundamentals as known at `as_of` (a serialized `quant_core` Fundamentals)."""
+
+    __tablename__ = "fundamentals_snapshots"
+    __table_args__ = (Index(None, "symbol", "as_of"),)
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    symbol: Mapped[str] = mapped_column(SYMBOL)
+    as_of: Mapped[datetime]
+    source: Mapped[str] = mapped_column(SHORT)
+    available: Mapped[bool] = mapped_column(Boolean)
+    period_end: Mapped[str | None] = mapped_column(String(10))  # ISO date
+    data: Mapped[dict[str, Any]]
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+
 # ------------------------------------------------------------------ runs and agents
 
 
@@ -206,6 +222,27 @@ class SelectionResultRow(Base):
     created_at: Mapped[datetime]
 
 
+class WatchlistRow(Base):
+    """One row per (pipeline, symbol); removal only sets `removed_at`."""
+
+    __tablename__ = "watchlist_entries"
+    __table_args__ = (UniqueConstraint("pipeline_name", "symbol"),)
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    pipeline_name: Mapped[str] = mapped_column(NAME)
+    symbol: Mapped[str] = mapped_column(SYMBOL)
+    added_at: Mapped[datetime]
+    last_selected_at: Mapped[datetime | None]
+    times_selected: Mapped[int] = mapped_column(Integer, default=0)
+    last_score: Mapped[float | None] = mapped_column(Float)
+    last_reason: Mapped[str | None] = mapped_column(Text)
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    removed_at: Mapped[datetime | None]
+    removed_reason: Mapped[str | None] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)
+
+
 class StockSelectionRow(Base):
     __tablename__ = "stock_selections"
     __table_args__ = (Index(None, "pipeline_name", "created_at"),)
@@ -217,6 +254,8 @@ class StockSelectionRow(Base):
     candidates: Mapped[list[Any]]
     selected: Mapped[list[Any]]
     holdings: Mapped[list[Any]]
+    # server_default: lets create_all() add the column to a table made before it existed
+    watchlist: Mapped[list[Any]] = mapped_column(default=list, server_default="[]")
     scores: Mapped[dict[str, Any]]
     rejected: Mapped[dict[str, Any]]
     created_at: Mapped[datetime]

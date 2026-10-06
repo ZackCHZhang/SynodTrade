@@ -6,12 +6,15 @@ import asyncio
 import os
 import time
 from collections.abc import Awaitable, Callable, Mapping
+from datetime import timedelta
+from uuid import UUID
 
 from quant_core.config import AccountConfig, PipelineConfig, StageConfig
 from quant_core.logging import get_logger
 from quant_core.models import OrderResult, OrderStatus, PipelineContext, RunMode
 from quant_core.safety import ensure_mode_allowed
 from quant_core.services import Services
+from quant_core.timeutil import utcnow
 from quant_database import OrderRecord, Repositories
 from quant_trading.broker import Broker, BrokerError, DryRunBroker
 from quant_trading.ibkr import IBKRBroker
@@ -55,17 +58,48 @@ class TradingStage:
         self._sleep = sleep
         self._monotonic = monotonic
 
+    @property
+    def _gone_after(self) -> timedelta:
+        """An order unknown to the broker this long after its last update is done."""
+        return timedelta(minutes=self.options.cancel_after_minutes)
+
     async def _apply(self, result: OrderResult) -> OrderRecord:
         return await self._repos.orders.apply_result(result)
 
-    async def reconcile(self, pipeline_name: str) -> int:
-        """Bring orders left open by earlier runs up to date with the broker."""
+    async def reconcile(
+        self,
+        pipeline_name: str,
+        *,
+        gone_after: timedelta | None = None,
+        current_run: UUID | None = None,
+    ) -> int:
+        """Bring orders left open by earlier runs up to date with the broker.
+
+        An order the broker knows nothing about (neither open nor executed) is done without
+        a fill: cancelled, expired, rejected or never transmitted. Once it is older than
+        `gone_after` it is marked cancelled, so its cash is no longer reserved. Orders of
+        `current_run` are left alone: this run may still be about to send them.
+        """
         updated = 0
+        now = utcnow()
         for record in await self._repos.orders.list_open(pipeline_name):
             result = await self.broker.lookup(record.intent)
-            if (result is not None and result.status is not record.status) or (
-                result is not None and result.filled_qty != record.filled_qty
-            ):
+            if result is None:
+                if (
+                    gone_after is None
+                    or record.intent.run_id == current_run
+                    or now - record.updated_at < gone_after
+                ):
+                    continue
+                result = OrderResult(
+                    client_order_id=record.client_order_id,
+                    status=OrderStatus.CANCELLED,
+                    filled_qty=record.filled_qty,
+                    message="not found at the broker (no open order, no execution): "
+                    "cancelled, expired or never transmitted",
+                )
+                log.warning("trading.order_gone", client_order_id=record.client_order_id)
+            if result.status is not record.status or result.filled_qty != record.filled_qty:
                 await self._apply(result)
                 updated += 1
         return updated
@@ -128,15 +162,30 @@ class TradingStage:
             latest[record.client_order_id] = await self._apply(result)
         return list(latest.values())
 
-    async def run(self, ctx: PipelineContext) -> PipelineContext:
+    def _check_mode(self, ctx: PipelineContext) -> None:
         ensure_mode_allowed(ctx.mode)
         if self.broker.mode is not ctx.mode:
             raise TradingError(
                 f"broker {self.broker.name} is for mode {self.broker.mode.value}, "
                 f"but the run is {ctx.mode.value}"
             )
+
+    async def prepare(self, ctx: PipelineContext) -> None:
+        """Before any stage runs: bring orders left open by earlier runs up to date, so the
+        ledger that selection, decision and risk read already contains their fills."""
+        self._check_mode(ctx)
         await self.broker.connect()
-        reconciled = await self.reconcile(ctx.pipeline_name)
+        reconciled = await self.reconcile(
+            ctx.pipeline_name, gone_after=self._gone_after, current_run=ctx.run_id
+        )
+        log.info("trading.prepared", reconciled=reconciled)
+
+    async def run(self, ctx: PipelineContext) -> PipelineContext:
+        self._check_mode(ctx)
+        await self.broker.connect()
+        reconciled = await self.reconcile(
+            ctx.pipeline_name, gone_after=self._gone_after, current_run=ctx.run_id
+        )
         if await self._repos.flags.kill_switch_active():
             log.warning("trading.kill_switch_active: no orders sent")
             return ctx

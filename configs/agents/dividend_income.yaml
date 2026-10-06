@@ -10,6 +10,8 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on dividend yield, dividend growth history, payout ratio versus free
-    cash flow and debt. Buy when yield is above its historical average with a safe
-    payout; reduce on dividend cuts or payout above sustainable levels.
+    Base the action on dividend yield, dividend per share growth over the last year,
+    payout ratio, free cash flow versus dividends paid and long-term debt / equity. A
+    multi-year dividend history is not available. Buy safe, well-covered yields; reduce
+    on a dividend cut, a payout ratio above about 80% or free cash flow below the
+    dividend.

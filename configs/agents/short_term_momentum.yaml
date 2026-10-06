@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on 5-20 day returns, relative strength ranking, MACD crossover and
-    rising volume. Buy the strongest names over the last month; exit when momentum
-    stalls or price closes below SMA 10/20.
+    Base the action on 5- and 20-day returns, relative return versus the benchmark, MACD
+    and its histogram, and the last volume versus its 20-day average. Buy the strongest
+    short-term movers with rising volume; sell when momentum stalls or price closes
+    below the 20-day average.

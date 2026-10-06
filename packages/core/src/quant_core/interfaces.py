@@ -44,3 +44,16 @@ class BarsRefresher(Protocol):
     ) -> dict[str, str]:
         """Returns {symbol: error} for the symbols that could not be updated."""
         ...
+
+
+@runtime_checkable
+class FundamentalsRefresher(Protocol):
+    """Stores fresh company fundamentals for symbols (implemented by market data, e.g. from
+    SEC EDGAR), so the selection stage can ask for fundamentals of its candidates."""
+
+    async def refresh_fundamentals(
+        self, symbols: Sequence[str], *, now: datetime, max_age: timedelta
+    ) -> dict[str, str]:
+        """Refresh symbols whose stored fundamentals are older than `max_age`; returns
+        {symbol: error} for the symbols that could not be refreshed."""
+        ...

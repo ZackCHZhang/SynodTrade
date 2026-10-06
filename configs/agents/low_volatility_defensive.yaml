@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on 1-year realized volatility, beta, earnings stability and drawdown
-    history. Buy low-volatility names with reasonable valuations; reduce when volatility
-    rises sharply or the stock breaks below SMA 200.
+    Base the action on 20/60-day volatility, beta versus the benchmark, max drawdown
+    over 1 year, positive and stable earnings (TTM EPS growth, net margin) and price
+    versus the 200-day average. Buy low-volatility names at reasonable P/E; reduce when
+    volatility rises sharply or the stock breaks below its 200-day average.

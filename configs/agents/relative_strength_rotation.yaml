@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on 3-, 6- and 12-month relative strength versus the index and versus
-    sector peers, and on sector trend. Hold top-ranked names; replace holdings that drop
-    out of the top quartile at the periodic rebalance.
+    Base the action on relative return versus the benchmark over 60 days and 1 year, the
+    stock's own 20/60/120-day returns and the benchmark trend. Sector peer data is not
+    available. Hold names that are clearly outperforming; sell holdings that lag the
+    benchmark over both 60 days and 1 year.

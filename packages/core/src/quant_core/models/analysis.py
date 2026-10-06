@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+from decimal import Decimal
 from typing import Self
 from uuid import UUID, uuid4
 
@@ -63,6 +65,35 @@ class SelectionResult(AgentOutputMeta):
     candidates: list[str] = Field(default_factory=list)  # what the agent was shown
 
 
+class WatchlistEntry(CoreModel):
+    """A stock a pipeline keeps following across runs (one per pipeline and symbol).
+
+    Stock selection adds its picks; an entry leaves after `max_age_days` without being picked
+    again, unless it is pinned or held. Removed entries keep their row (`removed_at`).
+    """
+
+    pipeline_name: str
+    symbol: Symbol
+    added_at: UtcDatetime
+    last_selected_at: UtcDatetime | None = None  # None: added by hand, never picked
+    times_selected: int = Field(default=0, ge=0)
+    last_score: float | None = None
+    last_reason: str | None = None
+    pinned: bool = False  # never expires
+    note: str | None = None
+    removed_at: UtcDatetime | None = None
+    removed_reason: str | None = None
+
+    @property
+    def active(self) -> bool:
+        return self.removed_at is None
+
+    @property
+    def last_seen(self) -> datetime:
+        """When it last earned its place: last pick, else when it was added."""
+        return self.last_selected_at or self.added_at
+
+
 class StockSelection(CoreModel):
     """The aggregated selection of one run: the universe the later stages trade."""
 
@@ -73,13 +104,15 @@ class StockSelection(CoreModel):
     candidates: list[str]  # after screening, i.e. shown to the agents
     selected: list[str]  # picked, best first
     holdings: list[str] = Field(default_factory=list)  # kept because the strategy holds them
+    watchlist: list[str] = Field(default_factory=list)  # still followed from earlier runs
     scores: dict[str, float] = Field(default_factory=dict)  # aggregated score per candidate
     rejected: dict[str, str] = Field(default_factory=dict)  # symbol -> screening reason
     created_at: UtcDatetime = Field(default_factory=utcnow)
 
     @property
     def universe(self) -> list[str]:
-        return self.selected + [s for s in self.holdings if s not in self.selected]
+        """Picks first, then watchlist entries from earlier runs, then held stocks."""
+        return list(dict.fromkeys([*self.selected, *self.watchlist, *self.holdings]))
 
 
 class SentimentResult(AgentOutputMeta):
@@ -97,6 +130,16 @@ class Decision(AgentOutputMeta):
     confidence: Probability
     reasoning: str
     referenced_data_ids: list[str] = Field(default_factory=list)
+
+
+class DecisionOutcome(CoreModel):
+    """What became of a final decision: the risk layer's final action and the order (if any)."""
+
+    risk_action: Action | None = None  # after the risk layer; None: never assessed
+    risk_reason: str | None = None
+    order_status: str | None = None  # OrderStatus value; None: no order was placed
+    filled_qty: Decimal = Decimal(0)
+    avg_fill_price: Decimal | None = None
 
 
 class Vote(CoreModel):

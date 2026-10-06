@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Rank the universe by EBIT/EV and by EBIT/(net working capital + net fixed assets);
-    sum the ranks. Exclude financials, utilities and micro caps. Return the best
-    combined ranks.
+    Rank candidates by earnings yield (EBIT / EV, i.e. low EV/EBIT) and by return on
+    invested capital and pick the best combined ranks. Exclude banks, insurers and
+    utilities (see the industry) and very small market caps.

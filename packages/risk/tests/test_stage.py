@@ -14,12 +14,14 @@ from quant_core.models import (
     AggregatedDecision,
     Bar,
     Fill,
+    Fundamentals,
     OrderIntent,
     OrderResult,
     OrderSide,
     OrderStatus,
     OrderType,
     PipelineContext,
+    Position,
     Quote,
     RunMode,
     Timeframe,
@@ -27,6 +29,7 @@ from quant_core.models import (
 )
 from quant_core.registry import AGENTS, STAGES
 from quant_core.services import Services
+from quant_core.timeutil import utcnow
 from quant_database import KILL_SWITCH, Repositories
 from quant_risk import AlwaysOpenClock, RiskAgent, RiskStage, RiskStageOptions, build_risk_stage
 
@@ -395,3 +398,138 @@ def test_entry_points_and_repo_options() -> None:
         "most_conservative",
         "reject",
     )
+
+
+# ------------------------------------------------------------------ broker position check
+
+
+async def test_position_mismatch_closes_the_symbol(
+    repos: Repositories, store: ConfigStore, new_run: NewRun
+) -> None:
+    await seed_market(repos)
+    seed_run = await new_run(NOW - timedelta(days=3))
+    await buy_fill(repos, seed_run, "AAPL", "10", "100", NOW - timedelta(days=3))
+    await buy_fill(repos, seed_run, "MSFT", "2", "400", NOW - timedelta(days=3))
+    snapshot = NOW - timedelta(minutes=10)
+    await repos.accounts.add_snapshot(
+        AccountSnapshot(
+            account_id="DU1",
+            ts=snapshot,
+            nav=D(100_000),
+            cash=D(50_000),
+            buying_power=D(50_000),
+        ),
+        [
+            Position(account_id="DU1", symbol=s, qty=D(q), avg_cost=D(1), ts=snapshot)
+            for s, q in (("AAPL", 4), ("MSFT", 5))
+        ],
+    )
+    account = AccountConfig(name="ibkr_main", account_id="DU1", port=4002, client_id=1)
+    llm = FakeLLMClient(default=ScriptedRiskOfficers())
+    run_id = await new_run()
+    ctx = await build(repos, store, llm, account=account).run(
+        await context(repos, run_id, {"AAPL": (A.SELL, -0.2), "MSFT": (A.SELL, -0.1)})
+    )
+    # AAPL: the account holds 4 but the ledger 10 -> nothing may be traded
+    aapl = ctx.risk_verdicts["AAPL"]
+    assert aapl.adjusted_action is A.HOLD
+    hit = next(h for h in aapl.rule_hits if h.rule == "position_mismatch")
+    assert hit.blocking
+    assert hit.details == {"broker_qty": 4.0, "ledger_qty": 10.0}
+    # MSFT: the account holds more than the ledger (e.g. bought by hand): fine
+    assert ctx.risk_verdicts["MSFT"].adjusted_action is A.SELL
+
+
+async def test_position_check_needs_a_recent_snapshot(
+    repos: Repositories, store: ConfigStore, new_run: NewRun
+) -> None:
+    await seed_market(repos)
+    seed_run = await new_run(NOW - timedelta(days=3))
+    await buy_fill(repos, seed_run, "AAPL", "10", "100", NOW - timedelta(days=3))
+    await repos.accounts.add_snapshot(
+        AccountSnapshot(
+            account_id="DU1", ts=NOW - timedelta(days=1), nav=D(1), cash=D(1), buying_power=D(1)
+        ),
+        [],
+    )
+    account = AccountConfig(name="ibkr_main", account_id="DU1", port=4002, client_id=1)
+    run_id = await new_run()
+    ctx = await build(
+        repos, store, FakeLLMClient(default=ScriptedRiskOfficers()), account=account
+    ).run(await context(repos, run_id, {"AAPL": (A.SELL, -0.2)}))
+    assert "position_mismatch" not in {h.rule for h in ctx.risk_verdicts["AAPL"].rule_hits}
+
+
+# ------------------------------------------------------------------ agent inputs
+
+
+async def test_agent_sees_holdings_history_and_fundamentals(
+    repos: Repositories, store: ConfigStore, new_run: NewRun
+) -> None:
+    await seed_market(repos)
+    await repos.bars.upsert(daily_bars("SPY", "500", days=300))
+    seed_run = await new_run(NOW - timedelta(days=3))
+    await buy_fill(repos, seed_run, "NVDA", "20", "45", NOW - timedelta(days=3))
+    past = agg(seed_run, "AAPL", A.STRONG_BUY, 0.4).model_copy(
+        update={"created_at": NOW - timedelta(days=3)}
+    )
+    await repos.decisions.add_aggregated([past])
+    await repos.fundamentals.add(
+        [
+            Fundamentals(
+                symbol="AAPL",
+                as_of=NOW - timedelta(hours=1),
+                name="Apple Inc.",
+                industry="Electronic Computers",
+                eps_diluted=5.0,
+                shares_outstanding=1000.0,
+                next_earnings_estimate=(NOW + timedelta(days=3)).date(),
+            ),
+            Fundamentals(symbol="NVDA", as_of=NOW - timedelta(hours=1), industry="Semiconductors"),
+        ]
+    )
+    pipeline_with_benchmark = pipeline().model_copy(update={"benchmark": "SPY"})
+    llm = FakeLLMClient(default=ScriptedRiskOfficers())
+    run_id = await new_run()
+    await build(repos, store, llm, pipeline=pipeline_with_benchmark).run(
+        await context(repos, run_id, {"AAPL": (A.BUY, 0.3)})
+    )
+    prompt = llm.requests[0].messages[0].content
+    assert "- NVDA: " in prompt
+    assert "industry Semiconductors" in prompt
+    assert "in 2 positions" not in prompt
+    assert "in 1 positions" in prompt
+    assert "Trades today 0 (limit 4); orders in the last 30 days 1." in prompt
+    assert "a 2 x ATR(14) adverse move would cost" in prompt
+    assert "Benchmark SPY:" in prompt
+    assert "Apple Inc., from sec_edgar filings" in prompt
+    assert "P/E (TTM diluted EPS): 20.0" in prompt  # quote mid 100.00 / EPS 5
+    assert "Next earnings (estimated: last release + one quarter)" in prompt
+    assert "strong_buy at" in prompt
+    assert "outcome: not executed" in prompt
+    assert f"{run_id}" not in prompt  # the current run's own decision is not "history"
+
+
+async def test_live_run_sees_the_snapshot_it_fetched_after_starting(
+    repos: Repositories, store: ConfigStore, new_run: NewRun
+) -> None:
+    """data_update runs minutes after `as_of` (the run start): a live run must still see the
+    account snapshot it took; a replay (explicit as_of) must not see later data."""
+    await seed_market(repos)
+    seed_run = await new_run(NOW - timedelta(days=3))
+    await buy_fill(repos, seed_run, "AAPL", "10", "100", NOW - timedelta(days=3))
+    taken = utcnow() - timedelta(minutes=1)  # after the run's as_of (NOW), fresh for a live run
+    await repos.accounts.add_snapshot(
+        AccountSnapshot(account_id="DU1", ts=taken, nav=D(1), cash=D(1), buying_power=D(1)),
+        [Position(account_id="DU1", symbol="AAPL", qty=D(4), avg_cost=D(1), ts=taken)],
+    )
+    account = AccountConfig(name="ibkr_main", account_id="DU1", port=4002, client_id=1)
+    for live, blocked in ((False, False), (True, True)):
+        run_id = await new_run()
+        ctx = await context(repos, run_id, {"AAPL": (A.SELL, -0.2)})
+        ctx.live = live
+        ctx = await build(
+            repos, store, FakeLLMClient(default=ScriptedRiskOfficers()), account=account
+        ).run(ctx)
+        rules = {h.rule for h in ctx.risk_verdicts["AAPL"].rule_hits}
+        assert ("position_mismatch" in rules) is blocked

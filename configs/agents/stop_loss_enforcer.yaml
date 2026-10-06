@@ -9,6 +9,8 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Check that every position has an initial stop (maximum 8% or 2.5x ATR below entry)
-    and a trailing stop once in profit. Force exits on stop breaches and reject trades
-    without a defined stop.
+    You can only approve, reduce or reject the proposed trade. For buys into an existing
+    position, reject if the position is more than 8% or 2.5 ATR below its average cost
+    (averaging down a stop breach). Approve sells of positions that breached that stop.
+    For new buys, require that a stop of at most 2.5 ATR is reasonable given the largest
+    recent gap.

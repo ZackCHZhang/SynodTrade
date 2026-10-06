@@ -9,6 +9,5 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for high combined dividend yield, net buyback yield and debt paydown, with
-    shrinking share count and buybacks covered by free cash flow. Return candidates
-    ranked by total shareholder yield.
+    Pick candidates with a high shareholder yield (dividends plus buybacks), a shrinking
+    diluted share count and free cash flow that covers the payouts.

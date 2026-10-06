@@ -9,6 +9,7 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Screen for recent EPS and revenue beats, upward estimate revisions over the last 30
-    days and a positive post-earnings price reaction that held. Return candidates with
-    surprise and revision data.
+    Analyst estimates are not available. Pick candidates whose latest quarter shows
+    strong EPS and revenue growth versus the year-ago quarter, with TTM growth
+    confirming it and price holding near its highs since; the next earnings date shows
+    how fresh the result is.

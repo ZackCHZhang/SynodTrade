@@ -35,6 +35,9 @@ class IBKRScannerOptions(BaseModel):
     port: int | None = None  # default: $IBKR_PORT or 4002
     client_id: int | None = None  # default: $IBKR_CLIENT_ID + 3
     scan_code: str = "MOST_ACTIVE"
+    # Several scans over this one connection (e.g. [TOP_PERC_GAIN, HOT_BY_VOLUME]); when
+    # set it replaces `scan_code`. Each scan returns up to `rows` stocks.
+    scan_codes: list[str] = Field(default_factory=list)
     instrument: str = "STK"
     location: str = "STK.US.MAJOR"
     rows: int = Field(default=25, ge=1, le=50)
@@ -48,11 +51,15 @@ class IBKRScannerOptions(BaseModel):
     currency: str = "USD"
     connect_timeout_s: float = Field(default=10.0, gt=0)
 
-    def subscription(self) -> ScannerSubscription:
+    @property
+    def codes(self) -> list[str]:
+        return list(dict.fromkeys(self.scan_codes)) or [self.scan_code]
+
+    def subscription(self, scan_code: str | None = None) -> ScannerSubscription:
         sub = ScannerSubscription(
             instrument=self.instrument,
             locationCode=self.location,
-            scanCode=self.scan_code,
+            scanCode=scan_code or self.scan_code,
             numberOfRows=self.rows,
         )
         # Unset fields keep ScannerSubscription's "no filter" defaults.
@@ -104,11 +111,28 @@ class IBKRScannerSource:
                 readonly=True,
             )
         filters = [TagValue(k, v) for k, v in self.options.filters.items()]
-        rows: Any = await self._ib.reqScannerDataAsync(self.options.subscription(), [], filters)
-        if rows is None:
-            raise CandidateSourceError(f"{self.name}: scanner request timed out")
         candidates: list[Candidate] = []
         seen: set[str] = set()
+        failed: dict[str, str] = {}
+        for code in self.options.codes:
+            rows: Any = await self._ib.reqScannerDataAsync(
+                self.options.subscription(code), [], filters
+            )
+            if rows is None:
+                failed[code] = "scanner request timed out"
+                continue
+            candidates += self._candidates(rows, code, seen)
+        if failed and len(failed) == len(self.options.codes):
+            raise CandidateSourceError(f"{self.name}: every scan failed: {failed}")
+        if failed:
+            log.warning("selection.scans_failed", source=self.name, failed=failed)
+        if not candidates:
+            log.warning("selection.scanner_empty", source=self.name, scans=self.options.codes)
+        return candidates
+
+    def _candidates(self, rows: Any, code: str, seen: set[str]) -> list[Candidate]:
+        """Stocks of one scan not seen in an earlier scan; rank as in that scan."""
+        candidates: list[Candidate] = []
         for row in rows:
             contract = row.contractDetails.contract
             if contract is None or contract.secType != "STK":
@@ -124,11 +148,9 @@ class IBKRScannerSource:
                     symbol=symbol,
                     source=self.name,
                     rank=row.rank,
-                    note=f"{self.options.scan_code} #{row.rank + 1}",
+                    note=f"{code} #{row.rank + 1}",
                 )
             )
-        if not candidates:
-            log.warning("selection.scanner_empty", source=self.name, scan=self.options.scan_code)
         return candidates
 
 

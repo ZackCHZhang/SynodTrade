@@ -9,6 +9,7 @@ persona: |
 prompt_template: prompts/selection_v1.j2
 params:
   instructions: >-
-    Rank sectors by 3- and 6-month relative strength, keep the top three, then rank
-    their constituents by relative strength and trend quality. Return leading stocks
-    from leading sectors.
+    Sector index data is not available. Group the candidates by industry (from the
+    fundamentals), judge which industries lead from their members' relative strength
+    versus the benchmark, and pick the strongest stocks of the strongest two or three
+    industries.

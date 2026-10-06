@@ -11,6 +11,8 @@ Safety, in addition to the pipeline's live guard:
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Awaitable, Callable
 from decimal import Decimal
 from typing import Any
 
@@ -114,8 +116,11 @@ class IBKRBroker:
         port: int = 4002,
         client_id: int = 18,
         connect_timeout_s: float = 10.0,
+        cancel_wait_s: float = 10.0,
+        not_transmitted_warn_s: float = 30.0,
         env: dict[str, str] | None = None,
         ib: IB | None = None,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         if mode is RunMode.DRY_RUN:
             raise BrokerError("IBKRBroker is for paper or live mode; use DryRunBroker for dry runs")
@@ -125,7 +130,13 @@ class IBKRBroker:
         self.account_id = account_id
         self.host, self.port, self.client_id = host, port, client_id
         self.connect_timeout_s = connect_timeout_s
+        self.cancel_wait_s = cancel_wait_s
+        self.not_transmitted_warn_s = not_transmitted_warn_s
         self._ib = ib or IB()
+        self._sleep = sleep
+        self._refs: set[str] = set()  # client order ids handled by this broker
+        self._warned: set[str] = set()
+        self._subscribed = False
 
     @classmethod
     def from_account(cls, account: AccountConfig, mode: RunMode, **kwargs: Any) -> IBKRBroker:
@@ -152,7 +163,62 @@ class IBKRBroker:
         except BrokerError:
             self._ib.disconnect()
             raise
+        self._subscribe()
         log.info("ibkr_broker.connected", mode=self.mode.value, account=self.account_id)
+
+    def _subscribe(self) -> None:
+        """Log status changes and IBKR errors of our orders (diagnostics only)."""
+        if self._subscribed:
+            return
+        status_event = getattr(self._ib, "orderStatusEvent", None)
+        error_event = getattr(self._ib, "errorEvent", None)
+        if status_event is not None:
+            status_event += self._on_status
+        if error_event is not None:
+            error_event += self._on_error
+        self._subscribed = True
+
+    def _on_status(self, trade: Trade) -> None:
+        if trade.order.orderRef not in self._refs:
+            return
+        st = trade.orderStatus
+        log.info(
+            "ibkr_broker.order_status",
+            client_order_id=trade.order.orderRef,
+            status=st.status,
+            filled=st.filled,
+            why_held=st.whyHeld or None,
+            perm_id=trade.order.permId or None,
+        )
+
+    def _on_error(self, req_id: int, code: int, message: str, contract: Any = None) -> None:
+        trade = next((t for t in self._ib.trades() if t.order.orderId == req_id), None)
+        if trade is None or trade.order.orderRef not in self._refs:
+            return
+        log.warning(
+            "ibkr_broker.order_error",
+            client_order_id=trade.order.orderRef,
+            code=code,
+            message=message,
+        )
+
+    def _check_transmitted(self, trade: Trade) -> None:
+        """TWS gives an order a permanent id once IBKR's servers accepted it. Without one
+        after a while, TWS is holding it locally, typically behind a confirmation dialog."""
+        ref = trade.order.orderRef
+        if trade.order.permId or trade.isDone() or ref in self._warned or not trade.log:
+            return
+        if (utcnow() - trade.log[0].time).total_seconds() < self.not_transmitted_warn_s:
+            return
+        self._warned.add(ref)
+        log.warning(
+            "ibkr_broker.not_transmitted",
+            client_order_id=ref,
+            status=trade.orderStatus.status,
+            hint="TWS has not sent this order to IBKR: look for an order confirmation dialog "
+            "in TWS, or enable Global Configuration > API > Precautions > "
+            "'Bypass Order Precautions for API Orders'",
+        )
 
     def _check_accounts(self, managed: list[str]) -> None:
         if self.account_id not in managed:
@@ -211,6 +277,7 @@ class IBKRBroker:
             order = LimitOrder(action, qty, float(intent.limit_price), **common)
         else:
             order = MarketOrder(action, qty, **common)
+        self._refs.add(intent.client_order_id)
         trade = self._ib.placeOrder(await self._contract(instrument), order)
         log.info(
             "ibkr_broker.submitted",
@@ -229,6 +296,7 @@ class IBKRBroker:
             await self._ib.reqAllOpenOrdersAsync()  # orders placed by earlier sessions
             trade = self._find(intent.client_order_id)
         if trade is not None:
+            self._check_transmitted(trade)
             return result_from_trade(intent, trade)
         fills = [
             f
@@ -256,4 +324,16 @@ class IBKRBroker:
             raise BrokerError(f"no open IBKR order for {intent.client_order_id}")
         if not trade.isDone():
             self._ib.cancelOrder(trade.order)
+            # wait for IBKR to confirm, so the caller records the real final status
+            waited = 0.0
+            while not trade.isDone() and waited < self.cancel_wait_s:
+                await self._sleep(0.25)
+                waited += 0.25
+            if not trade.isDone():
+                log.warning(
+                    "ibkr_broker.cancel_unconfirmed",
+                    client_order_id=intent.client_order_id,
+                    status=trade.orderStatus.status,
+                    perm_id=trade.order.permId or None,
+                )
         return result_from_trade(intent, trade)

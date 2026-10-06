@@ -10,6 +10,9 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on rate direction, yield curve, inflation trend, index trend and
-    sector sensitivity to the current regime. Favor assets that historically perform in
-    the identified regime; reduce cyclical exposure when the regime signal deteriorates.
+    Interest rate, yield curve and inflation data are not available. Infer the regime
+    from the benchmark (trend versus its 200-day average, 20-day volatility, 1-year
+    return) and the stock's industry and beta: favour defensive, low-beta industries
+    when the benchmark is below its 200-day average or volatility is high, cyclical
+    high-beta names only in a rising, calm market. Say in your reasoning which regime
+    you inferred.
