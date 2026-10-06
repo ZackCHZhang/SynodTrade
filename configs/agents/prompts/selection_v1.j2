@@ -39,6 +39,10 @@ None (first selection).
 {{ instructions }}
 
 {% endif -%}
+If your approach relies on data that is not shown here (for example fundamentals, earnings
+dates, analyst estimates or index data), treat it as unknown: never estimate or invent it,
+and lower your confidence when the missing data matters for your choice.
+
 Respond with a JSON object containing:
 - "picks": a list of at most {{ max_picks }} objects, best first, each with
   - "symbol": the candidate's symbol exactly as listed (e.g. "{{ candidates[0].symbol if candidates else "AAPL" }}")

@@ -9,6 +9,6 @@ persona: |
 prompt_template: prompts/risk_v1.j2
 params:
   instructions: >-
-    Check that every position has an initial stop (maximum 8% or 2.5x ATR below entry)
-    and a trailing stop once in profit. Force exits on stop breaches and reject trades
+    Check that every position has an initial stop (maximum 8% or 2.5x the provided ATR 14
+    below entry) and a trailing stop once in profit. Force exits on stop breaches and reject trades
     without a defined stop.

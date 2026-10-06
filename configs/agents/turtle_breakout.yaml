@@ -10,6 +10,7 @@ persona: |
 prompt_template: prompts/decision_v1.j2
 params:
   instructions: >-
-    Base the action on 55-day high breakouts for entry, 20-day low breakouts for exit,
-    and ATR(20) for position sizing and pyramiding. Follow signals mechanically without
-    discretionary override.
+    Base the action on 55-day high breakouts for entry and 20-day low breakouts for exit,
+    read from the recent bars and the 52-week range, and use the provided ATR 14 for
+    position sizing and pyramiding. Follow signals mechanically without discretionary
+    override.

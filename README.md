@@ -97,7 +97,7 @@ docker compose up -d postgres   # 或 make up
 ### 当前限制（与代码实际行为一致）
 
 - **没有回测 / 历史回放模式。** 所有读取都支持 `as_of`，`quant run --as-of` 可以指定时间点，但没有逐日回放和绩效统计。
-- **Agent 只能看到代码提供的数据。** 决策 agent 看到的是 `quant_core.indicators` 的价格类指标、最近 K 线、舆情摘要和历史决策；风控 agent 只看到其中 6 个指标；选股 agent 只看到价格 / 成交量类指标。系统里**没有基本面、财报日历、ATR、跳空统计、相关性**等数据，部分 agent 的 `instructions`（例如 `piotroski_screen`、`volatility_position_sizer`、`earnings_event_risk`、`gap_risk_monitor`）提到了这些数据，模型只能根据已有信息推断。
+- **Agent 只能看到代码提供的数据。** 决策和风控 agent 看到 `quant_core.indicators` 计算的全部技术指标（含 ATR、跳空统计、量价指标）、最近 K 线、舆情摘要和历史决策；选股 agent 只看到价格 / 成交量类指标。系统里**没有基本面、财报日历、相关性**等数据。部分 agent 的 `instructions`（例如 `piotroski_screen`、`earnings_event_risk`）提到了这些数据；prompt 要求模型把缺失的数据当作未知，不要估算。
 - **订单只有一种定价方式**：立即成交型限价单（买一 / 卖一价加减 `limit_offset_bps`）。
 
 ---
@@ -195,5 +195,5 @@ not to the Client Portal Web API (port 5000).
 ### Current limitations (as implemented)
 
 - **No backtest / historical replay mode.** Every read supports `as_of` and `quant run --as-of` sets the point in time, but there is no day-by-day replay or performance report.
-- **Agents only see data the code provides.** Decision agents get the price-based indicators from `quant_core.indicators`, recent bars, sentiment summaries and past decisions; risk agents get only 6 of those indicators; selection agents get only price / volume metrics. The system has **no fundamentals, earnings calendar, ATR, gap statistics or correlations**. Some agents' `instructions` (e.g. `piotroski_screen`, `volatility_position_sizer`, `earnings_event_risk`, `gap_risk_monitor`) mention such data; the model can only infer it from what it is shown.
+- **Agents only see data the code provides.** Decision and risk agents get every technical indicator from `quant_core.indicators` (including ATR, gap statistics and volume-price indicators), recent bars, sentiment summaries and past decisions; selection agents get only price / volume metrics. The system has **no fundamentals, earnings calendar or correlations**. Some agents' `instructions` (e.g. `piotroski_screen`, `earnings_event_risk`) mention such data; the prompts tell the model to treat missing data as unknown instead of estimating it.
 - **One order pricing style only**: a marketable limit order (ask / bid plus or minus `limit_offset_bps`).
