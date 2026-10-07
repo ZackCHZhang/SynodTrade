@@ -55,7 +55,7 @@ def test_cli(tmp_path: Path) -> None:
     db_file = tmp_path / "cli.db"
     url = _async_url(db_file)
     main(["upgrade", "--url", url])
-    assert _version(db_file) == "0004"
+    assert _version(db_file) == "0005"
     main(["current", "--url", url])
     main(["downgrade", "--url", url, "--revision", "base"])
     assert _version(db_file) is None
