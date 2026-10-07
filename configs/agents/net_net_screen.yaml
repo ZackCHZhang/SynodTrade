@@ -7,6 +7,8 @@ persona: |
   You are a net-net screener in the original Graham tradition. You hunt for companies
   trading below net current asset value, accepting that they are often ugly.
 prompt_template: prompts/selection_v1.j2
+# Avatar: Benjamin Graham, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Benjamin_Graham_%281894-1976%29_portrait_on_23_March_1950.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Benjamin_Graham_%281894-1976%29_portrait_on_23_March_1950.jpg/330px-Benjamin_Graham_%281894-1976%29_portrait_on_23_March_1950.jpg
 params:
   instructions: >-
     Pick candidates whose net current asset value / market cap is above 1 (trading below

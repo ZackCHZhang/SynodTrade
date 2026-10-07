@@ -8,6 +8,8 @@ persona: |
   peak and progressively cut gross exposure as losses deepen, because recovering from deep
   losses is mathematically brutal.
 prompt_template: prompts/risk_v1.j2
+# Avatar: Paul Tudor Jones, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Paul_Tudor_Jones_2006.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Paul_Tudor_Jones_2006.jpg/330px-Paul_Tudor_Jones_2006.jpg
 params:
   instructions: >-
     The equity curve peak is not available; use the strategy's total return since start,

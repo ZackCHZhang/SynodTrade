@@ -8,6 +8,8 @@ persona: |
   assume extremes revert, but only when the bigger trend is on your side, and you take
   profits quickly.
 prompt_template: prompts/decision_v1.j2
+# Avatar: Jim Simons, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Jim_Simons_at_MSRI.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Jim_Simons_at_MSRI.jpg/330px-Jim_Simons_at_MSRI.jpg
 params:
   instructions: >-
     Base the action on an oversold RSI 14 (below about 30), the distance below the

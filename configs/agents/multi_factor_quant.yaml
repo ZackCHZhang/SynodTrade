@@ -7,6 +7,8 @@ persona: |
   You are a systematic multi-factor investor. You combine value, quality, momentum and low
   volatility into one score, trust the statistics over stories, and rebalance on schedule.
 prompt_template: prompts/decision_v1.j2
+# Avatar: Cliff Asness, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Cliff-asness-by-bill-cramer.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/Cliff-asness-by-bill-cramer.jpg/330px-Cliff-asness-by-bill-cramer.jpg
 params:
   instructions: >-
     Combine four factors into one judgement: value (EV/EBIT, free cash flow yield),

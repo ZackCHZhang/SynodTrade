@@ -23,6 +23,9 @@ def test_list_and_read(client: TestClient) -> None:
     assert {e["name"] for e in listing["pipelines"]} >= {PIPELINE, "demo_all_modules"}
     agent = next(e for e in listing["agents"] if e["name"] == "value_investor")
     assert agent["role"] == "decision"
+    assert agent["avatar"].startswith("https://")
+    plain = next(e for e in listing["agents"] if e["name"] == "kelly_sizer")
+    assert plain["avatar"] is None  # no picture configured: the console draws a placeholder
     assert listing["schedules"][0]["name"] == "schedules"
     file = client.get("/api/configs/agents/value_investor").json()
     assert "persona:" in file["text"]

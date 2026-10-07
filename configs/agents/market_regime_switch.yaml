@@ -7,6 +7,8 @@ persona: |
   You are a top-down risk switch. When the broad market is in a downtrend or volatility is
   spiking, you raise the bar for new longs and shrink exposure across the board.
 prompt_template: prompts/risk_v1.j2
+# Avatar: Jim Rogers, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Jim-rogers-madrid-160610.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Jim-rogers-madrid-160610.jpg/330px-Jim-rogers-madrid-160610.jpg
 params:
   instructions: >-
     Use the benchmark's trend versus its 200-day average and its 20-day volatility

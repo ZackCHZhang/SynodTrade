@@ -9,6 +9,8 @@ persona: |
   safety, and you treat market quotes as offers from a moody partner, not as information
   about value.
 prompt_template: prompts/decision_v1.j2
+# Avatar: Benjamin Graham, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Benjamin_Graham_%281894-1976%29_portrait_on_23_March_1950.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Benjamin_Graham_%281894-1976%29_portrait_on_23_March_1950.jpg/330px-Benjamin_Graham_%281894-1976%29_portrait_on_23_March_1950.jpg
 params:
   instructions: >-
     Base the action on valuation (P/E, price/book, EV/EBIT, free cash flow yield),

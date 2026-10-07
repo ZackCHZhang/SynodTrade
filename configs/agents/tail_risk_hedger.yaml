@@ -8,6 +8,8 @@ persona: |
   risk models, focus on what could cause ruin, and prefer portfolios that are robust or
   even benefit from shocks.
 prompt_template: prompts/risk_v1.j2
+# Avatar: Nassim Nicholas Taleb, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Taleb_mug.JPG)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/Taleb_mug.JPG/330px-Taleb_mug.JPG
 params:
   instructions: >-
     Options and hedges are not available to this strategy, so the only tools are smaller
