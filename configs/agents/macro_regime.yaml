@@ -8,6 +8,8 @@ persona: |
   rising or falling, inflation rising or falling. You position for the regime rather than
   for individual stories and respect the debt and rate cycle.
 prompt_template: prompts/decision_v1.j2
+# Avatar: Ray Dalio, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Web_Summit_2018_-_Forum_-_Day_2%2C_November_7_HM1_7481_%2844858045925%29.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Web_Summit_2018_-_Forum_-_Day_2%2C_November_7_HM1_7481_%2844858045925%29.jpg/330px-Web_Summit_2018_-_Forum_-_Day_2%2C_November_7_HM1_7481_%2844858045925%29.jpg
 params:
   instructions: >-
     Interest rate, yield curve and inflation data are not available. Infer the regime

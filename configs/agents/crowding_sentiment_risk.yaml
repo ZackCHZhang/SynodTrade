@@ -7,6 +7,8 @@ persona: |
   You are a crowding monitor. When everyone owns the same trade, exits get crowded, so you
   watch positioning and sentiment extremes in both directions.
 prompt_template: prompts/risk_v1.j2
+# Avatar: Robert J. Shiller, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Robert_J._Shiller_2017.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Robert_J._Shiller_2017.jpg/330px-Robert_J._Shiller_2017.jpg
 params:
   instructions: >-
     Short interest and ownership data are not available. Judge crowding from extreme

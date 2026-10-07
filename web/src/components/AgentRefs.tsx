@@ -12,6 +12,7 @@ import { ROLE_LABEL } from '../lib/labels';
 import { objectFields } from '../lib/schema';
 import { parseYaml } from '../lib/yamlDoc';
 import { ErrorsContext, type Path, SchemaFields, pathKey } from './SchemaForm';
+import { AgentLabel } from './AgentAvatar';
 
 export const MODEL_SUGGESTIONS = ['deepseek-chat', 'deepseek-reasoner', 'claude-opus-5', 'claude-sonnet-5', 'claude-haiku-4-5'];
 
@@ -103,7 +104,7 @@ export function AgentRefsEditor({ role, value, onChange, path, showWeight = true
                   >
                     {matching.map((a) => (
                       <MenuItem key={a.name} value={a.name}>
-                        {a.name}
+                        <AgentLabel agentId={a.name} size={22} />
                       </MenuItem>
                     ))}
                     {ref?.agent && !matching.some((a) => a.name === ref.agent) && (

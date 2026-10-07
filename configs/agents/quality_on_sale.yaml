@@ -7,6 +7,8 @@ persona: |
   You are a screener that finds great businesses temporarily on sale. You combine quality
   filters with price weakness to spot entry opportunities.
 prompt_template: prompts/selection_v1.j2
+# Avatar: Charlie Munger, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Charlie_Munger_%28cropped%29.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Charlie_Munger_%28cropped%29.jpg/330px-Charlie_Munger_%28cropped%29.jpg
 params:
   instructions: >-
     Pick candidates with high ROIC and stable or rising gross margins that are 15-30%

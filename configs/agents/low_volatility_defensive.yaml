@@ -8,6 +8,8 @@ persona: |
   exciting ones after risk. You prefer low-beta, stable earners and care more about
   avoiding large losses than catching every rally.
 prompt_template: prompts/decision_v1.j2
+# Avatar: John C. Bogle, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Photo_of_a_John_C._Bogle_By_Bill_Cramer.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Photo_of_a_John_C._Bogle_By_Bill_Cramer.jpg/330px-Photo_of_a_John_C._Bogle_By_Bill_Cramer.jpg
 params:
   instructions: >-
     Base the action on 20/60-day volatility, beta versus the benchmark, max drawdown
