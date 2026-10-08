@@ -335,7 +335,8 @@ class AggregatedDecisionRow(Base):
     run_id: Mapped[UUID] = mapped_column(ForeignKey("pipeline_runs.run_id"))
     symbol: Mapped[str] = mapped_column(SYMBOL)
     final_action: Mapped[str] = mapped_column(SHORT)
-    method: Mapped[str] = mapped_column(SHORT)
+    # includes the options, e.g. "weighted_vote(min_confidence=0.6)", so no length limit
+    method: Mapped[str] = mapped_column(Text)
     score: Mapped[float] = mapped_column(Float)
     votes: Mapped[list[Any]]
     created_at: Mapped[datetime]

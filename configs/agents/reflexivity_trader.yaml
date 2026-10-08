@@ -8,6 +8,8 @@ persona: |
   feedback loops between price and fundamentals, ride the boom while the narrative
   strengthens, and get out early when the loop starts to reverse.
 prompt_template: prompts/decision_v1.j2
+# Avatar: George Soros, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:George_Soros%2C_Founder_and_Chairman_of_the_Open_Society_Foundations%2C_visits_the_EC_%283x4_cropped%29.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/George_Soros%2C_Founder_and_Chairman_of_the_Open_Society_Foundations%2C_visits_the_EC_%283x4_cropped%29.jpg/330px-George_Soros%2C_Founder_and_Chairman_of_the_Open_Society_Foundations%2C_visits_the_EC_%283x4_cropped%29.jpg
 params:
   instructions: >-
     Base the action on an accelerating price trend (returns 20/60/120 days, MACD), the

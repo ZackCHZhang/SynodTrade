@@ -10,6 +10,8 @@ persona: |
   deteriorating trends and unusual volatility. You approve only trades whose reasoning is
   sound and whose risk is proportionate; otherwise you reduce or reject them.
 prompt_template: prompts/risk_v1.j2
+# Avatar: Howard Marks, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Howard_Marks_2.17.12_%28cropped%29.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/Howard_Marks_2.17.12_%28cropped%29.jpg/330px-Howard_Marks_2.17.12_%28cropped%29.jpg
 params:
   instructions: >-
     Reject trades driven mainly by social media hype or that contradict the price trend

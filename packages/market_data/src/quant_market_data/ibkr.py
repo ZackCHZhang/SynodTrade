@@ -21,6 +21,7 @@ from quant_core.config import AccountConfig
 from quant_core.logging import get_logger
 from quant_core.models import AccountSnapshot, Bar, Instrument, Position, Quote, Timeframe
 from quant_core.timeutil import EXCHANGE_TZ, utcnow
+from quant_market_data.ecb import EcbFxRates
 from quant_market_data.pacing import PacingLimiter
 from quant_market_data.provider import AccountData, MarketDataError
 from quant_market_data.ranges import plan_requests
@@ -117,6 +118,7 @@ class IBKRMarketDataProvider:
         pacing: PacingLimiter | None = None,
         retry_wait: wait_base | None = None,
         ib: IB | None = None,
+        fx_fallback: EcbFxRates | None = None,
     ) -> None:
         self.host, self.port, self.client_id = host, port, client_id
         self.base_currency = base_currency
@@ -128,9 +130,12 @@ class IBKRMarketDataProvider:
         self._pacing = pacing or PacingLimiter()
         self._retry_wait = retry_wait or wait_exponential(multiplier=2, max=30)
         self._ib = ib or IB()
+        # used when IBKR has no forex data for the account (no IDEALPRO market data permission)
+        self._fx_fallback = fx_fallback
 
     @classmethod
     def from_account(cls, account: AccountConfig, **kwargs: object) -> IBKRMarketDataProvider:
+        kwargs.setdefault("fx_fallback", EcbFxRates())
         return cls(
             host=account.host,
             port=account.port,
@@ -280,7 +285,11 @@ class IBKRMarketDataProvider:
         )
 
     async def fx_rate(self, from_ccy: str, to_ccy: str) -> Decimal:
-        """Units of `to_ccy` per 1 `from_ccy`, from the IDEALPRO midpoint (last daily close)."""
+        """Units of `to_ccy` per 1 `from_ccy`, from the IDEALPRO midpoint (last daily close).
+
+        Without IBKR forex data (no IDEALPRO market data permission: IBKR answers with no bars)
+        the ECB reference rate is used instead, if a fallback is configured.
+        """
         if from_ccy == to_ccy:
             return Decimal(1)
         for pair, invert in ((f"{from_ccy}{to_ccy}", False), (f"{to_ccy}{from_ccy}", True)):
@@ -301,7 +310,23 @@ class IBKRMarketDataProvider:
             if bars:
                 rate = Decimal(str(bars[-1].close))
                 return Decimal(1) / rate if invert else rate
-        raise MarketDataError(f"no FX rate for {from_ccy}->{to_ccy}")
+        if self._fx_fallback is None:
+            raise MarketDataError(f"no FX rate for {from_ccy}->{to_ccy}")
+        try:
+            rate, day = await self._fx_fallback.rate(from_ccy, to_ccy)
+        except MarketDataError as exc:
+            raise MarketDataError(
+                f"no FX rate for {from_ccy}->{to_ccy}: no IBKR forex data, and {exc}"
+            ) from exc
+        log.warning(
+            "ibkr.fx_fallback",
+            pair=f"{from_ccy}{to_ccy}",
+            rate=str(rate),
+            source="ecb",
+            reference_date=day.isoformat(),
+            hint="IBKR returned no forex data (IDEALPRO market data permission missing?)",
+        )
+        return rate
 
     async def fetch_account(self, account_id: str) -> AccountData:
         """Account values converted to the trading currency (`base_currency`, e.g. USD).

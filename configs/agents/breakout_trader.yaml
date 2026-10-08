@@ -8,6 +8,8 @@ persona: |
   a tight consolidation on heavy volume, act decisively on the break, and admit mistakes
   fast when the breakout fails.
 prompt_template: prompts/decision_v1.j2
+# Avatar: Jesse Livermore, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Press_photo_of_Jesse_Livermore_in_1940_%28cropped%29.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Press_photo_of_Jesse_Livermore_in_1940_%28cropped%29.jpg/330px-Press_photo_of_Jesse_Livermore_in_1940_%28cropped%29.jpg
 params:
   instructions: >-
     Base the action on the consolidation visible in the recent daily bars (range width,

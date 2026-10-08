@@ -12,6 +12,7 @@ from tenacity import wait_none
 from quant_core.config import AccountConfig
 from quant_core.models import Instrument, Timeframe
 from quant_market_data import IBKRMarketDataProvider, MarketDataError, PacingLimiter
+from quant_market_data.ecb import EcbFxRates
 from quant_market_data.ibkr import bar_from_ib, bar_timestamp, price, quote_from_ticker
 
 D = Decimal
@@ -391,6 +392,47 @@ async def test_fx_rate_uses_the_inverse_pair_when_needed() -> None:
     assert await provider.fx_rate("USD", "USD") == D(1)
     with pytest.raises(MarketDataError, match="no FX rate for XXX->USD"):
         await make_provider(FxStubIB({})).fx_rate("XXX", "USD")
+
+
+class StubFallback:
+    def __init__(self, rate: D | None) -> None:
+        self.value = rate
+        self.calls: list[tuple[str, str]] = []
+
+    async def rate(self, from_ccy: str, to_ccy: str) -> tuple[D, date]:
+        self.calls.append((from_ccy, to_ccy))
+        if self.value is None:
+            raise MarketDataError("ECB FX rates: no rate for XXX")
+        return self.value, date(2026, 10, 7)
+
+
+async def test_fx_rate_falls_back_when_ibkr_has_no_forex_data() -> None:
+    # without IDEALPRO market data permissions IBKR qualifies the pair but returns no bars
+    ib = FxStubIB({"EURUSD": 12087792, "USDEUR": None})
+    ib.history = [[]]
+    fallback = StubFallback(D("1.1358"))
+    provider = make_provider(ib, fx_fallback=fallback)
+    assert await provider.fx_rate("EUR", "USD") == D("1.1358")
+    assert fallback.calls == [("EUR", "USD")]
+
+
+async def test_fx_rate_prefers_ibkr_over_the_fallback() -> None:
+    ib = FxStubIB({"EURUSD": 12087792})
+    ib.history = [[fx_bar(1.14)]]
+    fallback = StubFallback(D("9"))
+    assert await make_provider(ib, fx_fallback=fallback).fx_rate("EUR", "USD") == D("1.14")
+    assert fallback.calls == []
+
+
+async def test_fx_rate_error_names_both_sources() -> None:
+    provider = make_provider(FxStubIB({}), fx_fallback=StubFallback(None))
+    with pytest.raises(MarketDataError, match="no IBKR forex data, and ECB FX rates"):
+        await provider.fx_rate("XXX", "USD")
+
+
+def test_from_account_enables_the_ecb_fallback() -> None:
+    cfg = AccountConfig(name="ibkr_main", account_id="DU1", port=4002, client_id=21)
+    assert isinstance(IBKRMarketDataProvider.from_account(cfg)._fx_fallback, EcbFxRates)
 
 
 async def test_fetch_account_without_net_liquidation() -> None:

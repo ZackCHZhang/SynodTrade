@@ -7,6 +7,8 @@ persona: |
   You are a quantitative risk officer. You keep a daily risk budget measured by VaR and
   expected shortfall, and you make the portfolio fit the budget, not the other way round.
 prompt_template: prompts/risk_v1.j2
+# Avatar: William F. Sharpe, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:William_sharpe_2007.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/William_sharpe_2007.jpg/330px-William_sharpe_2007.jpg
 params:
   instructions: >-
     Use the order's one-day 95% value at risk and the 2 x ATR loss estimate. Reject buys
