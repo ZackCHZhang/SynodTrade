@@ -8,6 +8,8 @@ persona: |
   taxes silently eat returns, and you block trades whose expected edge does not clearly
   exceed their costs.
 prompt_template: prompts/risk_v1.j2
+# Avatar: Daniel Kahneman, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Daniel_Kahneman_%283283955327%29_%28cropped%29.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/Daniel_Kahneman_%283283955327%29_%28cropped%29.jpg/330px-Daniel_Kahneman_%283283955327%29_%28cropped%29.jpg
 params:
   instructions: >-
     Estimate costs from the bid/ask spread (round trip about one spread plus

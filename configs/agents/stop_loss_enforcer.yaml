@@ -7,6 +7,8 @@ persona: |
   You are an unemotional stop-loss enforcer. Every position must have a defined exit
   before entry, and you never allow a stop to be widened after the trade is on.
 prompt_template: prompts/risk_v1.j2
+# Avatar: Bernard Baruch, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:BARUCH%2C_BERNARD_2.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c8/BARUCH%2C_BERNARD_2.jpg/330px-BARUCH%2C_BERNARD_2.jpg
 params:
   instructions: >-
     You can only approve, reduce or reject the proposed trade. For buys into an existing

@@ -7,6 +7,8 @@ persona: |
   You are a value screener looking for statistically cheap stocks. You want low prices
   relative to earnings, cash flow and book value, without obvious balance-sheet distress.
 prompt_template: prompts/selection_v1.j2
+# Avatar: Seth Klarman, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Seth_Klarman_at_147th_Preakness_Stakes.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Seth_Klarman_at_147th_Preakness_Stakes.jpg/330px-Seth_Klarman_at_147th_Preakness_Stakes.jpg
 params:
   instructions: >-
     Pick the cheapest candidates by EV/EBIT, price/book and free cash flow yield,

@@ -38,6 +38,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { api, type RunDetail, type RunEvent, type StageTiming } from '../api/client';
 import { useRunEvents } from '../api/events';
+import { AgentAvatar, AgentLabel } from '../components/AgentAvatar';
 import { RunDialog } from '../components/RunDialog';
 import { ActionChip, ModeChip, StatusChip } from '../components/StatusChip';
 import { Empty, JsonView, PageHeader, Section } from '../components/common';
@@ -351,7 +352,7 @@ function SelectionTab({ d }: { d: RunDetail }) {
       )}
       <Grid size={{ xs: 12, lg: sel ? 7 : 12 }}>
         {d.selection_results.map((r) => (
-          <Section key={r.id} title={`${r.agent_id} · ${shortId(r.instance_id)}`} actions={r.error && <Chip size="small" color="error" label="失败" />}>
+          <Section key={r.id} title={<AgentLabel agentId={r.agent_id}>{`${r.agent_id} · ${shortId(r.instance_id)}`}</AgentLabel>} actions={r.error && <Chip size="small" color="error" label="失败" />}>
             {r.error && <Alert severity="error" sx={{ mb: 1 }}>{r.error}</Alert>}
             <Typography variant="body2" sx={{ mb: 1 }}>
               {r.summary}
@@ -412,7 +413,9 @@ function SentimentTab({ d }: { d: RunDetail }) {
         {d.sentiment_results.map((r) => (
           <TableRow key={r.id}>
             <TableCell sx={{ fontWeight: 600 }}>{r.symbol}</TableCell>
-            <TableCell>{r.agent_id}</TableCell>
+            <TableCell>
+              <AgentLabel agentId={r.agent_id} />
+            </TableCell>
             <TableCell>
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                 <SentimentBar value={r.sentiment} />
@@ -462,9 +465,10 @@ function DecisionTab({ d }: { d: RunDetail }) {
                 <Stack direction="row" sx={{ gap: 0.5, flexWrap: 'wrap' }}>
                   {a.votes.map((v: any) => (
                     <Tooltip key={v.instance_id} title={`${v.agent_id} · 置信度 ${fmtNum(v.confidence, 2)} · 权重 ${v.weight}`}>
-                      <span>
+                      <Stack direction="row" spacing={0.5} component="span" sx={{ alignItems: 'center' }}>
+                        <AgentAvatar agentId={v.agent_id} size={22} />
                         <ActionChip action={v.action} />
-                      </span>
+                      </Stack>
                     </Tooltip>
                   ))}
                 </Stack>
@@ -478,7 +482,7 @@ function DecisionTab({ d }: { d: RunDetail }) {
                     <ActionChip action={x.action} />
                   </TableCell>
                   <TableCell>
-                    {x.agent_id}
+                    <AgentLabel agentId={x.agent_id} />
                     <Typography variant="caption" color="text.secondary" component="div">
                       {shortId(x.instance_id)} · 置信度 {fmtNum(x.confidence, 2)}
                     </Typography>
@@ -519,7 +523,9 @@ function RiskTab({ d }: { d: RunDetail }) {
         {d.risk_assessments.map((r) => (
           <TableRow key={r.id}>
             <TableCell sx={{ fontWeight: 600 }}>{r.symbol}</TableCell>
-            <TableCell>{r.source === 'rules' ? <Chip size="small" label="硬规则" /> : r.source}</TableCell>
+            <TableCell>
+              {r.source === 'rules' ? <Chip size="small" label="硬规则" /> : r.source === 'final' ? r.source : <AgentLabel agentId={r.source} />}
+            </TableCell>
             <TableCell>
               <Chip size="small" label={r.verdict} color={r.verdict === 'approve' ? 'success' : r.verdict === 'reject' ? 'error' : 'warning'} variant="outlined" />
             </TableCell>
@@ -676,7 +682,7 @@ function LlmTab({ d }: { d: RunDetail }) {
             <TableRow key={c.id} hover sx={{ cursor: 'pointer' }} onClick={() => setOpen(c.id)}>
               <TableCell>{fmtTime(c.created_at, true)}</TableCell>
               <TableCell>
-                {c.agent_id}
+                <AgentLabel agentId={c.agent_id} />
                 <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
                   {shortId(c.instance_id)}
                 </Typography>
@@ -718,7 +724,7 @@ function AgentsTab({ d }: { d: RunDetail }) {
             <TableCell sx={{ fontFamily: 'monospace' }}>{shortId(a.instance_id)}</TableCell>
             <TableCell>
               <RouterLink to={`/configs/agents/${a.agent_id}`} style={{ color: 'inherit' }}>
-                {a.agent_id}
+                <AgentLabel agentId={a.agent_id} />
               </RouterLink>
             </TableCell>
             <TableCell>{a.agent_type}</TableCell>

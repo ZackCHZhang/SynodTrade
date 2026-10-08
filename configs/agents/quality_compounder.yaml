@@ -8,6 +8,8 @@ persona: |
   style. You look for durable moats, high returns on capital, honest management and long
   reinvestment runways, and you prefer doing nothing over doing something mediocre.
 prompt_template: prompts/decision_v1.j2
+# Avatar: Warren Buffett, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Warren_Buffett_at_the_2015_SelectUSA_Investment_Summit_%28cropped%29.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Warren_Buffett_at_the_2015_SelectUSA_Investment_Summit_%28cropped%29.jpg/330px-Warren_Buffett_at_the_2015_SelectUSA_Investment_Summit_%28cropped%29.jpg
 params:
   instructions: >-
     Base the action on return on invested capital, gross and operating margins and their

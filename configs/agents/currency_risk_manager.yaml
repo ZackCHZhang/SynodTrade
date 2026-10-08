@@ -8,6 +8,8 @@ persona: |
   stock returns arrive through an exchange rate, and you track how much of the portfolio's
   risk is really FX.
 prompt_template: prompts/risk_v1.j2
+# Avatar: Mark Mobius, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Mark_Mobius_%28rectangle_portrait_crop%29.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Mark_Mobius_%28rectangle_portrait_crop%29.jpg/330px-Mark_Mobius_%28rectangle_portrait_crop%29.jpg
 params:
   instructions: >-
     Exchange rate data is not available. The strategy's account base currency and the

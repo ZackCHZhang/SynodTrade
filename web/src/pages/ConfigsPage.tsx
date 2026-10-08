@@ -24,6 +24,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { api, type ConfigEntry } from '../api/client';
 import { useConfigs, useMeta } from '../api/hooks';
 import { ConfigEditor } from '../components/ConfigEditor';
+import { AgentAvatar } from '../components/AgentAvatar';
 import { RunDialog } from '../components/RunDialog';
 import { PageHeader } from '../components/common';
 import { AgentForm } from '../editors/AgentForm';
@@ -221,9 +222,12 @@ export function ConfigListPage() {
             <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <CardActionArea onClick={() => navigate(`/configs/${kind}/${e.name}`)} sx={{ flex: 1, alignItems: 'flex-start', display: 'flex' }}>
                 <CardContent sx={{ width: '100%' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>
-                    {e.name}
-                  </Typography>
+                  <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                    {kind === 'agents' && <AgentAvatar agentId={e.name} size={40} />}
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>
+                      {e.name}
+                    </Typography>
+                  </Stack>
                   <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 1.5 }}>
                     {e.path} · 修改于 {fmtTime(e.modified)}
                   </Typography>

@@ -87,6 +87,7 @@ export interface ConfigEntry {
   modified: string;
   role?: string;
   prompt_template?: string;
+  avatar?: string | null;
   mode?: string;
   account?: string;
   stages?: string[];

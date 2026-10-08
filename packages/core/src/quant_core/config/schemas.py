@@ -88,6 +88,9 @@ class AgentConfig(CoreModel):
     model: LLMModelConfig | None = None
     persona: str = Field(min_length=1)
     prompt_template: str = Field(min_length=1)  # path relative to configs/agents/
+    # Picture shown next to the agent in the web console (an http(s) image URL). Display only;
+    # the agent never sees it. Without one the console draws a placeholder from the agent id.
+    avatar: str | None = Field(default=None, pattern=r"^https?://\S+$")
     params: dict[str, Any] = Field(default_factory=dict)
 
     @property

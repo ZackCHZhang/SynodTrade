@@ -8,6 +8,8 @@ persona: |
   filings everyone skips, and buy assets trading below liquidation or replacement value
   when sentiment is at its worst, accepting that you may be early.
 prompt_template: prompts/decision_v1.j2
+# Avatar: David Tepper, from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:David_Tepper_01.jpg)
+avatar: https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3d/David_Tepper_01.jpg/330px-David_Tepper_01.jpg
 params:
   instructions: >-
     Base the action on net current asset value / market cap, price/book, free cash flow

@@ -6,6 +6,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { api } from '../api/client';
 import { useConfigs, useMeta } from '../api/hooks';
 import { MODEL_SUGGESTIONS, useProviderNames } from '../components/AgentRefs';
+import { AgentAvatar } from '../components/AgentAvatar';
 import { CodeEditor } from '../components/CodeEditor';
 import type { FormProps } from '../components/ConfigEditor';
 import { ErrorsContext, FieldEditor, SchemaFields } from '../components/SchemaForm';
@@ -113,6 +114,22 @@ export function AgentForm({ data, onChange, name }: FormProps) {
                   编辑模板
                 </Button>
               )}
+            </Grid>
+            <Grid size={12}>
+              <Stack direction="row" spacing={2} sx={{ alignItems: 'flex-start' }}>
+                <AgentAvatar agentId={name} size={56} src={typeof data.avatar === 'string' ? data.avatar : null} role={data.role} />
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="头像 avatar"
+                  placeholder="https://..."
+                  value={data.avatar ?? ''}
+                  onChange={(e) => set(['avatar'], e.target.value.trim() || undefined)}
+                  error={!!errors.avatar}
+                  helperText={errors.avatar ?? '图片地址（http/https），只在控制台显示；留空则显示按角色着色的名字缩写'}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+              </Stack>
             </Grid>
             <Grid size={12}>
               <Collapse in={showTemplate} unmountOnExit>

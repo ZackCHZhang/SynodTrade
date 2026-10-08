@@ -210,7 +210,11 @@ class ConfigFiles:
         if not isinstance(data, dict):
             return {"broken": True}
         if kind.name == "agents":
-            return {"role": data.get("role"), "prompt_template": data.get("prompt_template")}
+            return {
+                "role": data.get("role"),
+                "prompt_template": data.get("prompt_template"),
+                "avatar": data.get("avatar"),
+            }
         if kind.name == "pipelines":
             stages = data.get("stages") or []
             return {
