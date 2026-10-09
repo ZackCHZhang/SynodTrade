@@ -33,9 +33,9 @@ pytest-cov = ">=6.0"
 pytest-socket = ">=0.7"
 import-linter = ">=2.1"
 pre-commit = ">=4.0"
+types-pyyaml = "^6.0.12.20260906"
 
 # ---------------------------------------------------------------- ruff
-types-pyyaml = "^6.0.12.20260906"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
