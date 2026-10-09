@@ -7,6 +7,9 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "quant-core",
     "sqlalchemy[asyncio]>=2.0.36,<3",
+    # The asyncio extra's greenlet is locked with a platform_machine marker that excludes
+    # Apple Silicon ("arm64"); require it explicitly so the async engine works everywhere.
+    "greenlet>=3.1",
     "alembic>=1.14",
     "aiosqlite>=0.20",
     "asyncpg>=0.30",
