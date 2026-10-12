@@ -7,6 +7,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "quant-core",
     "quant-database",
+    "quant-account-sync",
     "quant-pipeline",
     "quant-scheduler",
     "fastapi>=0.115",
@@ -24,6 +25,7 @@ packages = [{ include = "quant_webapi", from = "src" }]
 [tool.poetry.dependencies]
 quant-core = { path = "../core", develop = true }
 quant-database = { path = "../database", develop = true }
+quant-account-sync = { path = "../account_sync", develop = true }
 quant-pipeline = { path = "../pipeline", develop = true }
 quant-scheduler = { path = "../scheduler", develop = true }
 

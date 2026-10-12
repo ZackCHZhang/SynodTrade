@@ -50,6 +50,13 @@ def serve(
     ] = Path("web/dist"),
     init_db: Annotated[bool, typer.Option("--init-db", help="create missing tables")] = False,
     log_level: Annotated[str, typer.Option("--log-level")] = "INFO",
+    account_sync: Annotated[
+        bool,
+        typer.Option(
+            "--account-sync/--no-account-sync",
+            help="synchronise IBKR accounts periodically (configs/account_sync.yaml)",
+        ),
+    ] = True,
 ) -> None:
     """Start the web console."""
     if not configs.is_dir():
@@ -62,6 +69,7 @@ def serve(
         static_dir=static if static.is_dir() else None,
         create_tables=init_db or url == DEFAULT_DB,
         log_level=log_level,
+        account_sync_loop=account_sync,
     )
     if settings.static_dir is None:
         typer.echo(f"note: {static} not found; serving the API only (use the Vite dev server)")

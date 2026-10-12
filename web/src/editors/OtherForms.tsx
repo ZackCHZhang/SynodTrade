@@ -18,6 +18,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
 import { useContext, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { useConfigs, useMeta } from '../api/hooks';
 import type { FormProps } from '../components/ConfigEditor';
 import { ErrorsContext, FieldEditor, SchemaFields, pathKey } from '../components/SchemaForm';
@@ -343,5 +344,45 @@ export function SchedulesForm({ data, onChange }: FormProps) {
         </Button>
       </Box>
     </Stack>
+  );
+}
+
+export function AccountSyncForm({ data, onChange }: FormProps) {
+  const { data: meta } = useMeta();
+  const { data: configs } = useConfigs();
+  if (!meta) return null;
+  const field = objectFields(meta.schemas.account_sync, ['accounts']);
+  const accounts: string[] = Array.isArray(data.accounts) ? data.accounts : [];
+  const known = (configs?.accounts ?? []).map((a) => a.name);
+  return (
+    <Card variant="outlined">
+      <CardContent>
+        <SchemaFields field={field} value={data} path={[]} onChange={(v) => onChange({ ...(v ?? {}), accounts: data.accounts ?? [] })} />
+        <TextField
+          select
+          fullWidth
+          size="small"
+          sx={{ mt: 2 }}
+          label="只同步这些账户配置 accounts"
+          value={accounts}
+          onChange={(e) => {
+            const v = e.target.value as unknown as string[] | string;
+            onChange({ ...data, accounts: typeof v === 'string' ? v.split(',') : v });
+          }}
+          helperText="留空 = 所有流水线用到的账户。共用同一个 IBKR 账户的配置会合并成一次同步。"
+          slotProps={{ select: { multiple: true, renderValue: (v) => ((v as string[]).length ? (v as string[]).join(', ') : '全部') } }}
+        >
+          {known.map((n) => (
+            <MenuItem key={n} value={n}>
+              {n}
+            </MenuItem>
+          ))}
+        </TextField>
+        <Alert severity="info" sx={{ mt: 2 }}>
+          同步使用独立的 API 连接（账户 client_id + 4），不会和正在运行的流水线冲突。设置在下一次检查时生效（约 15 秒），无需重启。
+          同步结果和历史见 <RouterLink to="/account-sync">账户同步</RouterLink> 页面。
+        </Alert>
+      </CardContent>
+    </Card>
   );
 }

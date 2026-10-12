@@ -3047,6 +3047,28 @@ files = [
 ]
 
 [[package]]
+name = "quant-account-sync"
+version = "0.1.0"
+description = "账户同步：订单成交状态、迟到的成交、账户与持仓快照、账本核对（流水线第一步 + 定时）"
+optional = false
+python-versions = ">=3.12,<3.13"
+groups = ["packages"]
+files = []
+develop = true
+
+[package.dependencies]
+ib_async = ">=2.0"
+quant-core = "*"
+quant-database = "*"
+quant-market-data = "*"
+quant-trading = "*"
+typer = ">=0.12"
+
+[package.source]
+type = "directory"
+url = "packages/account_sync"
+
+[[package]]
 name = "quant-core"
 version = "0.1.0"
 description = "共享基础：数据模型、接口协议、LLM 客户端、配置加载、日志、注册表"
@@ -3143,6 +3165,7 @@ files = []
 develop = true
 
 [package.dependencies]
+quant-account-sync = "*"
 quant-core = "*"
 quant-database = "*"
 quant-decision = "*"
@@ -3272,6 +3295,7 @@ develop = true
 [package.dependencies]
 fastapi = ">=0.115"
 pyyaml = ">=6.0"
+quant-account-sync = "*"
 quant-core = "*"
 quant-database = "*"
 quant-pipeline = "*"
@@ -3834,4 +3858,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.13"
-content-hash = "642ddba0cec55faf36978bf2777804a97b61f59b3616233f69a2f80523d03afe"
+content-hash = "873d2b1fd3c3ac4750b31825294994cbeea5875601186804bfaf5c46cdbc2f05"

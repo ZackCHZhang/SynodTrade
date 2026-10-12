@@ -20,6 +20,7 @@ quant-sentiment = { path = "packages/sentiment", develop = true }
 quant-decision = { path = "packages/decision", develop = true }
 quant-risk = { path = "packages/risk", develop = true }
 quant-trading = { path = "packages/trading", develop = true }
+quant-account-sync = { path = "packages/account_sync", develop = true }
 quant-pipeline = { path = "packages/pipeline", develop = true }
 quant-scheduler = { path = "packages/scheduler", develop = true }
 quant-webapi = { path = "packages/webapi", develop = true }
@@ -65,8 +66,8 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = [
     "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
-    "quant_decision", "quant_risk", "quant_trading", "quant_pipeline", "quant_scheduler",
-    "quant_webapi",
+    "quant_decision", "quant_risk", "quant_trading", "quant_account_sync", "quant_pipeline",
+    "quant_scheduler", "quant_webapi",
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]
@@ -113,8 +114,8 @@ markers = [
 branch = true
 source = [
     "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
-    "quant_decision", "quant_risk", "quant_trading", "quant_pipeline", "quant_scheduler",
-    "quant_webapi",
+    "quant_decision", "quant_risk", "quant_trading", "quant_account_sync", "quant_pipeline",
+    "quant_scheduler", "quant_webapi",
 ]
 
 [tool.coverage.report]
@@ -125,13 +126,13 @@ exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
 # ---------------------------------------------------------------- import-linter
 # Enforces the package DAG:
 #   core <- database <- {market_data, selection, sentiment, decision, risk, trading}
-#        <- pipeline <- scheduler <- webapi
+#        <- account_sync <- pipeline <- scheduler <- webapi
 # Business packages in the middle layer must not import each other.
 [tool.importlinter]
 root_packages = [
     "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
-    "quant_decision", "quant_risk", "quant_trading", "quant_pipeline", "quant_scheduler",
-    "quant_webapi",
+    "quant_decision", "quant_risk", "quant_trading", "quant_account_sync", "quant_pipeline",
+    "quant_scheduler", "quant_webapi",
 ]
 
 [[tool.importlinter.contracts]]
@@ -141,6 +142,7 @@ layers = [
     "quant_webapi",
     "quant_scheduler",
     "quant_pipeline",
+    "quant_account_sync",
     "quant_market_data | quant_selection | quant_sentiment | quant_decision | quant_risk | quant_trading",
     "quant_database",
     "quant_core",
