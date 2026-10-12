@@ -13,6 +13,7 @@ dependencies = [
     "quant-decision",
     "quant-risk",
     "quant-trading",
+    "quant-account-sync",
     "typer>=0.12",
 ]
 
@@ -31,6 +32,7 @@ quant-sentiment = { path = "../sentiment", develop = true }
 quant-decision = { path = "../decision", develop = true }
 quant-risk = { path = "../risk", develop = true }
 quant-trading = { path = "../trading", develop = true }
+quant-account-sync = { path = "../account_sync", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

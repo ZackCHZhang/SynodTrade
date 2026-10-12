@@ -109,6 +109,41 @@ class OrderRepository(Repository):
             await self._insert_fills(s, row, result.fills)
             return _to_record(row)
 
+    async def correct_closed(self, result: OrderResult) -> OrderRecord:
+        """Correct an order already closed (cancelled, rejected or filled) with what the
+        broker reported later: fills that arrived after it was closed, e.g. an order marked
+        cancelled because the broker did not list it, that was in fact executed.
+
+        Unlike `apply_result` this may change a final status, but only to another final
+        one, never for dry-run orders, and never lowering the filled quantity.
+        """
+        if not result.status.is_terminal or result.status is OrderStatus.DRY_RUN:
+            raise ValueError(f"a correction needs a final broker status, not {result.status}")
+        async with self._db.transaction() as s:
+            row = (
+                await s.execute(
+                    select(OrderRow).where(OrderRow.client_order_id == result.client_order_id)
+                )
+            ).scalar_one_or_none()
+            if row is None:
+                raise KeyError(f"unknown order {result.client_order_id}")
+            status = OrderStatus(row.status)
+            if not status.is_terminal or status is OrderStatus.DRY_RUN:
+                raise ValueError(f"order {row.client_order_id} is {row.status}; not correctable")
+            if result.filled_qty < row.filled_qty:
+                raise ValueError(
+                    f"order {row.client_order_id}: refusing to lower the filled quantity "
+                    f"from {row.filled_qty} to {result.filled_qty}"
+                )
+            row.status = result.status.value
+            row.broker_order_id = result.broker_order_id or row.broker_order_id
+            row.filled_qty = result.filled_qty
+            row.avg_fill_price = result.avg_fill_price or row.avg_fill_price
+            row.message = result.message
+            row.updated_at = utcnow()
+            await self._insert_fills(s, row, result.fills)
+            return _to_record(row)
+
     async def _insert_fills(
         self, session: AsyncSession, row: OrderRow, fills: Sequence[Fill]
     ) -> None:
@@ -170,6 +205,23 @@ class OrderRepository(Repository):
         stmt = select(OrderRow).where(OrderRow.status.in_(_OPEN_STATUSES)).order_by(OrderRow.id)
         if pipeline_name is not None:
             stmt = stmt.where(OrderRow.pipeline_name == pipeline_name)
+        async with self._db.transaction() as s:
+            rows = (await s.execute(stmt)).scalars().all()
+        return [_to_record(r) for r in rows]
+
+    async def list_closed_since(
+        self, since: datetime, pipeline_names: Sequence[str] | None = None
+    ) -> list[OrderRecord]:
+        """Orders sent to a broker that were closed (filled, cancelled, rejected) at or
+        after `since` — candidates for fills reported late."""
+        closed = [s.value for s in OrderStatus if s.is_terminal and s is not OrderStatus.DRY_RUN]
+        stmt = (
+            select(OrderRow)
+            .where(OrderRow.status.in_(closed), OrderRow.updated_at >= since)
+            .order_by(OrderRow.id)
+        )
+        if pipeline_names is not None:
+            stmt = stmt.where(OrderRow.pipeline_name.in_(list(pipeline_names)))
         async with self._db.transaction() as s:
             rows = (await s.execute(stmt)).scalars().all()
         return [_to_record(r) for r in rows]

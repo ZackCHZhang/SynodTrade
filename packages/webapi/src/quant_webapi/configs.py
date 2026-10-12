@@ -284,7 +284,11 @@ class ConfigFiles:
                 data = self.load_data("agents", agent)
                 if isinstance(data, dict) and data.get("prompt_template") == f"prompts/{name}.j2":
                     users.append(f"agents/{agent}")
-        elif kind_name == "pipelines":
+        if kind_name == "accounts":
+            data = self.load_data("account_sync", "account_sync")
+            if isinstance(data, dict) and name in (data.get("accounts") or []):
+                users.append("account_sync")
+        if kind_name == "pipelines":
             data = self.load_data("schedules", "schedules")
             if isinstance(data, dict):
                 for i, job in enumerate(data.get("jobs") or []):
@@ -329,6 +333,8 @@ class ConfigFiles:
             self._validate_providers(data, diag)
         elif kind.name == "schedules":
             self._validate_schedules(data, diag)
+        elif kind.name == "account_sync":
+            self._validate_account_sync(data, diag)
         else:
             _check(KIND_MODELS[kind.name], data, diag, [])
         return diag
@@ -495,6 +501,15 @@ class ConfigFiles:
         for i, job in enumerate(data.get("jobs") or []):
             if isinstance(job, dict) and job.get("pipeline") not in pipelines:
                 diag.error(f"流水线 {job.get('pipeline')!r} 不存在", ["jobs", i, "pipeline"])
+
+    def _validate_account_sync(self, data: dict[str, Any], diag: Diagnostics) -> None:
+        config = _check(KIND_MODELS["account_sync"], data, diag, [])
+        if config is None:
+            return
+        accounts = set(self.names(KINDS["accounts"]))
+        for i, name in enumerate(config.accounts):
+            if name not in accounts:
+                diag.error(f"账户 {name!r} 不存在（configs/accounts/）", ["accounts", i])
 
     # ------------------------------------------------------------ write
 

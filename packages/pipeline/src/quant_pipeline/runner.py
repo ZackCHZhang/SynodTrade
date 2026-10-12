@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
+from quant_account_sync import AccountSyncService
 from quant_core.config import (
     AccountConfig,
     ConfigError,
@@ -28,7 +29,7 @@ from quant_core.registry import STAGES
 from quant_core.safety import ensure_mode_allowed
 from quant_core.services import Services
 from quant_core.timeutil import utcnow
-from quant_database import Database, PipelineRun, Repositories, RunStatus
+from quant_database import Database, PipelineRun, Repositories, RunStatus, SyncStatus
 from quant_market_data import (
     DataUpdater,
     FakeFundamentalsRefresher,
@@ -49,6 +50,9 @@ from quant_pipeline.offline import (
 from quant_trading import Broker, create_broker
 
 log = get_logger(__name__)
+
+# Shown as the first step of a run (not a configurable stage): see `_sync_account`.
+ACCOUNT_SYNC = "account_sync"
 
 # Short names accepted by `--stages`.
 STAGE_ALIASES = {
@@ -253,6 +257,60 @@ class PipelineRunner:
                     "pipeline.prepare_failed", stage=cfg.type, error=f"{type(exc).__name__}: {exc}"
                 )
 
+    def _account_sync(self, mode: RunMode, options: RunOptions) -> AccountSyncService | None:
+        """The account synchronisation to run first, if any: only live (no `as_of`) paper or
+        live runs touch a real account; dry runs, offline runs and replays do not."""
+        if options.offline or options.as_of is not None or mode is RunMode.DRY_RUN:
+            return None
+        service = self._overrides.get("account_sync")
+        if service is None:
+            service = AccountSyncService(self.store, self.repos)
+        assert isinstance(service, AccountSyncService)
+        return service if service.config().before_pipeline else None
+
+    @staticmethod
+    async def _sync_account(
+        service: AccountSyncService,
+        pipeline: PipelineConfig,
+        ctx: PipelineContext,
+        timings: dict[str, dict[str, Any]],
+    ) -> None:
+        """Step 1 of a run, shown like a stage. A failure is logged and tolerated unless
+        `required_before_pipeline` (trading still reconciles its own orders first)."""
+        log.info("pipeline.stage_start", stage=ACCOUNT_SYNC, index=0, total=1)
+        t0 = time.perf_counter()
+        required = False
+        try:
+            required = service.config().required_before_pipeline
+            sync = await service.sync_pipeline(pipeline, run_id=ctx.run_id)
+            problem = sync.error if sync.status is SyncStatus.FAILED else None
+            info: dict[str, Any] = {
+                "sync_status": sync.status.value,
+                "account": sync.account_id,
+                "orders_updated": sync.orders_updated,
+                "fills_added": sync.fills_added,
+            }
+        except Exception as exc:
+            problem = f"{type(exc).__name__}: {exc}"
+            info = {}
+        if problem is not None:
+            ctx.errors.append(
+                StageError(
+                    stage=ACCOUNT_SYNC,
+                    error_type="AccountSyncFailed",
+                    message=problem,
+                    skipped=not required,
+                )
+            )
+            log.warning("pipeline.account_sync_failed", error=problem, required=required)
+        status = "ok" if problem is None else "failed" if required else "failed_skipped"
+        timings[ACCOUNT_SYNC] = {
+            "status": status,
+            "seconds": round(time.perf_counter() - t0, 3),
+            **info,
+        }
+        log.info("pipeline.stage_done", stage=ACCOUNT_SYNC, index=0, **timings[ACCOUNT_SYNC])
+
     async def _check_not_running(self, pipeline: str, now: datetime, max_minutes: int) -> None:
         for run in await self.repos.runs.running_runs(pipeline):
             if now - run.started_at < timedelta(minutes=max_minutes):
@@ -293,40 +351,29 @@ class PipelineRunner:
         started = utcnow()
         as_of = options.as_of or started
         await self._check_not_running(pipeline.name, started, options.max_run_minutes)
+        account_sync = self._account_sync(mode, options)
 
         run_id = uuid4()
         digest, snapshot = self._config_snapshot(pipeline)
+        stages_run = [s.type for s in stage_configs]
+        if account_sync is not None:
+            stages_run.insert(0, ACCOUNT_SYNC)
         await self.repos.runs.start_run(
             PipelineRun(
                 run_id=run_id,
                 pipeline_name=pipeline.name,
                 mode=mode,
                 config_hash=digest,
-                config={
-                    **snapshot,
-                    "stages_run": [s.type for s in stage_configs],
-                    "offline": offline,
-                },
+                config={**snapshot, "stages_run": stages_run, "offline": offline},
                 as_of=as_of,
                 started_at=started,
             )
         )
-        # Held symbols always stay in the universe, so a position the config no longer lists
-        # still gets data, decisions and (if decided) a sell; so do watchlist entries (e.g.
-        # added by hand in the web console). A selection stage re-applies both.
-        ledger = await self.repos.ledger.get_state(
-            pipeline.name, pipeline.budget.max_capital, as_of=as_of
-        )
-        watched = [e.symbol for e in await self.repos.watchlist.get_active(pipeline.name, as_of)]
-        held = [
-            s for s in dict.fromkeys([*watched, *sorted(ledger.positions)])
-            if s not in pipeline.universe
-        ]  # fmt: skip
         ctx = PipelineContext(
             run_id=run_id,
             pipeline_name=pipeline.name,
             mode=mode,
-            universe=[*pipeline.universe, *held],
+            universe=list(pipeline.universe),
             as_of=as_of,
             started_at=started,
             live=options.as_of is None,
@@ -338,26 +385,50 @@ class PipelineRunner:
             log.info(
                 "pipeline.start",
                 mode=mode.value,
-                stages=[s.type for s in stage_configs],
+                stages=stages_run,
                 as_of=as_of.isoformat(),
-                added_to_universe=held,
             )
-            try:
-                services = self._services(pipeline, stage_configs, mode, options, as_of, held)
-                built = [(cfg, STAGES.get(cfg.type)(cfg, services)) for cfg in stage_configs]
-                stages = [stage for _, stage in built]
-            except Exception as exc:  # configuration / credentials: nothing ran
-                ctx.errors.append(
-                    StageError(
-                        stage="setup",
-                        error_type=type(exc).__name__,
-                        message=str(exc),
-                        skipped=False,
-                    )
-                )
-                built = []
             finished = False
             try:
+                # First of all: bring orders, fills and positions up to date with the broker,
+                # so the ledger read below (and by every stage) is the real one.
+                if account_sync is not None:
+                    await self._sync_account(account_sync, pipeline, ctx, timings)
+                # Held symbols always stay in the universe, so a position the config no longer
+                # lists still gets data, decisions and (if decided) a sell; so do watchlist
+                # entries (e.g. added by hand in the web console). Selection re-applies both.
+                ledger = await self.repos.ledger.get_state(
+                    pipeline.name, pipeline.budget.max_capital, as_of=as_of
+                )
+                watched = [
+                    e.symbol for e in await self.repos.watchlist.get_active(pipeline.name, as_of)
+                ]
+                held = [
+                    s for s in dict.fromkeys([*watched, *sorted(ledger.positions)])
+                    if s not in pipeline.universe
+                ]  # fmt: skip
+                ctx.universe = [*pipeline.universe, *held]
+                log.info("pipeline.universe", added_to_universe=held)
+                built: list[tuple[StageConfig, Stage]] = []
+                if not ctx.aborted:
+                    try:
+                        services = self._services(
+                            pipeline, stage_configs, mode, options, as_of, held
+                        )
+                        built = [
+                            (cfg, STAGES.get(cfg.type)(cfg, services)) for cfg in stage_configs
+                        ]
+                        stages = [stage for _, stage in built]
+                    except Exception as exc:  # configuration / credentials: nothing ran
+                        ctx.errors.append(
+                            StageError(
+                                stage="setup",
+                                error_type=type(exc).__name__,
+                                message=str(exc),
+                                skipped=False,
+                            )
+                        )
+                        built = []
                 await self._prepare(built, ctx)
                 total = len(built)
                 for index, (cfg, stage) in enumerate(built):

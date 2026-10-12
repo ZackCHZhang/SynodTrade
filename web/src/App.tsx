@@ -37,6 +37,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import SyncIcon from '@mui/icons-material/Sync';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import {
@@ -48,6 +49,7 @@ import {
   useRouteError,
 } from 'react-router-dom';
 import { api } from './api/client';
+import { AccountSyncPage } from './pages/AccountSyncPage';
 import { ConfigEditPage, ConfigListPage } from './pages/ConfigsPage';
 import { Dashboard } from './pages/Dashboard';
 import { DataPage } from './pages/DataPage';
@@ -66,6 +68,7 @@ const NAV: { section?: string; items: { to: string; label: string; icon: React.R
       { to: '/', label: '总览', icon: <DashboardIcon /> },
       { to: '/runs', label: '运行记录', icon: <PlaylistPlayIcon /> },
       { to: '/scheduler', label: '调度器', icon: <ScheduleIcon /> },
+      { to: '/account-sync', label: '账户同步', icon: <SyncIcon /> },
     ],
   },
   {
@@ -78,6 +81,7 @@ const NAV: { section?: string; items: { to: string; label: string; icon: React.R
       { to: '/configs/accounts', label: '账户', icon: <AccountBalanceIcon /> },
       { to: '/configs/llm_providers', label: 'LLM 供应商', icon: <CloudIcon /> },
       { to: '/configs/schedules', label: '调度配置', icon: <EventIcon /> },
+      { to: '/configs/account_sync', label: '同步配置', icon: <SyncIcon /> },
     ],
   },
   {
@@ -122,6 +126,25 @@ function Layout() {
   const wide = useMediaQuery(theme.breakpoints.up('md'));
   const overview = useQuery({ queryKey: ['overview'], queryFn: api.overview, refetchInterval: 10_000 });
   const kill = overview.data?.kill_switch.active;
+  const lastSync = overview.data?.account_sync?.latest.reduce<{ status: string; finished_at: string } | null>(
+    (worst, s) => (!worst || s.status !== 'ok' ? s : worst),
+    null,
+  );
+  const syncChip = lastSync && (
+    <Tooltip title={`账户同步：${lastSync.status === 'ok' ? '成功' : lastSync.status === 'partial' ? '部分成功' : '失败'} · ${new Date(lastSync.finished_at).toLocaleString('zh-CN', { hour12: false })}`}>
+      <Chip
+        size="small"
+        variant="outlined"
+        color={lastSync.status === 'ok' ? 'success' : lastSync.status === 'partial' ? 'warning' : 'error'}
+        icon={<SyncIcon />}
+        label={`同步 ${new Date(lastSync.finished_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}`}
+        component={RouterLink}
+        to="/account-sync"
+        clickable
+        sx={{ mr: 1, display: { xs: 'none', sm: 'inline-flex' } }}
+      />
+    </Tooltip>
+  );
   const active = (to: string) => (to === '/' ? location.pathname === '/' : location.pathname.startsWith(to));
 
   const nav = (
@@ -165,6 +188,7 @@ function Layout() {
             </Typography>
             {kill && <Chip color="error" icon={<ReportProblemIcon />} label="熔断已开启" sx={{ mr: 1 }} component={RouterLink} to="/" clickable />}
             {overview.data?.scheduler.running && <Chip size="small" color="success" variant="outlined" icon={<ScheduleIcon />} label="调度中" sx={{ mr: 1 }} />}
+            {syncChip}
             <Tooltip title={mode === 'dark' ? '浅色' : '深色'}>
               <IconButton
                 onClick={() => {
@@ -235,6 +259,7 @@ export const router = createBrowserRouter([
       { path: '/runs', element: <RunsPage /> },
       { path: '/runs/:runId', element: <RunDetailPage /> },
       { path: '/scheduler', element: <SchedulerPage /> },
+      { path: '/account-sync', element: <AccountSyncPage /> },
       { path: '/configs/:kind', element: <ConfigListPage /> },
       { path: '/configs/:kind/:name', element: <ConfigEditPage /> },
       { path: '/portfolio', element: <PortfolioPage /> },

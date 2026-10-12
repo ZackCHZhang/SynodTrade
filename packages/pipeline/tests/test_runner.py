@@ -12,9 +12,15 @@ import pytest
 import yaml
 from sqlalchemy import func, select
 
+from quant_account_sync import (
+    AccountSyncConfig,
+    AccountSyncService,
+    BrokerExecution,
+    BrokerSnapshot,
+)
 from quant_core.config import ConfigError, ConfigStore
 from quant_core.logging import configure_logging
-from quant_core.models import OrderStatus, RunMode
+from quant_core.models import Action, OrderIntent, OrderSide, OrderStatus, OrderType, RunMode
 from quant_core.safety import LiveTradingNotAllowedError
 from quant_database import Database, PipelineRun, Repositories, RunStatus
 from quant_database.models import (
@@ -564,3 +570,153 @@ async def test_watchlist_entries_join_pipelines_without_selection(
     assert report.ok, report.errors
     assert report.summary["universe"] == ["AAPL", "MSFT", "GOOGL", "NVDA", "AMD"]
     assert "AMD" in report.summary["final_decisions"]
+
+
+# ------------------------------------------------------------------ account sync (step 1)
+
+
+class SyncReader:
+    """Broker reader for the account sync: reports `filled` orders as completely executed."""
+
+    account_id = "DU1234567"
+
+    def __init__(self, filled: list[str] | None = None, fail: bool = False) -> None:
+        self.filled = filled or []
+        self.fail = fail
+
+    async def connect(self) -> None:
+        if self.fail:
+            raise ConnectionRefusedError("gateway down")
+
+    async def disconnect(self) -> None:
+        return None
+
+    async def snapshot(self, *, account: bool = True) -> BrokerSnapshot:
+        snap = BrokerSnapshot(account_id=self.account_id, fetched_at=AS_OF)
+        for i, ref in enumerate(self.filled):
+            snap.executions[ref] = [
+                BrokerExecution(
+                    exec_id=f"e{i}",
+                    ref=ref,
+                    symbol="TSLA",
+                    side="buy",
+                    shares=Decimal(5),
+                    price=Decimal(200),
+                    ts=AS_OF,
+                    commission=Decimal(1),
+                )
+            ]
+        return snap
+
+
+def sync_service(
+    store: ConfigStore, db: Database, reader: SyncReader, **config: Any
+) -> AccountSyncService:
+    return AccountSyncService(
+        store,
+        Repositories.create(db),
+        reader_factory=lambda _: reader,
+        config=AccountSyncConfig.model_validate(config),
+    )
+
+
+async def test_live_paper_run_syncs_the_account_first(
+    store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    # an order of an earlier paper run, still "submitted" in the database, filled at IBKR
+    repos = Repositories.create(db)
+    earlier = uuid4()
+    started = datetime.now(UTC) - timedelta(days=1)
+    await repos.runs.start_run(
+        PipelineRun(
+            run_id=earlier,
+            pipeline_name="long_term_stocks",
+            mode=RunMode.PAPER,
+            config_hash="0" * 64,
+            config={},
+            as_of=started,
+            started_at=started,
+        )
+    )
+    await repos.runs.finish_run(earlier, RunStatus.SUCCEEDED)
+    intent = OrderIntent(
+        client_order_id="q-tsla",
+        run_id=earlier,
+        pipeline_name="long_term_stocks",
+        symbol="TSLA",
+        action=Action.BUY,
+        side=OrderSide.BUY,
+        quantity=Decimal(5),
+        order_type=OrderType.LIMIT,
+        limit_price=Decimal(200),
+        estimated_notional=Decimal(1000),
+    )
+    await repos.orders.create(intent, OrderStatus.SUBMITTED, created_at=started)
+
+    overrides = fakes()
+    del overrides["broker"]
+    overrides["account_sync"] = sync_service(store, db, SyncReader(["q-tsla"]))
+    report = await runner(store, db, overrides).run(
+        "long_term_stocks",
+        RunOptions(stages=["sentiment"]),  # live: no as_of
+    )
+    assert report.ok, report.errors
+    assert list(report.summary["stages"]) == ["account_sync", "sentiment"]
+    step = report.summary["stages"]["account_sync"]
+    assert step["status"] == "ok"
+    assert step["orders_updated"] == 1
+    assert "TSLA" in report.summary["universe"]  # the fill was in the ledger before step 2
+    run = await repos.runs.get_run(report.run_id)
+    assert run is not None
+    assert run.config["stages_run"] == ["account_sync", "sentiment"]
+    [sync] = await repos.account_syncs.recent()
+    assert (sync.trigger, sync.run_id) == ("pipeline", report.run_id)
+    filled = await repos.orders.get("q-tsla")
+    assert filled is not None
+    assert filled.status is OrderStatus.FILLED
+
+
+async def test_account_sync_failure_is_tolerated_unless_required(
+    store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    overrides = fakes()
+    del overrides["broker"]
+    overrides["account_sync"] = sync_service(store, db, SyncReader(fail=True))
+    report = await runner(store, db, overrides).run(
+        "long_term_stocks", RunOptions(stages=["sentiment"])
+    )
+    assert report.ok
+    assert report.summary["stages"]["account_sync"]["status"] == "failed_skipped"
+    assert report.errors[0].stage == "account_sync"
+    assert report.errors[0].skipped
+
+    overrides["account_sync"] = sync_service(
+        store, db, SyncReader(fail=True), required_before_pipeline=True
+    )
+    report = await runner(store, db, overrides).run(
+        "long_term_stocks", RunOptions(stages=["sentiment"])
+    )
+    assert report.status is RunStatus.FAILED
+    assert list(report.summary["stages"]) == ["account_sync"]  # nothing else ran
+
+
+async def test_no_account_sync_for_dry_runs_replays_or_when_disabled(
+    store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    overrides = fakes()
+    del overrides["broker"]
+    overrides["account_sync"] = sync_service(store, db, SyncReader(fail=True))
+    for options in (
+        RunOptions(stages=["sentiment"], dry_run=True),
+        RunOptions(stages=["sentiment"], as_of=AS_OF),
+    ):
+        report = await runner(store, db, overrides).run("long_term_stocks", options)
+        assert "account_sync" not in report.summary["stages"]
+    overrides["account_sync"] = sync_service(
+        store, db, SyncReader(fail=True), before_pipeline=False
+    )
+    report = await runner(store, db, overrides).run(
+        "long_term_stocks", RunOptions(stages=["sentiment"])
+    )
+    assert "account_sync" not in report.summary["stages"]
+    assert await Repositories.create(db).account_syncs.recent() == []

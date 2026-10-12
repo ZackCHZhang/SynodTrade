@@ -65,6 +65,31 @@ class AgentInstance(CoreModel):
         )
 
 
+class SyncStatus(StrEnum):
+    OK = "ok"
+    PARTIAL = "partial"  # the broker was read, but some orders or the snapshot failed
+    FAILED = "failed"  # nothing was synchronised (e.g. the gateway is not reachable)
+
+
+class AccountSync(CoreModel):
+    """The outcome of one account synchronisation; `report` holds the details
+    (order changes, late fills, untracked broker orders, position differences)."""
+
+    account_id: str
+    trigger: str
+    started_at: UtcDatetime
+    finished_at: UtcDatetime
+    status: SyncStatus
+    pipeline_name: str | None = None
+    run_id: UUID | None = None
+    orders_checked: int = 0
+    orders_updated: int = 0
+    fills_added: int = 0
+    error: str | None = None
+    report: dict[str, Any] = Field(default_factory=dict)
+    id: int | None = None
+
+
 class OrderRecord(CoreModel):
     id: int
     intent: OrderIntent

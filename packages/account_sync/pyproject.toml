@@ -1,0 +1,30 @@
+[project]
+name = "quant-account-sync"
+version = "0.1.0"
+description = "账户同步：订单成交状态、迟到的成交、账户与持仓快照、账本核对（流水线第一步 + 定时）"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "quant-core",
+    "quant-database",
+    "quant-market-data",
+    "quant-trading",
+    "ib_async>=2.0",
+    "typer>=0.12",
+]
+
+[project.scripts]
+quant-sync = "quant_account_sync.cli:app"
+
+[tool.poetry]
+packages = [{ include = "quant_account_sync", from = "src" }]
+
+[tool.poetry.dependencies]
+quant-core = { path = "../core", develop = true }
+quant-database = { path = "../database", develop = true }
+quant-market-data = { path = "../market_data", develop = true }
+quant-trading = { path = "../trading", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
