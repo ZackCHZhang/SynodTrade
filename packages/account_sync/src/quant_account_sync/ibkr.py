@@ -1,5 +1,6 @@
 """Reads an IBKR account through `ib_async`: open and completed orders, executions, the
-account summary and positions. Never places, modifies or cancels anything.
+account summary and positions (with their market prices). Never places, modifies or
+cancels anything.
 
 It uses its own API connection (account client_id + 4; market data +0, trading +1, news +2,
 scanner +3), so a background synchronisation can run while a pipeline is running.
@@ -18,6 +19,7 @@ from ib_async import Fill as IBFill
 from quant_account_sync.snapshot import BrokerExecution, BrokerOrder, BrokerSnapshot
 from quant_core.config import AccountConfig
 from quant_core.logging import get_logger
+from quant_core.models import Position
 from quant_core.timeutil import utcnow
 from quant_market_data import IBKRMarketDataProvider
 from quant_trading.ibkr import to_status
@@ -189,11 +191,36 @@ class IBKRAccountReader:
                     base_currency=self.base_currency,
                     ib=self._ib,
                 ).fetch_account(self.account_id)
-                snap.account, snap.positions = data.account, list(data.positions)
+                snap.account = data.account
+                snap.positions = await self._with_market_prices(list(data.positions))
             except Exception as exc:
                 snap.account_error = f"{type(exc).__name__}: {exc}"
                 log.warning("account_sync.account_failed", error=snap.account_error)
         return snap
+
+    async def _with_market_prices(self, positions: list[Position]) -> list[Position]:
+        """Positions with IBKR's current market price (from the account updates, which need
+        no market data subscription). Prices that cannot be read are left unset."""
+        try:
+            await asyncio.wait_for(
+                self._ib.reqAccountUpdatesAsync(self.account_id), self.connect_timeout_s
+            )
+            items = self._ib.portfolio(self.account_id)
+        except Exception as exc:
+            log.warning("account_sync.prices_failed", error=f"{type(exc).__name__}: {exc}")
+            return positions
+        prices: dict[str, Decimal] = {}
+        for item in items:
+            contract = item.contract
+            if contract.secType != "STK" or contract.currency != self.base_currency:
+                continue
+            price = _dec(item.marketPrice)
+            if price > 0:
+                prices[contract.symbol] = price
+        return [
+            p.model_copy(update={"market_price": prices[p.symbol]}) if p.symbol in prices else p
+            for p in positions
+        ]
 
 
 def _dedupe(fills: Iterable[IBFill]) -> list[IBFill]:

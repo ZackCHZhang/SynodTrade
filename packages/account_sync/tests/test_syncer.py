@@ -509,3 +509,17 @@ async def test_periodic_sync_schedule(
     assert periodic.next_due() is None  # settings are re-read: disabled at once
     [manual] = await periodic.run_once(trigger="manual")
     assert manual.trigger == "manual"
+
+
+async def test_market_prices_are_stored_as_quotes(repos: Repositories, sync: Sync) -> None:
+    snap = snapshot(positions={"AAPL": "8", "MSFT": "5"})
+    snap.positions = [
+        p.model_copy(update={"market_price": D("231.5")}) if p.symbol == "AAPL" else p
+        for p in snap.positions
+    ]
+    await sync(snap, snapshot=False)  # prices are kept even without the account snapshot
+
+    quote = await repos.quotes.get_latest_quote("AAPL")
+    assert quote is not None
+    assert (quote.last, quote.ts) == (D("231.5"), NOW)
+    assert await repos.quotes.get_latest_quote("MSFT") is None  # no price: nothing stored

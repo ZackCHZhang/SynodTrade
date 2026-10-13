@@ -5,7 +5,8 @@
    open, not completed, no executions) is closed as cancelled once it has not changed for
    `gone_after_minutes`; one with executions but no longer open is closed with what filled.
 2. Orders closed in the last `recheck_days` are checked again for fills reported late.
-3. The account summary and positions are saved as a snapshot.
+3. The account summary and positions are saved as a snapshot, and the held symbols'
+   market prices as quotes (so valuations follow the market between pipeline runs).
 4. Differences are reported: broker positions vs the sum of the pipelines' ledgers, and
    open broker orders the database does not know (placed by hand, or by another database).
 
@@ -25,7 +26,7 @@ from quant_account_sync.config import AccountSyncConfig
 from quant_account_sync.snapshot import BrokerReader, BrokerSnapshot
 from quant_core.config import AccountConfig, PipelineConfig
 from quant_core.logging import get_logger
-from quant_core.models import OrderResult, OrderStatus
+from quant_core.models import OrderResult, OrderStatus, Quote
 from quant_core.timeutil import utcnow
 from quant_database import AccountSync, OrderRecord, Repositories, SyncStatus
 
@@ -355,6 +356,17 @@ class AccountSyncer:
                 for p in snap.positions
             ],
         }
+        # the held symbols' current prices, so valuations (the ledgers' NAV and market
+        # values) follow the market between pipeline runs
+        quotes = [
+            Quote(symbol=p.symbol, ts=account.ts, last=p.market_price)
+            for p in snap.positions
+            if p.market_price is not None
+        ]
+        try:
+            await self._repos.quotes.add(quotes)
+        except Exception as exc:
+            report.errors.append(f"prices: {type(exc).__name__}: {exc}")
         if not self.config.snapshot:
             return
         try:

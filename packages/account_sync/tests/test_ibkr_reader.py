@@ -11,6 +11,7 @@ from ib_async import (
     ExecutionFilter,
     LimitOrder,
     Order,
+    PortfolioItem,
     Stock,
     Trade,
     TradeLogEntry,
@@ -21,7 +22,7 @@ from ib_async import OrderStatus as IBOrderStatus
 from quant_account_sync import CLIENT_ID_OFFSET, AccountSyncError, IBKRAccountReader
 from quant_account_sync.ibkr import order_from_trade
 from quant_core.config import AccountConfig
-from quant_core.models import OrderStatus
+from quant_core.models import OrderStatus, Position
 
 D = Decimal
 T = datetime(2026, 10, 12, 14, 0, tzinfo=UTC)
@@ -64,6 +65,8 @@ class StubIB:
         self.fills: list[IBFill] = []
         self.placed: list[Any] = []
         self.exec_filter: ExecutionFilter | None = None
+        self.portfolio_items: list[PortfolioItem] = []
+        self.updates_error: Exception | None = None
 
     def isConnected(self) -> bool:  # noqa: N802 - mirrors ib_async
         return self.connected
@@ -88,6 +91,14 @@ class StubIB:
     async def reqExecutionsAsync(self, execFilter: ExecutionFilter | None = None) -> list[IBFill]:  # noqa: N802, N803
         self.exec_filter = execFilter
         return self.fills
+
+    async def reqAccountUpdatesAsync(self, account: str) -> None:  # noqa: N802
+        assert account == ACCOUNT
+        if self.updates_error is not None:
+            raise self.updates_error
+
+    def portfolio(self, account: str = "") -> list[PortfolioItem]:
+        return [i for i in self.portfolio_items if i.account == account]
 
     def placeOrder(self, *args: Any) -> None:  # noqa: N802 - must never be called
         self.placed.append(args)
@@ -180,3 +191,36 @@ async def test_account_summary_failure_is_reported_not_raised() -> None:
     snap = await r.snapshot(account=True)  # the stub has no account summary
     assert snap.account is None
     assert snap.account_error is not None
+
+
+def item(contract: Stock, price: float) -> PortfolioItem:
+    return PortfolioItem(contract, 5.0, price, price * 5, 100.0, 0.0, 0.0, ACCOUNT)
+
+
+def position(symbol: str) -> Position:
+    return Position(account_id=ACCOUNT, symbol=symbol, qty=D(5), avg_cost=D(100), ts=T)
+
+
+async def test_positions_get_ibkrs_market_price() -> None:
+    ib = StubIB()
+    ib.portfolio_items = [
+        item(Stock("AAPL", currency="USD"), 231.5),
+        item(Stock("SAP", currency="EUR"), 180.0),  # not the trading currency
+        item(Stock("MSFT", currency="USD"), 1.7976931348623157e308),  # unset
+    ]
+    positions = await reader(ib)._with_market_prices(
+        [position("AAPL"), position("SAP"), position("MSFT"), position("V")]
+    )
+    assert {p.symbol: p.market_price for p in positions} == {
+        "AAPL": D("231.5"),
+        "SAP": None,
+        "MSFT": None,
+        "V": None,
+    }
+
+
+async def test_market_price_failure_keeps_the_positions() -> None:
+    ib = StubIB()
+    ib.updates_error = TimeoutError()
+    positions = [position("AAPL")]
+    assert await reader(ib)._with_market_prices(positions) == positions
