@@ -69,6 +69,7 @@ export interface Meta {
     llm_model: JsonSchema;
     schedules: JsonSchema;
     job: JsonSchema;
+    account_sync: JsonSchema;
     stages: Record<string, JsonSchema>;
     candidate_sources: Record<string, JsonSchema>;
     sentiment_sources: Record<string, JsonSchema>;
@@ -241,6 +242,7 @@ export interface Overview {
   recent_runs: RunLight[];
   scheduler: SchedulerStatus;
   jobs: Job[];
+  account_sync: AccountSyncLoop & { latest: AccountSyncRecord[] };
 }
 
 export interface Times {
@@ -260,6 +262,96 @@ export interface SchedulePlan {
   timezone: string;
   days: number;
   jobs: { id: string; config: any; trigger: string; upcoming: Times[] }[];
+}
+
+export interface AccountSyncConfig {
+  enabled: boolean;
+  interval_minutes: number;
+  before_pipeline: boolean;
+  required_before_pipeline: boolean;
+  gone_after_minutes: number;
+  recheck_days: number;
+  snapshot: boolean;
+  accounts: string[];
+}
+
+export interface OrderChange {
+  client_order_id: string;
+  pipeline: string;
+  run_id: string;
+  symbol: string;
+  side: string;
+  quantity: number;
+  from_status: string;
+  to_status: string;
+  filled_qty: number;
+  avg_fill_price: number | null;
+  new_fills: number;
+  message: string | null;
+}
+
+export interface AccountSyncReport {
+  account_names?: string[];
+  pipelines?: string[];
+  orders?: OrderChange[];
+  late_fills?: OrderChange[];
+  waiting?: { client_order_id: string; pipeline: string; symbol: string; status: string; since: string }[];
+  skipped_running?: string[];
+  untracked_open_orders?: {
+    ref: string | null;
+    symbol: string;
+    side: string;
+    quantity: number;
+    filled: number;
+    limit_price: number | null;
+    status: string;
+    perm_id: number | null;
+  }[];
+  positions?: { symbol: string; broker_qty: number; ledger_qty: number; pipelines: Record<string, number>; state: 'ok' | 'broker_more' | 'broker_less' }[];
+  account?: {
+    ts: string;
+    currency: string;
+    nav: number;
+    cash: number;
+    buying_power: number;
+    available_funds: number | null;
+    positions: { symbol: string; qty: number; avg_cost: number; market_price: number | null }[];
+  } | null;
+  warnings?: string[];
+  errors?: string[];
+}
+
+export interface AccountSyncRecord {
+  id: number;
+  account_id: string;
+  trigger: 'pipeline' | 'auto' | 'manual' | 'cli' | string;
+  pipeline_name: string | null;
+  run_id: string | null;
+  started_at: string;
+  finished_at: string;
+  status: 'ok' | 'partial' | 'failed';
+  orders_checked: number;
+  orders_updated: number;
+  fills_added: number;
+  error: string | null;
+  report?: AccountSyncReport;
+}
+
+export interface AccountSyncLoop {
+  running: boolean;
+  syncing: boolean;
+  last_started: string | null;
+  last_finished: string | null;
+  last_error: string | null;
+  next_due: string | null;
+  config: AccountSyncConfig | null;
+  config_error: string | null;
+}
+
+export interface AccountSyncStatus extends AccountSyncLoop {
+  accounts: { account_id: string; account_names: string[]; pipelines: string[] }[];
+  latest: AccountSyncRecord[];
+  history: AccountSyncRecord[];
 }
 
 export interface Bar {
@@ -351,6 +443,9 @@ export const api = {
   killSwitch: () => http.get<{ active: boolean; reason: string | null }>('/api/system/kill-switch'),
   setKillSwitch: (active: boolean, reason: string | null) =>
     http.put<{ active: boolean; reason: string | null }>('/api/system/kill-switch', { active, reason }),
+
+  accountSync: (history = 50) => http.get<AccountSyncStatus>(`/api/account-sync?history=${history}`),
+  accountSyncRun: () => http.post<AccountSyncRecord[]>('/api/account-sync/run'),
 
   schedulerPlan: (days: number) => http.get<SchedulePlan>(`/api/scheduler/plan?days=${days}`),
   schedulerStatus: () => http.get<SchedulerStatus>('/api/scheduler/status'),

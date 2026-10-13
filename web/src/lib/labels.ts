@@ -185,6 +185,7 @@ export function help(key: string | number): string | undefined {
 }
 
 export const STAGE_INFO: Record<string, { label: string; color: string; desc: string }> = {
+  account_sync: { label: '账户同步', color: '#546e7a', desc: '运行前先从 IBKR 同步订单成交、持仓和账户状态' },
   selection: { label: '选股', color: '#8e24aa', desc: '候选池 + 扫描器 → 量化初筛 → 选股 agent → 聚合' },
   data_update: { label: '行情更新', color: '#1e88e5', desc: 'IBKR 历史 K 线、报价快照、账户与持仓快照' },
   sentiment: { label: '舆情', color: '#00897b', desc: 'Reddit / Stocktwits / IBKR 新闻 → 舆情 agent' },

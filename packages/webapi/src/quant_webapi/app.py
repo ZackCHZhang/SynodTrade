@@ -15,11 +15,13 @@ from uuid import UUID
 from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.exc import SQLAlchemyError
 
 from quant_core.config import ConfigError
-from quant_core.logging import configure_logging
+from quant_core.logging import configure_logging, get_logger
 from quant_core.timeutil import utcnow
 from quant_database import KILL_SWITCH, Database
+from quant_webapi.account_sync import AccountSyncController
 from quant_webapi.catalog import catalog
 from quant_webapi.configs import (
     ConfigFiles,
@@ -31,6 +33,8 @@ from quant_webapi.data import DataService, jsonable
 from quant_webapi.events import EventHub
 from quant_webapi.jobs import JobManager, RunRequest
 from quant_webapi.scheduling import SchedulerController
+
+log = get_logger(__name__)
 
 # Environment variables whose presence (never value) the UI may show.
 WATCHED_ENV = (
@@ -60,6 +64,8 @@ class WebSettings:
     log_level: str = "INFO"
     configure_logs: bool = True
     overrides: Mapping[str, Any] = field(default_factory=dict)  # pipeline service overrides
+    # Synchronise the IBKR accounts periodically in this process (configs/account_sync.yaml).
+    account_sync_loop: bool = False
 
 
 class WebState:
@@ -78,12 +84,19 @@ class WebState:
             if self.offline_db is not None
             else None
         )
+        self.account_sync = AccountSyncController(
+            settings.configs,
+            self.db,
+            env=settings.env,
+            service=settings.overrides.get("account_sync"),
+        )
         self.jobs = JobManager(
             settings.configs,
             self.db,
             self.hub,
             env=settings.env,
-            overrides=settings.overrides or None,
+            # runs share the loop's service: one account is never synchronised twice at once
+            overrides={"account_sync": self.account_sync.service, **settings.overrides},
             offline_db=self.offline_db,
         )
         self.scheduler = SchedulerController(settings.configs, self.db, env=settings.env)
@@ -394,6 +407,15 @@ async def overview(request: Request) -> dict[str, Any]:
     web = state(request)
     result = await web.data.overview()
     result["scheduler"] = web.scheduler.status()
+    try:
+        latest = [
+            s.model_dump(mode="json", exclude={"report"})
+            for s in await web.account_sync.service.repos.account_syncs.latest()
+        ]
+    except SQLAlchemyError as exc:  # e.g. a database not migrated yet: keep the overview up
+        log.warning("web.account_sync_unavailable", error=str(exc).splitlines()[0])
+        latest = []
+    result["account_sync"] = {**web.account_sync.loop_status(), "latest": latest}
     result["jobs"] = [j.as_dict() for j in web.jobs.active()]
     return result
 
@@ -418,6 +440,21 @@ async def set_kill_switch(request: Request, body: KillSwitchBody) -> dict[str, A
         "active": await flags.kill_switch_active(),
         "reason": await flags.get_reason(KILL_SWITCH),
     }
+
+
+# ---- account synchronisation
+
+
+@api.get("/account-sync")
+async def account_sync_status(
+    request: Request, history: Annotated[int, Query(ge=0, le=500)] = 30
+) -> dict[str, Any]:
+    return await state(request).account_sync.status(history)
+
+
+@api.post("/account-sync/run")
+async def account_sync_run(request: Request) -> list[dict[str, Any]]:
+    return await state(request).account_sync.run_now()
 
 
 # ---- scheduler
@@ -470,9 +507,12 @@ def create_app(settings: WebSettings) -> FastAPI:
             await web.db.create_all()
         if web.offline_db is not None:
             await web.offline_db.create_all()  # a local sandbox file
+        if settings.account_sync_loop:
+            web.account_sync.start()
         try:
             yield
         finally:
+            await web.account_sync.stop()
             web.scheduler.stop()
             await web.jobs.shutdown()
             web.hub.uninstall()
