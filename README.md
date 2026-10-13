@@ -25,7 +25,7 @@ tasks.py      跨平台任务入口（Makefile 只是它的封装）
 包依赖（由 import-linter 在 `lint` 中强制检查）：
 
 ```
-core ← database ← {market_data, selection, sentiment, decision, risk, trading} ← pipeline ← scheduler ← webapi
+core ← database ← {market_data, selection, sentiment, decision, risk, trading} ← account_sync ← pipeline ← scheduler ← webapi
 ```
 
 中间层的业务包之间禁止互相 import；需要跨包协作时，在 `quant_core.interfaces` 里定义协议（例如 `BarsRefresher`、`CandidateSource`），由 pipeline 注入实现。
@@ -40,6 +40,7 @@ core ← database ← {market_data, selection, sentiment, decision, risk, tradin
 | `configs/accounts/` | `ibkr_main`、`ibkr_etf`（不同的 client id，两条流水线可以同时运行） |
 | `configs/llm_providers.yaml` | `anthropic`、`deepseek` |
 | `configs/schedules.yaml` | 调度：`long_term_stocks` 每个交易日开盘后 30 分钟；`etf_allocation` 每周一 11:00（纽约） |
+| `configs/account_sync.yaml` | 账户同步：每次 paper/live 运行前先从 IBKR 同步订单成交与持仓，Web 控制台每 20 分钟自动同步（见 `packages/account_sync/README.md`） |
 
 ### 快速开始
 
@@ -53,7 +54,8 @@ poetry run quant run -p long_term_stocks --offline         # 无需网关、API 
 1. 在 `.env` 中填写 IBKR 账户、LLM 的 API key 和数据库地址（模板见 `.env.example`）。命令行默认读取当前目录的 `.env`（`--env-file` 可改，`QUANT_NO_DOTENV=1` 可关闭）。
 2. 启动 Postgres 和 IB Gateway，执行 `poetry run quant-db upgrade` 建表。
 3. 先用 `quant run -p long_term_stocks --dry-run` 检查结果，确认无误后按配置中的 `mode` 运行（自带的三条流水线都是 `mode: paper`）。
-4. 定时运行：用 `quant-scheduler plan` 查看排程，再用 `quant-scheduler run` 启动；也可以用 `docker compose up -d` 一次性启动 postgres、ib-gateway 和 scheduler（见 `packages/scheduler/README.md`）。
+4. 订单是否成交由账户同步负责：流水线第 1 步自动同步；Web 控制台运行时每 20 分钟同步一次（"账户同步"页面可改）；也可以手动 `quant-sync once`。
+5. 定时运行：用 `quant-scheduler plan` 查看排程，再用 `quant-scheduler run` 启动；也可以用 `docker compose up -d` 一次性启动 postgres、ib-gateway 和 scheduler（见 `packages/scheduler/README.md`）。
 
 各包的详细说明见 `packages/*/README.md`。
 
@@ -123,7 +125,7 @@ tasks.py      cross-platform task runner (the Makefile only wraps it)
 Package dependencies (enforced by import-linter during `lint`):
 
 ```
-core ← database ← {market_data, selection, sentiment, decision, risk, trading} ← pipeline ← scheduler ← webapi
+core ← database ← {market_data, selection, sentiment, decision, risk, trading} ← account_sync ← pipeline ← scheduler ← webapi
 ```
 
 Business packages in the middle layer must not import each other. When they need to cooperate, a protocol is defined in `quant_core.interfaces` (e.g. `BarsRefresher`, `CandidateSource`) and the pipeline injects the implementation.

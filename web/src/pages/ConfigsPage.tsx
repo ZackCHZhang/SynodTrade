@@ -28,7 +28,7 @@ import { AgentAvatar } from '../components/AgentAvatar';
 import { RunDialog } from '../components/RunDialog';
 import { PageHeader } from '../components/common';
 import { AgentForm } from '../editors/AgentForm';
-import { AccountForm, ProvidersForm, RiskForm, SchedulesForm } from '../editors/OtherForms';
+import { AccountForm, AccountSyncForm, ProvidersForm, RiskForm, SchedulesForm } from '../editors/OtherForms';
 import { PipelineForm } from '../editors/PipelineForm';
 import { fmtTime } from '../lib/format';
 import { ROLE_LABEL, STAGE_INFO, stageLabel } from '../lib/labels';
@@ -41,6 +41,7 @@ const FORMS: Record<string, React.ComponentType<any>> = {
   risk: RiskForm,
   llm_providers: ProvidersForm,
   schedules: SchedulesForm,
+  account_sync: AccountSyncForm,
 };
 
 const DESCRIPTIONS: Record<string, string> = {

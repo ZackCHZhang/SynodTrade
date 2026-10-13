@@ -44,12 +44,12 @@ class RunRepository(Repository):
             row = await s.get(PipelineRunRow, run_id)
         return None if row is None else PipelineRun.model_validate(row_dict(row))
 
-    async def running_runs(self, pipeline_name: str) -> list[PipelineRun]:
-        """Runs of this pipeline not yet finished (used to prevent overlapping runs)."""
-        stmt = select(PipelineRunRow).where(
-            PipelineRunRow.pipeline_name == pipeline_name,
-            PipelineRunRow.status == RunStatus.RUNNING.value,
-        )
+    async def running_runs(self, pipeline_name: str | None = None) -> list[PipelineRun]:
+        """Runs of this pipeline (None: of any pipeline) not yet finished (used to prevent
+        overlapping runs, and by account sync to leave orders of running runs alone)."""
+        stmt = select(PipelineRunRow).where(PipelineRunRow.status == RunStatus.RUNNING.value)
+        if pipeline_name is not None:
+            stmt = stmt.where(PipelineRunRow.pipeline_name == pipeline_name)
         async with self._db.transaction() as s:
             rows = (await s.execute(stmt)).scalars().all()
         return [PipelineRun.model_validate(row_dict(r)) for r in rows]

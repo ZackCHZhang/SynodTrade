@@ -11,6 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from quant_account_sync import AccountSyncConfig
 from quant_core.config import (
     CANONICAL_STAGE_ORDER,
     STAGE_AGENT_ROLE,
@@ -78,6 +79,7 @@ KINDS: dict[str, ConfigKind] = {
         ConfigKind("risk", "风控规则", folder="risk", key="name"),
         ConfigKind("llm_providers", "LLM 供应商", file="llm_providers.yaml"),
         ConfigKind("schedules", "调度", file="schedules.yaml"),
+        ConfigKind("account_sync", "账户同步", file="account_sync.yaml"),
     )
 }
 
@@ -88,6 +90,7 @@ KIND_MODELS: dict[str, type[BaseModel]] = {
     "accounts": AccountConfig,
     "risk": RiskRulesConfig,
     "schedules": SchedulesConfig,
+    "account_sync": AccountSyncConfig,
 }
 
 # Stage options, validated from the stage's full mapping (common keys + its own keys).
@@ -151,6 +154,7 @@ def catalog() -> dict[str, Any]:
             "llm_model": _schema(LLMModelOverride),
             "schedules": _schema(SchedulesConfig),
             "job": _schema(JobConfig),
+            "account_sync": _schema(AccountSyncConfig),
             "stages": {name: _schema(model) for name, model in STAGE_OPTIONS.items()},
             "candidate_sources": {
                 name: _schema(model) for name, model in CANDIDATE_SOURCE_OPTIONS.items()

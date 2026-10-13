@@ -130,7 +130,7 @@ export function PortfolioPage() {
   ];
   return (
     <Box>
-      <PageHeader title="持仓与账户" subtitle="每条流水线的虚拟子账本由它自己的成交推导；IBKR 账户快照来自 data_update 阶段" />
+      <PageHeader title="持仓与账户" subtitle={<>每条流水线的虚拟子账本由它自己的成交推导；订单成交和 IBKR 账户快照由 <RouterLink to="/account-sync">账户同步</RouterLink>（运行前 + 定时）和 data_update 阶段更新</>} />
       <Grid container spacing={2} sx={{ mb: 2 }}>
         {(d?.pipelines ?? []).map((p) => (
           <Grid key={p.name} size={{ xs: 12, lg: 6, xl: 4 }}>

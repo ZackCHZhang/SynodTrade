@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from quant_database.engine import Database
+from quant_database.repositories.account_sync import AccountSyncRepository
 from quant_database.repositories.analysis import (
     DecisionRepository,
     RiskRepository,
@@ -44,6 +45,7 @@ class Repositories:
     orders: OrderRepository
     ledger: LedgerRepository
     flags: FlagRepository
+    account_syncs: AccountSyncRepository
 
     @classmethod
     def create(cls, db: Database) -> Repositories:
@@ -63,6 +65,7 @@ class Repositories:
             orders=OrderRepository(db),
             ledger=LedgerRepository(db),
             flags=FlagRepository(db),
+            account_syncs=AccountSyncRepository(db),
         )
 
 
@@ -70,6 +73,7 @@ __all__ = [
     "KILL_SWITCH",
     "TIMEFRAME_DURATION",
     "AccountRepository",
+    "AccountSyncRepository",
     "BarRepository",
     "DecisionRepository",
     "FlagRepository",

@@ -2,14 +2,20 @@ import asyncio
 import time
 from collections.abc import Callable
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from fastapi.testclient import TestClient
 
+from quant_account_sync import AccountSyncService, BrokerSnapshot
+from quant_core.config import ConfigStore
+from quant_database import Database, Repositories
 from quant_market_data import FakeMarketDataProvider
+from quant_webapi.app import WebSettings, create_app
 from quant_webapi.data import jsonable, mask_url
 
 AS_OF = "2026-09-30T14:00:00Z"
+ENV = {"IBKR_ACCOUNT": "DU1234567", "ANTHROPIC_API_KEY": "test-key", "DEEPSEEK_API_KEY": "k"}
 
 
 def wait_for(client: TestClient, job_id: str, timeout: float = 30) -> dict[str, Any]:
@@ -172,3 +178,68 @@ def test_watchlist_api(client: TestClient) -> None:
     [entry] = lists["demo_all_modules"]
     assert entry["active"] is False  # removed entries stay visible for 30 days
     assert entry["removed_reason"] == "removed by hand"
+
+
+class DownReader:
+    account_id = "DU1234567"
+
+    async def connect(self) -> None:
+        raise ConnectionRefusedError("gateway down")
+
+    async def disconnect(self) -> None:
+        return None
+
+    async def snapshot(self, *, account: bool = True) -> BrokerSnapshot:
+        raise AssertionError("not connected")
+
+
+def test_account_sync_api(tmp_path: Path, configs: Path) -> None:
+    db = Database(f"sqlite+aiosqlite:///{tmp_path / 'main.db'}")
+    service = AccountSyncService(
+        ConfigStore(configs, env=ENV),
+        Repositories.create(db),
+        reader_factory=lambda _: DownReader(),
+    )
+    settings = WebSettings(
+        configs=configs,
+        db_url=f"sqlite+aiosqlite:///{tmp_path / 'main.db'}",
+        env=ENV,
+        create_tables=True,
+        configure_logs=False,
+        overrides={"account_sync": service},
+        account_sync_loop=True,
+    )
+    with TestClient(create_app(settings)) as client:
+        for _ in range(200):  # the loop synchronises once right after start-up
+            status = client.get("/api/account-sync").json()
+            if status["history"]:
+                break
+            time.sleep(0.02)
+        assert status["running"]
+        assert status["config"]["interval_minutes"] == 20
+        assert status["next_due"] is not None
+        [account] = status["accounts"]
+        assert account["account_id"] == "DU1234567"
+        [auto] = status["history"]
+        assert (auto["trigger"], auto["status"]) == ("auto", "failed")
+        assert "gateway down" in auto["error"]
+
+        [manual] = client.post("/api/account-sync/run").json()
+        assert manual["trigger"] == "manual"
+        status = client.get("/api/account-sync").json()
+        assert [s["trigger"] for s in status["history"]] == ["manual", "auto"]
+        assert [s["trigger"] for s in status["latest"]] == ["manual"]
+        overview = client.get("/api/overview").json()
+        assert overview["account_sync"]["latest"][0]["status"] == "failed"
+
+        kinds = {k["name"] for k in client.get("/api/meta").json()["kinds"]}
+        assert "account_sync" in kinds
+        text = client.get("/api/configs/account_sync/account_sync").json()["text"]
+        bad = client.post(
+            "/api/configs/account_sync/account_sync/validate",
+            json={"text": text.replace("accounts: []", "accounts: [nope]")},
+        ).json()
+        assert not bad["ok"]
+        assert "nope" in bad["errors"][0]["message"]
+        assert client.portal is not None
+        client.portal.call(db.dispose)  # in the app's event loop, where it was used

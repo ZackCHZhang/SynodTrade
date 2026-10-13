@@ -402,6 +402,27 @@ class FillRow(Base):
     ts: Mapped[datetime]
 
 
+class AccountSyncRow(Base):
+    """One synchronisation of an IBKR account with the database (orders, fills, snapshot)."""
+
+    __tablename__ = "account_syncs"
+    __table_args__ = (Index(None, "account_id", "started_at"),)
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    account_id: Mapped[str] = mapped_column(NAME)
+    trigger: Mapped[str] = mapped_column(SHORT)  # pipeline | auto | manual | cli
+    pipeline_name: Mapped[str | None] = mapped_column(NAME)  # trigger=pipeline: whose run
+    run_id: Mapped[UUID | None]
+    started_at: Mapped[datetime]
+    finished_at: Mapped[datetime]
+    status: Mapped[str] = mapped_column(SHORT)  # ok | partial | failed
+    orders_checked: Mapped[int] = mapped_column(Integer, default=0)
+    orders_updated: Mapped[int] = mapped_column(Integer, default=0)
+    fills_added: Mapped[int] = mapped_column(Integer, default=0)
+    error: Mapped[str | None] = mapped_column(Text)
+    report: Mapped[dict[str, Any]]
+
+
 # ------------------------------------------------------------------ system
 
 

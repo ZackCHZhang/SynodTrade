@@ -321,7 +321,7 @@ export function ConfigEditor({
                         <ListItem key={u} disableGutters>
                           <ListItemText
                             primary={
-                              <RouterLink to={`/configs/${k}/${k === 'schedules' ? 'schedules' : n}`} style={{ color: 'inherit' }}>
+                              <RouterLink to={`/configs/${k}/${k === 'schedules' || !n ? k : n}`} style={{ color: 'inherit' }}>
                                 {u}
                               </RouterLink>
                             }
