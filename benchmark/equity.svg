@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 400" width="880" height="400" role="img" aria-label="Cumulative return">
+<style>text{font:13px -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}.bg{fill:#fcfcfb;stroke:#e4e3df}.t1{fill:#0b0b0b}.t2{fill:#52514e}.title{font-weight:600;font-size:15px;fill:#0b0b0b}.grid{stroke:#e9e8e4;stroke-width:1}.zero{stroke:#a3a29d;stroke-width:1}.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.dot{stroke:#fcfcfb;stroke-width:2}.bench{stroke:#8a8984;stroke-dasharray:5 4}.dot.bench{fill:#8a8984;stroke-dasharray:none}.s1{stroke:#2a78d6}.dot.s1{fill:#2a78d6}.s2{stroke:#eb6834}.dot.s2{fill:#eb6834}.s3{stroke:#1baf7a}.dot.s3{fill:#1baf7a}.s4{stroke:#eda100}.dot.s4{fill:#eda100}.s5{stroke:#e87ba4}.dot.s5{fill:#e87ba4}.s6{stroke:#008300}.dot.s6{fill:#008300}.s7{stroke:#6250d6}.dot.s7{fill:#6250d6}.s8{stroke:#e34948}.dot.s8{fill:#e34948}@media (prefers-color-scheme: dark){.bg{fill:#1a1a19;stroke:#2e2d2b}.t1,.title{fill:#f0efec}.t2{fill:#c3c2b7}.grid{stroke:#2e2d2b}.zero{stroke:#6b6a66}.dot{stroke:#1a1a19}.bench{stroke:#9b9a95}.dot.bench{fill:#9b9a95}.s1{stroke:#3987e5}.dot.s1{fill:#3987e5}.s2{stroke:#d95926}.dot.s2{fill:#d95926}.s3{stroke:#199e70}.dot.s3{fill:#199e70}.s4{stroke:#c98500}.dot.s4{fill:#c98500}.s5{stroke:#d55181}.dot.s5{fill:#d55181}.s6{stroke:#008300}.dot.s6{fill:#008300}.s7{stroke:#9085e9}.dot.s7{fill:#9085e9}.s8{stroke:#e66767}.dot.s8{fill:#e66767}}</style>
+<rect class="bg" x="0.5" y="0.5" width="879" height="399" rx="8"/>
+<text class="title" x="60" y="22">Cumulative return</text>
+<line class="line s1" x1="60.0" x2="78.0" y1="38" y2="38"/>
+<text class="t1" x="84.0" y="42">demo_all_modules</text>
+<line class="line bench" x1="224.4" x2="242.4" y1="38" y2="38"/>
+<text class="t1" x="248.4" y="42">SPY (benchmark)</text>
+<line class="grid" x1="60" x2="678.4" y1="356.0" y2="356.0"/>
+<text class="t2" x="52" y="360.0" text-anchor="end">-1.5%</text>
+<line class="grid" x1="60" x2="678.4" y1="297.6" y2="297.6"/>
+<text class="t2" x="52" y="301.6" text-anchor="end">-1.0%</text>
+<line class="grid" x1="60" x2="678.4" y1="239.2" y2="239.2"/>
+<text class="t2" x="52" y="243.2" text-anchor="end">-0.5%</text>
+<line class="zero" x1="60" x2="678.4" y1="180.8" y2="180.8"/>
+<text class="t2" x="52" y="184.8" text-anchor="end">0%</text>
+<line class="grid" x1="60" x2="678.4" y1="122.4" y2="122.4"/>
+<text class="t2" x="52" y="126.4" text-anchor="end">+0.5%</text>
+<line class="grid" x1="60" x2="678.4" y1="64.0" y2="64.0"/>
+<text class="t2" x="52" y="68.0" text-anchor="end">+1.0%</text>
+<text class="t2" x="60.0" y="378" text-anchor="start">Oct 7</text>
+<text class="t2" x="183.7" y="378" text-anchor="middle">Oct 8</text>
+<text class="t2" x="307.4" y="378" text-anchor="middle">Oct 9</text>
+<text class="t2" x="431.0" y="378" text-anchor="middle">Oct 12</text>
+<text class="t2" x="554.7" y="378" text-anchor="middle">Oct 13</text>
+<text class="t2" x="678.4" y="378" text-anchor="end">Oct 14</text>
+<polyline class="line bench" points="60.0,180.8 183.7,230.2 307.4,160.5 431.0,167.6 554.7,168.9 678.4,300.4"/>
+<polyline class="line s1" points="60.0,180.8 183.7,170.1 307.4,215.8 431.0,230.4 554.7,105.6 678.4,242.2"/>
+<circle class="dot s1" cx="678.4" cy="242.2" r="4"/>
+<text class="t1" x="690.4" y="246.2">demo_all_modules <tspan class="t2">-0.53%</tspan></text>
+<circle class="dot bench" cx="678.4" cy="300.4" r="4"/>
+<text class="t1" x="690.4" y="304.4">SPY <tspan class="t2">-1.02%</tspan></text>
+</svg>
