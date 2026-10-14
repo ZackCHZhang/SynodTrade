@@ -1,4 +1,4 @@
-"""主流程编排：从 YAML 构建流水线、多实例化、失败策略、CLI"""
+"""Orchestration: build pipelines from YAML, multi-instance stages, failure policies, CLI"""
 
 from quant_pipeline.offline import (
     offline_llm,

@@ -1,4 +1,8 @@
-"""选股：候选来源（固定列表 / IBKR 扫描器）+ 量化初筛 + 多 agent 选股与聚合"""
+"""Stock selection.
+
+Candidate sources (static list / IBKR scanner) + quantitative screen + multi-agent picking
+and aggregation.
+"""
 
 from quant_selection.agent import PickOutput, SelectionAgent, SelectionOutput, candidate_inputs
 from quant_selection.aggregation import (

@@ -5,7 +5,7 @@
 [project]
 name = "quant-system"
 version = "0.1.0"
-description = "基于 IBKR 的多 Agent 量化交易系统（monorepo 开发环境）"
+description = "Multi-agent quantitative trading system on IBKR (monorepo dev environment)"
 requires-python = ">=3.12,<3.13"
 
 [tool.poetry]

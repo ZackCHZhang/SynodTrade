@@ -1,4 +1,4 @@
-"""调度器：交易日历、定时唤醒流水线、防重入、健康检查"""
+"""Scheduler: trading calendar, timed pipeline wake-ups, re-entrancy guard, health checks"""
 
 from quant_scheduler.app import SchedulerApp, run_scheduled_job, sync_jobstore_url
 from quant_scheduler.config import JobConfig, SchedulesConfig, load_schedules

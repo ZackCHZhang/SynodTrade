@@ -1,4 +1,7 @@
-"""交易执行：仓位→订单、幂等、Broker（IBKR / DryRun / Simulated）、订单跟踪"""
+"""Trade execution.
+
+Positions → orders, idempotency, brokers (IBKR / DryRun / Simulated), order tracking.
+"""
 
 from quant_trading.broker import (
     Broker,

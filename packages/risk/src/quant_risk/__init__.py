@@ -1,4 +1,4 @@
-"""风控：确定性硬规则引擎 + 风控 agent（只能降低风险）"""
+"""Risk: deterministic hard-rule engine + risk agents (can only reduce risk)"""
 
 from quant_risk.agent import (
     CombineMethod,

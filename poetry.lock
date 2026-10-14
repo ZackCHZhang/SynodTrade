@@ -3049,7 +3049,7 @@ files = [
 [[package]]
 name = "quant-account-sync"
 version = "0.1.0"
-description = "账户同步：订单成交状态、迟到的成交、账户与持仓快照、账本核对（流水线第一步 + 定时）"
+description = "Account sync: order fill status, late fills, account and position snapshots, ledger reconciliation (first pipeline step + scheduled)"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]
@@ -3071,7 +3071,7 @@ url = "packages/account_sync"
 [[package]]
 name = "quant-core"
 version = "0.1.0"
-description = "共享基础：数据模型、接口协议、LLM 客户端、配置加载、日志、注册表"
+description = "Shared foundation: data models, protocols, LLM client, config loading, logging, registries"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]
@@ -3096,7 +3096,7 @@ url = "packages/core"
 [[package]]
 name = "quant-database"
 version = "0.1.0"
-description = "数据库管理：ORM 模型、Repository、Alembic 迁移"
+description = "Database layer: ORM models, repositories, Alembic migrations"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]
@@ -3118,7 +3118,7 @@ url = "packages/database"
 [[package]]
 name = "quant-decision"
 version = "0.1.0"
-description = "决策 agent、技术指标计算、多 agent 决策聚合"
+description = "Decision agents, technical indicators, multi-agent decision aggregation"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]
@@ -3136,7 +3136,7 @@ url = "packages/decision"
 [[package]]
 name = "quant-market-data"
 version = "0.1.0"
-description = "行情/账户数据更新（IBKR 历史 K 线、实时快照、账户与持仓）"
+description = "Market/account data updates (IBKR historical bars, live snapshots, account and positions)"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]
@@ -3157,7 +3157,7 @@ url = "packages/market_data"
 [[package]]
 name = "quant-pipeline"
 version = "0.1.0"
-description = "主流程编排：从 YAML 构建流水线、多实例化、失败策略、CLI"
+description = "Orchestration: build pipelines from YAML, multi-instance stages, failure policies, CLI"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]
@@ -3183,7 +3183,7 @@ url = "packages/pipeline"
 [[package]]
 name = "quant-risk"
 version = "0.1.0"
-description = "风控：确定性硬规则引擎 + 风控 agent（只能降低风险）"
+description = "Risk: deterministic hard-rule engine + risk agents (can only reduce risk)"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]
@@ -3202,7 +3202,7 @@ url = "packages/risk"
 [[package]]
 name = "quant-scheduler"
 version = "0.1.0"
-description = "调度器：交易日历、定时唤醒流水线、防重入、健康检查"
+description = "Scheduler: trading calendar, timed pipeline wake-ups, re-entrancy guard, health checks"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]
@@ -3226,7 +3226,7 @@ url = "packages/scheduler"
 [[package]]
 name = "quant-selection"
 version = "0.1.0"
-description = "选股：候选来源（固定列表 / IBKR 扫描器）+ 量化初筛 + 多 agent 选股与聚合"
+description = "Stock selection: candidate sources (static list / IBKR scanner) + quantitative screen + multi-agent picking and aggregation"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]
@@ -3245,7 +3245,7 @@ url = "packages/selection"
 [[package]]
 name = "quant-sentiment"
 version = "0.1.0"
-description = "舆情：数据源采集（Reddit/Stocktwits）+ 多 agent 分析"
+description = "Sentiment: source collection (Reddit/Stocktwits) + multi-agent analysis"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]
@@ -3266,7 +3266,7 @@ url = "packages/sentiment"
 [[package]]
 name = "quant-trading"
 version = "0.1.0"
-description = "交易执行：仓位→订单、幂等、Broker（IBKR / DryRun）、订单跟踪"
+description = "Trade execution: positions → orders, idempotency, brokers (IBKR / DryRun), order tracking"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]
@@ -3285,7 +3285,7 @@ url = "packages/trading"
 [[package]]
 name = "quant-webapi"
 version = "0.1.0"
-description = "Web 控制台后端：可视化编辑 configs/、启动流水线、实时进度、调度器、数据库浏览"
+description = "Web console backend: visual configs/ editing, pipeline launches, live progress, scheduler, database browser"
 optional = false
 python-versions = ">=3.12,<3.13"
 groups = ["packages"]

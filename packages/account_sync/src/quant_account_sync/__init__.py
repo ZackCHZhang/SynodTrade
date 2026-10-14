@@ -1,4 +1,7 @@
-"""账户同步：订单成交状态、迟到的成交、账户与持仓快照、账本核对"""
+"""Account sync.
+
+Order fill status, late fills, account and position snapshots, ledger reconciliation.
+"""
 
 from quant_account_sync.config import CONFIG_FILE, AccountSyncConfig, load_sync_config
 from quant_account_sync.ibkr import CLIENT_ID_OFFSET, AccountSyncError, IBKRAccountReader

@@ -1,3 +1,6 @@
-"""Web 控制台后端：可视化编辑 configs/、启动流水线、实时进度、调度器、数据库浏览"""
+"""Web console backend.
+
+Visual configs/ editing, pipeline launches, live progress, scheduler, database browser.
+"""
 
 __version__ = "0.1.0"

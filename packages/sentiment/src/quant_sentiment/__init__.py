@@ -1,4 +1,4 @@
-"""舆情：数据源采集（Reddit/Stocktwits）+ 多 agent 分析"""
+"""Sentiment: source collection (Reddit/Stocktwits) + multi-agent analysis"""
 
 from quant_sentiment.agent import SentimentAgent, SentimentOutput
 from quant_sentiment.prefilter import PrefilterOptions, clean_text, prefilter
