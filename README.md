@@ -41,12 +41,12 @@ while deterministic code holds the money, enforces the hard limits and places th
 
 ```mermaid
 flowchart LR
-    S["🔄 Account sync<br/><sub>fills · positions</sub>"] --> A
-    A["🎯 Selection<br/><sub>scanners → screen → agents</sub>"] --> B["📈 Market data<br/><sub>bars · quotes · fundamentals</sub>"]
-    B --> C["💬 Sentiment<br/><sub>Reddit · Stocktwits · IBKR news</sub>"]
-    C --> D["🗳️ Decision<br/><sub>agent votes → final action</sub>"]
-    D --> E["🛡️ Risk<br/><sub>hard rules → risk agents</sub>"]
-    E --> F["💸 Trading<br/><sub>limit orders · fill tracking</sub>"]
+    S["🔄 Account sync"] --> A
+    A["🎯 Selection"] --> B["📈 Market data"]
+    B --> C["💬 Sentiment"]
+    C --> D["🗳️ Decision"]
+    D --> E["🛡️ Risk"]
+    E --> F["💸 Trading"]
 ```
 
 A **pipeline** is an account, a capital budget, a universe and an ordered list of stages. Every stage is optional, and each one can instantiate any number of agents:
