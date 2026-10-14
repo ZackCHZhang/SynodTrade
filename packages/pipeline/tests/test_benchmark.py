@@ -210,6 +210,42 @@ async def test_write_benchmark_files_and_readme_markers(
         assert expected in texts
 
 
+async def test_fills_after_the_last_bar_still_book(repos: Repositories, store: ConfigStore) -> None:
+    """Bars end on Wednesday but another buy fills on Thursday: it must not be dropped."""
+    run_id = await start_run(repos, RunMode.PAPER, datetime(2026, 10, 8, 14, tzinfo=UTC))
+    await trade(repos, run_id, "buy-2", OrderSide.BUY, "125", datetime(2026, 10, 8, 15, tzinfo=UTC))
+
+    [curve] = await build_curves(repos, store, end=date(2026, 10, 8))
+
+    assert curve.points[-1].day == date(2026, 10, 8)
+    assert curve.bars_through == date(2026, 10, 7)
+    assert curve.fills == 3
+    # cash 5198 - 1251, plus 10 AAPL at the last known close (120)
+    assert curve.points[-1].nav == pytest.approx(5198 - 1251 + 1200)
+    assert curve.points[-1].benchmark_close == 495  # carried forward
+
+
+def test_unknown_pipeline_is_a_usage_error(configs: Path, tmp_path: Path) -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "--env-file",
+            str(tmp_path / "missing.env"),
+            "benchmark",
+            "--db-url",
+            f"sqlite+aiosqlite:///{tmp_path / 'x.db'}",
+            "--configs",
+            str(configs),
+            "-p",
+            "no_such_pipeline",
+            "--out",
+            str(tmp_path / "o"),
+        ],
+    )
+    assert result.exit_code == 2
+    assert "no_such_pipeline" in result.output
+
+
 def test_empty_benchmark_says_so(tmp_path: Path) -> None:
     written = write_benchmark([], tmp_path)
     assert not (tmp_path / "equity.svg").exists()
