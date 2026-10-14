@@ -13,10 +13,11 @@ while deterministic code holds the money, enforces the hard limits and places th
 ![Ruff](https://img.shields.io/badge/lint-ruff-D7FF64?logo=ruff&logoColor=black)
 ![React 19](https://img.shields.io/badge/web-React%2019%20%2B%20MUI-61DAFB?logo=react&logoColor=black)
 ![IBKR](https://img.shields.io/badge/broker-Interactive%20Brokers-D71920)
+[![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](LICENSE)
 
 **English** | [简体中文](README.zh-CN.md)
 
-[Features](#-features) · [How it works](#-how-it-works) · [Quick start](#-quick-start) · [Web console](#-web-console) · [Configuration](#-configuration) · [Development](#-development)
+[Features](#-features) · [How it works](#-how-it-works) · [Quick start](#-quick-start) · [Web console](#-web-console) · [Configuration](#-configuration) · [Development](#-development) · [License](#-license)
 
 </div>
 
@@ -104,7 +105,7 @@ poetry run quant-web serve          # http://127.0.0.1:8765
 - **Scheduler and account sync**: start and stop the scheduler, see the run plan, run health checks and sync accounts now.
 - **Data**: positions and account snapshots, watchlist, charts, and a read-only browser for every table.
 
-The UI speaks **English** (default) and **简体中文**; switch with the language button in the top bar.
+The UI speaks **English** (default) and **简体中文**; switch with the language button in the top bar. The GitHub button next to it links to the source code, as the AGPL asks of software used over a network.
 
 > [!CAUTION]
 > The console has no login and can place orders. It listens on localhost only; do not expose it to a network.
@@ -181,3 +182,19 @@ tasks.py     cross-platform task runner
 ## 🤝 Contributing
 
 Issues and pull requests are welcome. Before opening a PR, run `python tasks.py check` and, if you touched the web console, `npm run typecheck && npm run i18n:check` in `web/`. New UI strings go through `t()` with a Chinese entry in `web/src/i18n/zh.ts` (see [`web/README.md`](web/README.md#translations)).
+
+By submitting a contribution you agree to the project's [Contributor License Agreement](CLA.md) (CLA). The CLA lets the maintainer keep offering the project under the AGPL **and** under separate commercial licenses (see below); you keep the copyright to your contribution. The CLA bot will ask you to sign it on your first pull request.
+
+## 📄 License
+
+Copyright (C) 2026 ZackCHZhang
+
+quant-system is free software, licensed under the **[GNU Affero General Public License v3.0 or later](LICENSE)** (AGPL-3.0-or-later). In short:
+
+- You can use, study, modify and share it, including for commercial purposes.
+- If you distribute it, or let other people use a modified version **over a network** (for example as a hosted service built on the web console), you must make the complete corresponding source code of your version available to them under the same license. Running it privately for your own trading creates no such obligation.
+- It comes with **no warranty**. You are responsible for any trades it places.
+
+If the AGPL does not work for you (for example, you want to ship a closed-source product or service built on this code), commercial licenses are available: open an issue or contact the maintainer through GitHub.
+
+Interactive Brokers, IBKR, TWS and IB Gateway are trademarks of Interactive Brokers LLC. This project is independent and is not affiliated with, endorsed by or sponsored by Interactive Brokers.
