@@ -48,22 +48,11 @@ EN = Text(
     updated="Updated {generated} · data through {through}",
     chart_alt="Cumulative paper-trading return of each pipeline against its benchmark",
     summary="Summary",
-    cols=(
-        "Pipeline",
-        "Benchmark",
-        "Since",
-        "Sessions",
-        "Return",
-        "Benchmark return",
-        "Excess",
-        "Max drawdown",
-        "Sharpe",
-        "Volatility",
-        "CAGR",
-    ),
+    cols=("Pipeline", "Since", "Return", "Benchmark", "Excess", "Max drawdown", "Sharpe"),
     details="Pipelines",
     detail_rows=(
         "Mode",
+        "Sessions",
         "Starting capital",
         "First paper/live run",
         "Net asset value",
@@ -73,6 +62,8 @@ EN = Text(
         "Commissions",
         "Open positions",
         "Invested",
+        "Volatility (annualised)",
+        "CAGR",
         "Benchmark max drawdown",
     ),
     method="Methodology",
@@ -111,22 +102,11 @@ ZH = Text(
     updated="更新于 {generated} · 数据截至 {through}",
     chart_alt="各流水线模拟盘累计收益与基准对比",
     summary="概览",
-    cols=(
-        "流水线",
-        "基准",
-        "开始",
-        "交易日",
-        "收益",
-        "基准收益",
-        "超额收益",
-        "最大回撤",
-        "夏普比率",
-        "波动率",
-        "年化收益",
-    ),
+    cols=("流水线", "开始", "收益", "基准", "超额收益", "最大回撤", "夏普比率"),
     details="各流水线",
     detail_rows=(
         "模式",
+        "交易日",
         "初始资金",
         "首次 paper/live 运行",
         "当前净值",
@@ -136,6 +116,8 @@ ZH = Text(
         "佣金",
         "持仓数",
         "仓位占比",
+        "波动率（年化）",
+        "年化收益",
         "基准最大回撤",
     ),
     method="计算方法",
@@ -176,29 +158,26 @@ def num(v: float | None, digits: int = 2) -> str:
     return "—" if v is None else f"{v:,.{digits}f}"
 
 
-def _summary_rows(rows: list[tuple[PipelineCurve, Metrics]], *, compact: bool) -> list[str]:
+def _summary_rows(rows: Rows, *, compact: bool) -> list[str]:
+    """One row per pipeline; `compact` (the repository README) leaves out the start date."""
     out = []
     for c, m in rows:
         cells = [
             f"**{c.pipeline}**",
-            c.benchmark,
-            c.points[0].day.isoformat(),
-            str(m.days),
+            *([] if compact else [c.points[0].day.isoformat()]),
             pct(m.total_return),
-            pct(m.benchmark_return),
+            f"{c.benchmark} {pct(m.benchmark_return)}",
             pct(m.excess_return),
             pct(m.max_drawdown),
             num(m.sharpe),
         ]
-        if not compact:
-            cells += [pct(m.volatility, signed=False), pct(m.cagr)]
         out.append("| " + " | ".join(cells) + " |")
     return out
 
 
 def _table(cols: tuple[str, ...], rows: list[str]) -> list[str]:
     head = "| " + " | ".join(cols) + " |"
-    align = "|" + "|".join(":--" if i < 2 else "--:" for i in range(len(cols))) + "|"
+    align = "|" + "|".join(":--" if i == 0 else "--:" for i in range(len(cols))) + "|"
     return [head, align, *rows]
 
 
@@ -222,6 +201,7 @@ def page(text: Text, rows: Rows, generated: str, through: str) -> str:
         nav = c.points[-1].nav
         values = (
             c.mode,
+            str(m.days),
             f"{num(c.capital)}",
             c.started.strftime("%Y-%m-%d %H:%M UTC"),
             f"{num(nav)} ({pct(nav / c.capital - 1)})",
@@ -231,6 +211,8 @@ def page(text: Text, rows: Rows, generated: str, through: str) -> str:
             num(c.commissions),
             str(c.open_positions),
             pct(c.invested, signed=False),
+            pct(m.volatility, signed=False),
+            pct(m.cagr),
             pct(m.benchmark_max_drawdown),
         )
         lines += [f"### {c.pipeline}", "", "| | |", "|:--|--:|"]
@@ -251,7 +233,7 @@ def root_section(text: Text, rows: list[tuple[PipelineCurve, Metrics]], generate
             f'<p align="center"><a href="benchmark/{readme}"><img src="benchmark/equity.svg"'
             f' alt="{text.chart_alt}" width="880"></a></p>',
             "",
-            *_table(text.cols[:9], _summary_rows(rows, compact=True)),
+            *_table((text.cols[0], *text.cols[2:]), _summary_rows(rows, compact=True)),
             "",
             f"<sub>{text.root_note.format(generated=generated)}</sub>",
             "",
