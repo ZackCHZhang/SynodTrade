@@ -81,7 +81,13 @@ Business packages never import each other. They cooperate through protocols in `
 SynodTrade publishes its own track record. Every pipeline that trades an IBKR paper account gets a daily equity curve built from its real paper fills, measured against its benchmark (SPY by default). `poetry run quant benchmark` regenerates the [`benchmark/`](benchmark/README.md) folder (pages, chart and raw data) and the summary below.
 
 <!-- benchmark:start -->
-No paper-trading results published yet.
+<p align="center"><a href="benchmark/README.md"><img src="benchmark/equity.svg" alt="Cumulative paper-trading return of each pipeline against its benchmark" width="880"></a></p>
+
+| Pipeline | Return | Benchmark | Excess | Max drawdown | Sharpe |
+|:--|--:|--:|--:|--:|--:|
+| **demo_all_modules** | -0.53% | SPY -1.02% | +0.50% | -1.16% | — |
+
+<sub>Paper trading on IBKR · updated 2026-10-14 · [details, methodology and raw data](benchmark/README.md)</sub>
 <!-- benchmark:end -->
 
 ## 🚀 Quick start

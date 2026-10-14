@@ -81,7 +81,13 @@ core ← database ← {market_data, selection, sentiment, decision, risk, tradin
 SynodTrade 公开自己的交易表现。每条在 IBKR 模拟账户（paper）上交易的流水线，都会用它真实的模拟成交生成每日净值曲线，并与基准（默认 SPY）对比。运行 `poetry run quant benchmark` 会重新生成 [`benchmark/`](benchmark/README.zh-CN.md) 目录（页面、图表和原始数据）以及下面的概览。
 
 <!-- benchmark:start -->
-还没有发布模拟盘结果。
+<p align="center"><a href="benchmark/README.zh-CN.md"><img src="benchmark/equity.svg" alt="各流水线模拟盘累计收益与基准对比" width="880"></a></p>
+
+| 流水线 | 收益 | 基准 | 超额收益 | 最大回撤 | 夏普比率 |
+|:--|--:|--:|--:|--:|--:|
+| **demo_all_modules** | -0.53% | SPY -1.02% | +0.50% | -1.16% | — |
+
+<sub>IBKR 模拟盘 · 更新于 2026-10-14 · [详细数据、计算方法和原始数据](benchmark/README.zh-CN.md)</sub>
 <!-- benchmark:end -->
 
 ## 🚀 快速开始
