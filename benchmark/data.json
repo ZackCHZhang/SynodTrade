@@ -1,5 +1,79 @@
 {
  "generated_at": "2026-10-14",
  "kind": "paper-trading benchmark",
- "pipelines": []
+ "pipelines": [
+  {
+   "pipeline": "demo_all_modules",
+   "mode": "paper",
+   "benchmark": "SPY",
+   "capital": 10000.0,
+   "started": "2026-10-08T13:40:00.141795+00:00",
+   "metrics": {
+    "days": 5,
+    "total_return": -0.005255756400000089,
+    "benchmark_return": -0.01024163042639159,
+    "excess_return": 0.004985874026391501,
+    "cagr": null,
+    "volatility": null,
+    "sharpe": null,
+    "max_drawdown": -0.011616000026946738,
+    "benchmark_max_drawdown": -0.011957820106092032,
+    "win_rate": 0.0
+   },
+   "stats": {
+    "fills": 14,
+    "buys": 12,
+    "sells": 2,
+    "winning_sells": 0,
+    "realized_pnl": -12.18,
+    "commissions": 13.64,
+    "open_positions": 8,
+    "invested": 0.733
+   },
+   "series": [
+    {
+     "date": "2026-10-07",
+     "nav": 10000.0,
+     "return": 0.0,
+     "benchmark_close": 777.22,
+     "benchmark_return": 0.0
+    },
+    {
+     "date": "2026-10-08",
+     "nav": 10009.12,
+     "return": 0.000912,
+     "benchmark_close": 773.93,
+     "benchmark_return": -0.004233
+    },
+    {
+     "date": "2026-10-09",
+     "nav": 9970.03,
+     "return": -0.002997,
+     "benchmark_close": 778.57,
+     "benchmark_return": 0.001737
+    },
+    {
+     "date": "2026-10-12",
+     "nav": 9957.52,
+     "return": -0.004248,
+     "benchmark_close": 778.1,
+     "benchmark_return": 0.001132
+    },
+    {
+     "date": "2026-10-13",
+     "nav": 10064.35,
+     "return": 0.006435,
+     "benchmark_close": 778.01,
+     "benchmark_return": 0.001016
+    },
+    {
+     "date": "2026-10-14",
+     "nav": 9947.44,
+     "return": -0.005256,
+     "benchmark_close": 769.26,
+     "benchmark_return": -0.010242
+    }
+   ]
+  }
+ ]
 }
