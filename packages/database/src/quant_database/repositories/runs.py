@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from quant_core.llm import LLMCallRecord, LLMUsage
-from quant_core.timeutil import utcnow
+from quant_core.timeutil import to_utc, utcnow
 from quant_database.models import AgentInstanceRow, LLMCallRow, PipelineRunRow
 from quant_database.records import AgentInstance, PipelineRun, RunStatus
 from quant_database.repositories.base import Repository, row_dict
@@ -53,6 +54,28 @@ class RunRepository(Repository):
         async with self._db.transaction() as s:
             rows = (await s.execute(stmt)).scalars().all()
         return [PipelineRun.model_validate(row_dict(r)) for r in rows]
+
+    async def first_started(self, pipeline_name: str, modes: Sequence[str]) -> datetime | None:
+        """When the pipeline's first run in one of `modes` started (None: never ran in them)."""
+        stmt = select(func.min(PipelineRunRow.started_at)).where(
+            PipelineRunRow.pipeline_name == pipeline_name, PipelineRunRow.mode.in_(modes)
+        )
+        async with self._db.transaction() as s:
+            value: datetime | None = (await s.execute(stmt)).scalar_one()
+        if value is None:
+            return None
+        return to_utc(value) if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+    async def pipelines_run_in(self, modes: Sequence[str]) -> list[str]:
+        """Names of pipelines with at least one run in one of `modes`, sorted."""
+        stmt = (
+            select(PipelineRunRow.pipeline_name)
+            .where(PipelineRunRow.mode.in_(modes))
+            .distinct()
+            .order_by(PipelineRunRow.pipeline_name)
+        )
+        async with self._db.transaction() as s:
+            return list((await s.execute(stmt)).scalars().all())
 
     async def register_agent_instances(self, instances: Sequence[AgentInstance]) -> None:
         async with self._db.transaction() as s:

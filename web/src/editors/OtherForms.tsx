@@ -22,8 +22,10 @@ import { Link as RouterLink } from 'react-router-dom';
 import { useConfigs, useMeta } from '../api/hooks';
 import type { FormProps } from '../components/ConfigEditor';
 import { ErrorsContext, FieldEditor, SchemaFields, pathKey } from '../components/SchemaForm';
+import { withKey } from '../lib/labels';
 import { normalize, objectFields } from '../lib/schema';
 import { setIn } from '../lib/yamlDoc';
+import { t } from '../i18n';
 
 function KeyField({ keyName, value, name }: { keyName: string; value: any; name: string }) {
   return (
@@ -34,7 +36,7 @@ function KeyField({ keyName, value, name }: { keyName: string; value: any; name:
       value={value ?? ''}
       disabled
       error={value !== name}
-      helperText={value !== name ? `必须等于文件名 ${name}` : '等于文件名'}
+      helperText={value !== name ? t('Must equal the file name {name}', { name }) : t('Equals the file name')}
     />
   );
 }
@@ -52,7 +54,7 @@ function EnvRefs({ data }: { data: any }) {
   return (
     <Stack direction="row" sx={{ gap: 1, flexWrap: 'wrap', alignItems: 'center', mt: 2 }}>
       <Typography variant="caption" color="text.secondary">
-        引用的环境变量（.env）：
+        {t('Referenced environment variables (.env):')}
       </Typography>
       {[...refs].map((r) => {
         const set = meta?.env[r];
@@ -63,7 +65,7 @@ function EnvRefs({ data }: { data: any }) {
             variant="outlined"
             color={set === undefined ? 'default' : set ? 'success' : 'warning'}
             icon={set ? <CheckCircleIcon /> : <ErrorOutlineIcon />}
-            label={`${r}${set === undefined ? '' : set ? ' 已设置' : ' 未设置'}`}
+            label={`${r}${set === undefined ? '' : ' ' + (set ? t('set') : t('not set'))}`}
           />
         );
       })}
@@ -80,13 +82,13 @@ export function AccountForm({ data, onChange, name }: FormProps) {
       <CardContent>
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <KeyField keyName="名称 name" value={data.name} name={name} />
+            <KeyField keyName={withKey('Name', 'name')} value={data.name} name={name} />
           </Grid>
         </Grid>
         <SchemaFields field={field} value={data} path={[]} onChange={(v) => onChange({ name: data.name, ...(v ?? {}) })} />
         <Alert severity="info" sx={{ mt: 2 }}>
-          数字字段也可以写 <code>{'${IBKR_PORT:-4002}'}</code> 这样的环境变量引用。Paper 端口：IB Gateway 4002、TWS 7497；实盘 4001 / 7496。
-          每条流水线需要独立的 client_id（行情 = client_id，交易 +1，新闻 +2，扫描器 +3）。
+          {t('Numeric fields can also hold environment variable references such as')} <code>{'${IBKR_PORT:-4002}'}</code>.{' '}
+          {t('Paper ports: IB Gateway 4002, TWS 7497; live 4001 / 7496. Each pipeline needs its own client_id (market data = client_id, trading +1, news +2, scanner +3).')}
         </Alert>
         <EnvRefs data={data} />
       </CardContent>
@@ -99,11 +101,11 @@ export function RiskForm({ data, onChange, name }: FormProps) {
   if (!meta) return null;
   const field = objectFields(meta.schemas.risk, ['name']);
   const groups: [string, string[]][] = [
-    ['开关', ['kill_switch', 'one_order_per_symbol_per_day']],
-    ['仓位与现金（占策略净值的比例）', ['max_position_pct', 'max_gross_exposure_pct', 'min_cash_pct']],
-    ['亏损与交易频率', ['max_daily_loss_pct', 'max_weekly_loss_pct', 'max_trades_per_day', 'max_order_notional']],
-    ['股票范围', ['whitelist', 'blacklist']],
-    ['流动性与交易时段', ['liquidity', 'trading_hours']],
+    [t('Switches'), ['kill_switch', 'one_order_per_symbol_per_day']],
+    [t("Positions and cash (share of the strategy's NAV)"), ['max_position_pct', 'max_gross_exposure_pct', 'min_cash_pct']],
+    [t('Losses and trading frequency'), ['max_daily_loss_pct', 'max_weekly_loss_pct', 'max_trades_per_day', 'max_order_notional']],
+    [t('Symbol scope'), ['whitelist', 'blacklist']],
+    [t('Liquidity and trading hours'), ['liquidity', 'trading_hours']],
   ];
   return (
     <Stack spacing={2}>
@@ -111,11 +113,11 @@ export function RiskForm({ data, onChange, name }: FormProps) {
         <CardContent>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <KeyField keyName="名称 name" value={data.name} name={name} />
+              <KeyField keyName={withKey('Name', 'name')} value={data.name} name={name} />
             </Grid>
           </Grid>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            硬规则由确定性代码在任何风控 agent 之前执行，LLM 无法覆盖。比例是该流水线虚拟子账户净值的比例。
+            {t("Hard rules are deterministic code that runs before any risk agent; the LLM cannot override them. Ratios are shares of this pipeline's virtual sub-account NAV.")}
           </Typography>
         </CardContent>
       </Card>
@@ -159,11 +161,11 @@ export function ProvidersForm({ data, onChange }: FormProps) {
                     size="small"
                     color={keySet ? 'success' : 'warning'}
                     icon={keySet ? <CheckCircleIcon /> : <ErrorOutlineIcon />}
-                    label={keySet ? `${keyEnv} 已设置` : `${keyEnv} 未设置`}
+                    label={`${keyEnv} ${keySet ? t('set') : t('not set')}`}
                   />
                 )}
                 <Box sx={{ flex: 1 }} />
-                <Tooltip title="删除供应商">
+                <Tooltip title={t('Delete provider')}>
                   <IconButton
                     size="small"
                     onClick={() => {
@@ -185,7 +187,7 @@ export function ProvidersForm({ data, onChange }: FormProps) {
       <Card variant="outlined">
         <CardContent>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <TextField size="small" label="新供应商名称" placeholder="例如 openai、qwen、local_ollama" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <TextField size="small" label={t('New provider name')} placeholder={t('e.g. openai, qwen, local_ollama')} value={newName} onChange={(e) => setNewName(e.target.value)} />
             <Button
               startIcon={<AddIcon />}
               disabled={!/^[a-z][a-z0-9_]*$/.test(newName) || newName in providers}
@@ -194,11 +196,11 @@ export function ProvidersForm({ data, onChange }: FormProps) {
                 setNewName('');
               }}
             >
-              添加
+              {t('Add')}
             </Button>
           </Stack>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-            API key 永远不写进配置文件：api_key_env 只写环境变量名，key 放在 .env 中，修改 .env 后需重启服务。
+            {t('API keys never go into config files: api_key_env holds only the variable name, the key lives in .env, and the service must restart after .env changes.')}
           </Typography>
         </CardContent>
       </Card>
@@ -235,7 +237,7 @@ export function SchedulesForm({ data, onChange }: FormProps) {
             </Grid>
           </Grid>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            所有时间按交易所时区定义；非交易日按真实交易日历跳过（节假日、提前收盘、夏令时）。
+            {t('All times are in the exchange time zone; non-trading days are skipped using the real trading calendar (holidays, early closes, daylight saving).')}
           </Typography>
         </CardContent>
       </Card>
@@ -248,7 +250,7 @@ export function SchedulesForm({ data, onChange }: FormProps) {
             <CardContent>
               <Stack direction="row" sx={{ alignItems: 'center', mb: 2 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  任务 {i + 1}
+                  {t('Job {n}', { n: i + 1 })}
                   {job?.pipeline && (
                     <Typography component="span" sx={{ ml: 1, fontFamily: 'monospace' }} color="text.secondary">
                       {job.pipeline}#{jobs.slice(0, i).filter((j) => j?.pipeline === job.pipeline).length}
@@ -267,7 +269,7 @@ export function SchedulesForm({ data, onChange }: FormProps) {
               )}
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                  <TextField select fullWidth size="small" label="流水线 pipeline" value={job?.pipeline ?? ''} onChange={(e) => setJob(i, 'pipeline', e.target.value)} error={!!err('pipeline')} helperText={err('pipeline')} slotProps={{ inputLabel: { shrink: true } }}>
+                  <TextField select fullWidth size="small" label={withKey('Pipeline', 'pipeline')} value={job?.pipeline ?? ''} onChange={(e) => setJob(i, 'pipeline', e.target.value)} error={!!err('pipeline')} helperText={err('pipeline')} slotProps={{ inputLabel: { shrink: true } }}>
                     {pipelines.map((p) => (
                       <MenuItem key={p} value={p}>
                         {p}
@@ -280,7 +282,7 @@ export function SchedulesForm({ data, onChange }: FormProps) {
                     select
                     fullWidth
                     size="small"
-                    label="触发方式 trigger"
+                    label={withKey('Trigger', 'trigger')}
                     value={job?.trigger ?? 'market_relative'}
                     onChange={(e) => {
                       const t = e.target.value;
@@ -298,16 +300,16 @@ export function SchedulesForm({ data, onChange }: FormProps) {
                     }}
                     slotProps={{ inputLabel: { shrink: true } }}
                   >
-                    <MenuItem value="market_relative">相对开盘 / 收盘</MenuItem>
-                    <MenuItem value="cron">cron 表达式</MenuItem>
+                    <MenuItem value="market_relative">{t('Relative to open / close')}</MenuItem>
+                    <MenuItem value="cron">{t('cron expression')}</MenuItem>
                   </TextField>
                 </Grid>
                 {marketRelative ? (
                   <>
                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                      <TextField select fullWidth size="small" label="锚点 anchor" value={job?.anchor ?? 'open'} onChange={(e) => setJob(i, 'anchor', e.target.value)} slotProps={{ inputLabel: { shrink: true } }}>
-                        <MenuItem value="open">开盘 open</MenuItem>
-                        <MenuItem value="close">收盘 close</MenuItem>
+                      <TextField select fullWidth size="small" label={withKey('Anchor', 'anchor')} value={job?.anchor ?? 'open'} onChange={(e) => setJob(i, 'anchor', e.target.value)} slotProps={{ inputLabel: { shrink: true } }}>
+                        <MenuItem value="open">{t('Open')} open</MenuItem>
+                        <MenuItem value="close">{t('Close (market)')} close</MenuItem>
                       </TextField>
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -340,7 +342,7 @@ export function SchedulesForm({ data, onChange }: FormProps) {
       })}
       <Box>
         <Button startIcon={<AddIcon />} variant="outlined" onClick={() => set(['jobs'], [...jobs, { pipeline: pipelines[0] ?? '', trigger: 'market_relative', anchor: 'open', offset_minutes: 30 }])}>
-          添加任务
+          {t('Add job')}
         </Button>
       </Box>
     </Stack>
@@ -363,14 +365,14 @@ export function AccountSyncForm({ data, onChange }: FormProps) {
           fullWidth
           size="small"
           sx={{ mt: 2 }}
-          label="只同步这些账户配置 accounts"
+          label={withKey('Only sync these account configs', 'accounts')}
           value={accounts}
           onChange={(e) => {
             const v = e.target.value as unknown as string[] | string;
             onChange({ ...data, accounts: typeof v === 'string' ? v.split(',') : v });
           }}
-          helperText="留空 = 所有流水线用到的账户。共用同一个 IBKR 账户的配置会合并成一次同步。"
-          slotProps={{ select: { multiple: true, renderValue: (v) => ((v as string[]).length ? (v as string[]).join(', ') : '全部') } }}
+          helperText={t('Empty = every account a pipeline uses. Configs sharing one IBKR account are merged into one sync.')}
+          slotProps={{ select: { multiple: true, renderValue: (v) => ((v as string[]).length ? (v as string[]).join(', ') : t('All')) } }}
         >
           {known.map((n) => (
             <MenuItem key={n} value={n}>
@@ -379,8 +381,8 @@ export function AccountSyncForm({ data, onChange }: FormProps) {
           ))}
         </TextField>
         <Alert severity="info" sx={{ mt: 2 }}>
-          同步使用独立的 API 连接（账户 client_id + 4），不会和正在运行的流水线冲突。设置在下一次检查时生效（约 15 秒），无需重启。
-          同步结果和历史见 <RouterLink to="/account-sync">账户同步</RouterLink> 页面。
+          {t('Sync uses its own API connection (account client_id + 4), so it never conflicts with running pipelines. Settings take effect at the next check (about 15 s) without a restart.')}{' '}
+          {t('Results and history are on the')} <RouterLink to="/account-sync">{t('Account sync')}</RouterLink> {t('page.')}
         </Alert>
       </CardContent>
     </Card>

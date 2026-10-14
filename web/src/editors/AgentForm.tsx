@@ -10,9 +10,10 @@ import { AgentAvatar } from '../components/AgentAvatar';
 import { CodeEditor } from '../components/CodeEditor';
 import type { FormProps } from '../components/ConfigEditor';
 import { ErrorsContext, FieldEditor, SchemaFields } from '../components/SchemaForm';
-import { ROLE_LABEL } from '../lib/labels';
+import { roleLabel, withKey } from '../lib/labels';
 import { normalize, objectFields } from '../lib/schema';
 import { setIn } from '../lib/yamlDoc';
+import { t } from '../i18n';
 
 export function AgentForm({ data, onChange, name }: FormProps) {
   const { data: meta } = useMeta();
@@ -40,23 +41,23 @@ export function AgentForm({ data, onChange, name }: FormProps) {
         <CardContent>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <TextField fullWidth size="small" label="Agent ID agent_id" value={data.agent_id ?? ''} disabled error={data.agent_id !== name} helperText={data.agent_id !== name ? `必须等于文件名 ${name}` : '等于文件名'} />
+              <TextField fullWidth size="small" label="Agent ID agent_id" value={data.agent_id ?? ''} disabled error={data.agent_id !== name} helperText={data.agent_id !== name ? t('Must equal the file name {name}', { name }) : t('Equals the file name')} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <TextField
                 select
                 fullWidth
                 size="small"
-                label="角色 role"
+                label={withKey('Role', 'role')}
                 value={data.role ?? ''}
                 onChange={(e) => set(['role'], e.target.value)}
                 error={!!errors.role}
-                helperText={errors.role ?? '决定能用于哪个阶段'}
+                helperText={errors.role ?? t('Decides which stage it can be used in')}
                 slotProps={{ inputLabel: { shrink: true } }}
               >
                 {meta.agent_roles.map((r) => (
                   <MenuItem key={r} value={r}>
-                    {ROLE_LABEL[r] ?? r} <Typography component="span" variant="caption" sx={{ ml: 1, fontFamily: 'monospace' }}>{r}</Typography>
+                    {roleLabel(r)} <Typography component="span" variant="caption" sx={{ ml: 1, fontFamily: 'monospace' }}>{r}</Typography>
                   </MenuItem>
                 ))}
               </TextField>
@@ -69,14 +70,14 @@ export function AgentForm({ data, onChange, name }: FormProps) {
                 select
                 fullWidth
                 size="small"
-                label="实现 impl"
+                label={withKey('Implementation', 'impl')}
                 value={data.impl ?? ''}
                 onChange={(e) => set(['impl'], e.target.value || undefined)}
-                helperText="留空 = 与角色同名的实现"
+                helperText={t('Empty = the implementation named after the role')}
                 slotProps={{ inputLabel: { shrink: true } }}
               >
                 <MenuItem value="">
-                  <em>默认（{data.role ?? '角色'}）</em>
+                  <em>{t('Default ({value})', { value: data.role ?? t('role') })}</em>
                 </MenuItem>
                 {meta.registry.agents.map((a) => (
                   <MenuItem key={a} value={a}>
@@ -90,11 +91,11 @@ export function AgentForm({ data, onChange, name }: FormProps) {
                 select
                 fullWidth
                 size="small"
-                label="提示词模板 prompt_template"
+                label={withKey('Prompt template', 'prompt_template')}
                 value={data.prompt_template ?? ''}
                 onChange={(e) => set(['prompt_template'], e.target.value)}
                 error={!!errors.prompt_template}
-                helperText={errors.prompt_template ?? '相对 configs/agents/ 的路径'}
+                helperText={errors.prompt_template ?? t('Path relative to configs/agents/')}
                 slotProps={{ inputLabel: { shrink: true } }}
               >
                 {prompts.map((p) => (
@@ -102,16 +103,16 @@ export function AgentForm({ data, onChange, name }: FormProps) {
                     {p}
                   </MenuItem>
                 ))}
-                {data.prompt_template && !prompts.includes(data.prompt_template) && <MenuItem value={data.prompt_template}>{data.prompt_template}（不存在）</MenuItem>}
+                {data.prompt_template && !prompts.includes(data.prompt_template) && <MenuItem value={data.prompt_template}>{data.prompt_template} ({t('missing')})</MenuItem>}
               </TextField>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
               <Button size="small" onClick={() => setShowTemplate(!showTemplate)} disabled={!templateName}>
-                {showTemplate ? '隐藏模板' : '预览模板'}
+                {showTemplate ? t('Hide template') : t('Preview template')}
               </Button>
               {templateName && (
                 <Button size="small" endIcon={<OpenInNewIcon />} component={RouterLink} to={`/configs/prompts/${templateName}`}>
-                  编辑模板
+                  {t('Edit template')}
                 </Button>
               )}
             </Grid>
@@ -121,12 +122,12 @@ export function AgentForm({ data, onChange, name }: FormProps) {
                 <TextField
                   fullWidth
                   size="small"
-                  label="头像 avatar"
+                  label={withKey('Avatar', 'avatar')}
                   placeholder="https://..."
                   value={data.avatar ?? ''}
                   onChange={(e) => set(['avatar'], e.target.value.trim() || undefined)}
                   error={!!errors.avatar}
-                  helperText={errors.avatar ?? '图片地址（http/https），只在控制台显示；留空则显示按角色着色的名字缩写'}
+                  helperText={errors.avatar ?? t('Image URL (http/https), shown only in the console; empty shows initials colored by role')}
                   slotProps={{ inputLabel: { shrink: true } }}
                 />
               </Stack>
@@ -143,7 +144,7 @@ export function AgentForm({ data, onChange, name }: FormProps) {
       <Card variant="outlined">
         <CardContent>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
-            人设与策略
+            {t('Persona and strategy')}
           </Typography>
           <Stack spacing={2}>
             <FieldEditor name="persona" field={schema.properties!.persona} value={data.persona} path={['persona']} required onChange={(v) => set(['persona'], v)} />
@@ -152,10 +153,10 @@ export function AgentForm({ data, onChange, name }: FormProps) {
               multiline
               minRows={3}
               size="small"
-              label="策略说明 params.instructions"
+              label={withKey('Strategy instructions', 'params.instructions')}
               value={params.instructions ?? ''}
               onChange={(e) => set(['params', 'instructions'], e.target.value || undefined)}
-              helperText="插入到提示词模板的 {{ instructions }}"
+              helperText={t('Inserted into {{ instructions }} in the prompt template')}
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <FieldEditor
@@ -172,16 +173,16 @@ export function AgentForm({ data, onChange, name }: FormProps) {
       <Card variant="outlined">
         <CardContent>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            默认模型（可选）
+            {t('Default model (optional)')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            通常在流水线里实例化 agent 时选择模型；这里设置的是没有指定时的默认值。
+            {t('The model is usually chosen when a pipeline instantiates the agent; this sets the default when none is given.')}
           </Typography>
           {data.model ? (
             <Box>
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField select fullWidth size="small" label="LLM 供应商 provider" value={data.model.provider ?? ''} onChange={(e) => set(['model', 'provider'], e.target.value || undefined)} slotProps={{ inputLabel: { shrink: true } }}>
+                  <TextField select fullWidth size="small" label={withKey('LLM provider', 'provider')} value={data.model.provider ?? ''} onChange={(e) => set(['model', 'provider'], e.target.value || undefined)} slotProps={{ inputLabel: { shrink: true } }}>
                     {providers.map((p) => (
                       <MenuItem key={p} value={p}>
                         {p}
@@ -195,12 +196,12 @@ export function AgentForm({ data, onChange, name }: FormProps) {
               </Grid>
               <SchemaFields field={modelSchema} value={data.model} path={['model']} columns={4} onChange={(v) => set(['model'], { provider: data.model.provider, name: data.model.name, ...(v ?? {}) })} />
               <Button size="small" color="error" sx={{ mt: 1 }} onClick={() => set(['model'], undefined)}>
-                移除默认模型
+                {t('Remove default model')}
               </Button>
             </Box>
           ) : (
             <Button size="small" variant="outlined" onClick={() => set(['model'], { provider: providers[0] ?? 'anthropic', name: '' })}>
-              设置默认模型
+              {t('Set default model')}
             </Button>
           )}
           {errors.model && (

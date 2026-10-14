@@ -1,7 +1,8 @@
 [project]
 name = "quant-selection"
 version = "0.1.0"
-description = "选股：候选来源（固定列表 / IBKR 扫描器）+ 量化初筛 + 多 agent 选股与聚合"
+description = "Stock selection: candidate sources (static list / IBKR scanner) + quantitative screen + multi-agent picking and aggregation"
+license = "AGPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

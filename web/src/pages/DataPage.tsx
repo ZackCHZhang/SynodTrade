@@ -27,38 +27,39 @@ import { api, type ColumnInfo, type Filter } from '../api/client';
 import { useMeta } from '../api/hooks';
 import { JsonView, PageHeader } from '../components/common';
 import { fmtTime } from '../lib/format';
+import { locale, t } from '../i18n';
 
 const TABLE_LABEL: Record<string, string> = {
-  instruments: '证券',
-  market_bars: 'K 线',
-  quote_snapshots: '报价快照',
-  account_snapshots: '账户快照',
-  position_snapshots: '持仓快照',
-  pipeline_runs: '流水线运行',
-  agent_instances: 'Agent 实例',
-  llm_calls: 'LLM 调用',
-  selection_results: '选股结果（agent）',
-  stock_selections: '选股结果（聚合）',
-  sentiment_items: '舆情原始条目',
-  sentiment_results: '舆情结果',
-  decisions: '决策（agent）',
-  aggregated_decisions: '决策（聚合）',
-  risk_assessments: '风控评估',
-  orders: '订单',
-  fills: '成交',
-  system_flags: '系统开关',
+  instruments: 'Instruments',
+  market_bars: 'Bars',
+  quote_snapshots: 'Quote snapshots',
+  account_snapshots: 'Account snapshots',
+  position_snapshots: 'Position snapshots',
+  pipeline_runs: 'Pipeline runs',
+  agent_instances: 'Agent instances',
+  llm_calls: 'LLM calls',
+  selection_results: 'Selection results (agent)',
+  stock_selections: 'Selection results (aggregated)',
+  sentiment_items: 'Raw sentiment items',
+  sentiment_results: 'Sentiment results',
+  decisions: 'Decisions (agent)',
+  aggregated_decisions: 'Decisions (aggregated)',
+  risk_assessments: 'Risk assessments',
+  orders: 'Orders',
+  fills: 'Fills',
+  system_flags: 'System flags',
 };
 
 const OPS: [string, string][] = [
   ['eq', '='],
   ['ne', '≠'],
-  ['contains', '包含'],
+  ['contains', 'contains'],
   ['gt', '>'],
   ['gte', '≥'],
   ['lt', '<'],
   ['lte', '≤'],
-  ['is_null', '为空'],
-  ['not_null', '非空'],
+  ['is_null', 'is empty'],
+  ['not_null', 'is not empty'],
 ];
 
 function renderCell(value: any, col: ColumnInfo) {
@@ -113,7 +114,7 @@ export function DataPage() {
         headerName: c.name,
         width: c.kind === 'uuid' ? 120 : c.kind === 'datetime' ? 170 : c.kind === 'json' || c.name === 'text' ? 260 : c.kind === 'string' ? 160 : 110,
         renderCell: (p) => renderCell(p.value, c),
-        description: `${c.kind}${c.primary_key ? ' · 主键' : ''}${c.foreign_key ? ` · → ${c.foreign_key}` : ''}`,
+        description: `${c.kind}${c.primary_key ? ` · ${t('primary key')}` : ''}${c.foreign_key ? ` · → ${c.foreign_key}` : ''}`,
       })),
     [info],
   );
@@ -124,13 +125,13 @@ export function DataPage() {
   return (
     <Box>
       <PageHeader
-        title="数据库"
-        subtitle="所有表的原始数据（只读）。点击行查看完整内容。"
+        title={t('Database')}
+        subtitle={t('Raw data of every table (read-only). Click a row to see its full content.')}
         actions={
           meta?.offline_db && (
             <ToggleButtonGroup size="small" exclusive value={db} onChange={(_, v) => v && setParams({ table, db: v })}>
-              <ToggleButton value="main">正式数据库</ToggleButton>
-              <ToggleButton value="offline">离线沙盒</ToggleButton>
+              <ToggleButton value="main">{t('Main database')}</ToggleButton>
+              <ToggleButton value="offline">{t('Offline sandbox')}</ToggleButton>
             </ToggleButtonGroup>
           )
         }
@@ -139,14 +140,14 @@ export function DataPage() {
         <Grid size={{ xs: 12, md: 3, lg: 2.4 }}>
           <Paper variant="outlined">
             <List dense disablePadding sx={{ maxHeight: 'calc(100vh - 180px)', overflow: 'auto' }}>
-              {(tables.data ?? []).map((t) => (
-                <ListItemButton key={t.name} selected={t.name === table} onClick={() => setParams({ table: t.name, db })}>
+              {(tables.data ?? []).map((tb) => (
+                <ListItemButton key={tb.name} selected={tb.name === table} onClick={() => setParams({ table: tb.name, db })}>
                   <ListItemText
-                    primary={TABLE_LABEL[t.name] ?? t.name}
-                    secondary={t.name}
+                    primary={TABLE_LABEL[tb.name] ? t(TABLE_LABEL[tb.name]) : tb.name}
+                    secondary={tb.name}
                     slotProps={{ secondary: { sx: { fontFamily: 'monospace', fontSize: 11 } } }}
                   />
-                  <Chip size="small" label={t.rows.toLocaleString()} variant="outlined" />
+                  <Chip size="small" label={tb.rows.toLocaleString(locale())} variant="outlined" />
                 </ListItemButton>
               ))}
             </List>
@@ -157,28 +158,28 @@ export function DataPage() {
             {filters.map((f, i) => (
               <Chip
                 key={i}
-                label={`${f.column} ${OPS.find((o) => o[0] === f.op)?.[1]} ${f.value ?? ''}`}
+                label={`${f.column} ${t(OPS.find((o) => o[0] === f.op)?.[1] ?? f.op)} ${f.value ?? ''}`}
                 onDelete={() => setFilters(filters.filter((_, j) => j !== i))}
                 color="primary"
                 variant="outlined"
               />
             ))}
-            <TextField select size="small" label="列" value={draft.column} onChange={(e) => setDraft({ ...draft, column: e.target.value })} sx={{ minWidth: 150 }}>
+            <TextField select size="small" label={t('Column')} value={draft.column} onChange={(e) => setDraft({ ...draft, column: e.target.value })} sx={{ minWidth: 150 }}>
               {(info?.columns ?? []).map((c) => (
                 <MenuItem key={c.name} value={c.name}>
                   {c.name}
                 </MenuItem>
               ))}
             </TextField>
-            <TextField select size="small" label="条件" value={draft.op} onChange={(e) => setDraft({ ...draft, op: e.target.value })} sx={{ width: 100 }}>
+            <TextField select size="small" label={t('Condition')} value={draft.op} onChange={(e) => setDraft({ ...draft, op: e.target.value })} sx={{ width: 100 }}>
               {OPS.map(([v, l]) => (
                 <MenuItem key={v} value={v}>
-                  {l}
+                  {t(l)}
                 </MenuItem>
               ))}
             </TextField>
             {!['is_null', 'not_null'].includes(draft.op) && (
-              <TextField size="small" label="值" value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })} sx={{ width: 200 }} />
+              <TextField size="small" label={t('Value')} value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })} sx={{ width: 200 }} />
             )}
             <Button
               size="small"
@@ -190,7 +191,7 @@ export function DataPage() {
                 setDraft({ column: draft.column, op: 'eq', value: '' });
               }}
             >
-              添加过滤
+              {t('Add filter')}
             </Button>
           </Stack>
           {rows.error && (
@@ -228,7 +229,7 @@ export function DataPage() {
             </Typography>
             {runId && (
               <Button size="small" onClick={() => navigate(`/runs/${runId}`)}>
-                打开运行
+                {t('Open run')}
               </Button>
             )}
             <IconButton onClick={() => setSelected(null)}>

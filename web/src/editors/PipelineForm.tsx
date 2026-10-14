@@ -30,9 +30,10 @@ import { useConfigs, useMeta } from '../api/hooks';
 import { AgentRefsEditor } from '../components/AgentRefs';
 import type { FormProps } from '../components/ConfigEditor';
 import { ErrorsContext, FieldEditor, SchemaFields, pathKey } from '../components/SchemaForm';
-import { STAGE_INFO, label, stageLabel } from '../lib/labels';
+import { STAGE_INFO, label, stageDesc, stageLabel, withKey } from '../lib/labels';
 import { normalize, objectFields } from '../lib/schema';
 import { setIn } from '../lib/yamlDoc';
+import { t } from '../i18n';
 
 const STAGE_TEMPLATES: Record<string, any> = {
   selection: { type: 'selection', sources: [], agents: [], aggregation: { method: 'weighted_score', top_n: 5 } },
@@ -74,23 +75,23 @@ export function PipelineForm({ data, onChange, name }: FormProps) {
       <Card variant="outlined">
         <CardContent>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
-            基本设置
+            {t('Basics')}
           </Typography>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <TextField fullWidth size="small" label="名称 name" value={data.name ?? ''} disabled helperText={data.name !== name ? `必须等于文件名 ${name}` : '等于文件名'} error={data.name !== name} />
+              <TextField fullWidth size="small" label={withKey('Name', 'name')} value={data.name ?? ''} disabled helperText={data.name !== name ? t('Must equal the file name {name}', { name }) : t('Equals the file name')} error={data.name !== name} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <FieldEditor name="mode" field={pipelineSchema.properties!.mode} value={data.mode} path={['mode']} onChange={(v) => set(['mode'], v)} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <TextField select fullWidth size="small" label="账户 account" value={data.account ?? ''} onChange={(e) => set(['account'], e.target.value)} slotProps={{ inputLabel: { shrink: true } }} helperText="configs/accounts/">
+              <TextField select fullWidth size="small" label={withKey('Account', 'account')} value={data.account ?? ''} onChange={(e) => set(['account'], e.target.value)} slotProps={{ inputLabel: { shrink: true } }} helperText="configs/accounts/">
                 {accounts.map((a) => (
                   <MenuItem key={a} value={a}>
                     {a}
                   </MenuItem>
                 ))}
-                {data.account && !accounts.includes(data.account) && <MenuItem value={data.account}>{data.account}（不存在）</MenuItem>}
+                {data.account && !accounts.includes(data.account) && <MenuItem value={data.account}>{data.account} ({t('missing')})</MenuItem>}
               </TextField>
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -115,7 +116,7 @@ export function PipelineForm({ data, onChange, name }: FormProps) {
           </Grid>
           {data.mode === 'live' && (
             <Alert severity="error" sx={{ mt: 2 }}>
-              live 模式使用真实资金；只有服务器设置了 QUANT_ALLOW_LIVE=1 才能运行。
+              {t('live mode uses real money; it only runs if the server sets QUANT_ALLOW_LIVE=1.')}
             </Alert>
           )}
         </CardContent>
@@ -163,10 +164,10 @@ function StageFlow({ meta, stages, onAdd, onJump }: { meta: Meta; stages: any[];
       <CardContent>
         <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            流程
+            {t('Flow')}
           </Typography>
           <Button size="small" startIcon={<AddIcon />} disabled={!missing.length} onClick={(e) => setAnchor(e.currentTarget)}>
-            添加阶段
+            {t('Add stage')}
           </Button>
           <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
             {missing.map((t) => (
@@ -211,10 +212,10 @@ function StageFlow({ meta, stages, onAdd, onJump }: { meta: Meta; stages: any[];
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 600, color: stage ? color : 'text.secondary' }}>
-                    {stage ? info?.label ?? n.type : `+ ${info?.label ?? n.type}`}
+                    {stage ? stageLabel(n.type) : `+ ${stageLabel(n.type)}`}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" component="div">
-                    {!stage ? '未配置' : !enabled ? '已禁用' : agents ? `${agents} 个 agent 实例` : stage.on_error === 'skip' ? '失败跳过' : n.type}
+                    {!stage ? t('Not configured') : !enabled ? t('Disabled') : agents ? t('{n|agent instance|agent instances}', { n: agents }) : stage.on_error === 'skip' ? t('Skip on failure') : n.type}
                   </Typography>
                 </Paper>
               </Stack>
@@ -271,17 +272,17 @@ function StageCard({
       <Stack direction="row" sx={{ alignItems: 'center', px: 2, py: 1, gap: 1, cursor: 'pointer' }} onClick={onToggle}>
         <ExpandMoreIcon sx={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: '0.2s' }} />
         <Typography variant="subtitle1" sx={{ fontWeight: 600, color }}>
-          {index + 1}. {info?.label ?? type}
+          {index + 1}. {stageLabel(type)}
         </Typography>
         <Typography variant="caption" sx={{ fontFamily: 'monospace' }} color="text.secondary">
           {type}
         </Typography>
-        {!!stageErrors.length && <Chip size="small" color="error" variant="outlined" label={`${stageErrors.length} 个问题`} />}
+        {!!stageErrors.length && <Chip size="small" color="error" variant="outlined" label={t('{n|problem|problems}', { n: stageErrors.length })} />}
         <Box sx={{ flex: 1 }} />
         <Box onClick={(e) => e.stopPropagation()} sx={{ display: 'flex', alignItems: 'center' }}>
           <FormControlLabel
             control={<Switch size="small" checked={stage.enabled !== false} onChange={(e) => set('enabled', e.target.checked ? undefined : false)} />}
-            label={<Typography variant="body2">启用</Typography>}
+            label={<Typography variant="body2">{t('Enabled')}</Typography>}
           />
           <TextField
             select
@@ -292,24 +293,24 @@ function StageCard({
             label={label('on_error')}
             slotProps={{ inputLabel: { shrink: true } }}
           >
-            <MenuItem value="abort">abort 终止运行</MenuItem>
-            <MenuItem value="skip">skip 跳过继续</MenuItem>
+            <MenuItem value="abort">abort {t('stop the run')}</MenuItem>
+            <MenuItem value="skip">skip {t('skip and continue')}</MenuItem>
           </TextField>
-          <Tooltip title="上移">
+          <Tooltip title={t('Move up')}>
             <span>
               <IconButton size="small" disabled={index === 0} onClick={() => onMove(-1)}>
                 <ArrowUpwardIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="下移">
+          <Tooltip title={t('Move down')}>
             <span>
               <IconButton size="small" disabled={index === count - 1} onClick={() => onMove(1)}>
                 <ArrowDownwardIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="删除阶段">
+          <Tooltip title={t('Delete stage')}>
             <IconButton size="small" onClick={onRemove}>
               <DeleteOutlineIcon fontSize="small" />
             </IconButton>
@@ -320,7 +321,7 @@ function StageCard({
         <CardContent sx={{ pt: 0 }}>
           {info && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {info.desc}
+              {stageDesc(type)}
             </Typography>
           )}
           {errors[pathKey(base)] && (
@@ -336,15 +337,15 @@ function StageCard({
             {options && options.order && options.order.length > 0 && (
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>
-                  阶段选项
+                  {t('Stage options')}
                 </Typography>
                 <SchemaFields field={options} value={stage} path={base} onChange={(v) => onChange({ ...Object.fromEntries(Object.entries(stage).filter(([k]) => !options.order!.includes(k))), ...(v ?? {}) })} />
               </Box>
             )}
-            {!schema && <Alert severity="info">自定义阶段类型 {type}：没有可用的选项模型，请在 YAML 标签页编辑选项。</Alert>}
+            {!schema && <Alert severity="info">{t('Custom stage type {type}: no options model is available; edit its options on the YAML tab.', { type })}</Alert>}
             {!!unknown.length && (
               <Alert severity="warning">
-                未识别的选项（运行时会被忽略）：{unknown.join('、')}。可在 YAML 标签页修改。
+                {t('Unrecognized options (ignored at runtime): {list}. You can change them on the YAML tab.', { list: unknown.join(', ') })}
               </Alert>
             )}
           </Stack>
@@ -364,11 +365,11 @@ function RiskRulesSelect({ value, onChange, path }: { value: any; onChange: (v: 
       select
       size="small"
       sx={{ maxWidth: 360 }}
-      label="风控规则 rules"
+      label={withKey('Risk rules', 'rules')}
       value={value ?? 'default'}
       onChange={(e) => onChange(e.target.value === 'default' ? undefined : e.target.value)}
       error={!!err}
-      helperText={err ?? 'configs/risk/<名称>.yaml，硬规则先于风控 agent 执行'}
+      helperText={err ?? t('configs/risk/<name>.yaml; hard rules run before risk agents')}
       slotProps={{ inputLabel: { shrink: true } }}
     >
       {rules.map((r) => (
@@ -376,7 +377,7 @@ function RiskRulesSelect({ value, onChange, path }: { value: any; onChange: (v: 
           {r}
         </MenuItem>
       ))}
-      {value && !rules.includes(value) && <MenuItem value={value}>{value}（不存在）</MenuItem>}
+      {value && !rules.includes(value) && <MenuItem value={value}>{value} ({t('missing')})</MenuItem>}
     </TextField>
   );
 }
@@ -388,9 +389,9 @@ function CandidateSources({ meta, value, onChange, path }: { meta: Meta; value: 
   return (
     <Box>
       <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-        候选来源 sources
+        {t('Candidate sources')} sources
         <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-          流水线的 universe 也是候选来源（include_universe）
+          {t("The pipeline's universe is also a candidate source (include_universe)")}
         </Typography>
       </Typography>
       <Stack spacing={1}>
@@ -400,7 +401,7 @@ function CandidateSources({ meta, value, onChange, path }: { meta: Meta; value: 
           return (
             <Paper key={i} variant="outlined" sx={{ p: 1.5 }}>
               <Stack direction="row" spacing={1.5} sx={{ mb: 2, alignItems: 'center' }}>
-                <TextField select size="small" label="类型" value={s?.type ?? ''} sx={{ width: 200 }} onChange={(e) => update(i, { type: e.target.value })} slotProps={{ inputLabel: { shrink: true } }}>
+                <TextField select size="small" label={t('Type')} value={s?.type ?? ''} sx={{ width: 200 }} onChange={(e) => update(i, { type: e.target.value })} slotProps={{ inputLabel: { shrink: true } }}>
                   {types.map((t) => (
                     <MenuItem key={t} value={t}>
                       {t}
@@ -409,7 +410,7 @@ function CandidateSources({ meta, value, onChange, path }: { meta: Meta; value: 
                 </TextField>
                 <TextField
                   size="small"
-                  label="名称（可选，多个同类来源时必填）"
+                  label={t('Name (optional; required with several sources of the same type)')}
                   value={s?.name ?? ''}
                   sx={{ width: 280 }}
                   onChange={(e) => update(i, { ...s, name: e.target.value || undefined })}
@@ -434,7 +435,7 @@ function CandidateSources({ meta, value, onChange, path }: { meta: Meta; value: 
         })}
       </Stack>
       <Button size="small" startIcon={<AddIcon />} sx={{ mt: 1 }} onClick={() => onChange([...sources, { type: types.includes('ibkr_scanner') ? 'ibkr_scanner' : types[0] }])}>
-        添加来源
+        {t('Add source')}
       </Button>
     </Box>
   );
@@ -450,7 +451,7 @@ function SentimentSources({ meta, stage, base, set }: { meta: Meta; stage: any; 
   return (
     <Box>
       <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-        舆情来源 sources
+        {t('Sentiment sources')} sources
       </Typography>
       <Stack direction="row" sx={{ gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
         {all.map((src) => {
@@ -468,7 +469,7 @@ function SentimentSources({ meta, stage, base, set }: { meta: Meta; stage: any; 
         <Box sx={{ flex: 1 }} />
         {selected.map((src) => (
           <Button key={src} size="small" variant={open === src ? 'contained' : 'text'} onClick={() => setOpen(open === src ? null : src)}>
-            {src} 选项{options[src] ? ' •' : ''}
+            {src} {t('options')}{options[src] ? ' •' : ''}
           </Button>
         ))}
       </Stack>
@@ -480,7 +481,7 @@ function SentimentSources({ meta, stage, base, set }: { meta: Meta; stage: any; 
       {open && meta.schemas.sentiment_sources[open] && (
         <Paper variant="outlined" sx={{ p: 1.5, mt: 1.5 }}>
           <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>
-            {open} 的选项 source_options.{open}
+            {t('Options for {name}', { name: open })} source_options.{open}
           </Typography>
           <SchemaFields
             field={objectFields(meta.schemas.sentiment_sources[open])}

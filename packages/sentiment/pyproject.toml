@@ -1,7 +1,8 @@
 [project]
 name = "quant-sentiment"
 version = "0.1.0"
-description = "舆情：数据源采集（Reddit/Stocktwits）+ 多 agent 分析"
+description = "Sentiment: source collection (Reddit/Stocktwits) + multi-agent analysis"
+license = "AGPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
