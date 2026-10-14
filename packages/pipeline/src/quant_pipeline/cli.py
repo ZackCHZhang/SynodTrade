@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -26,6 +26,7 @@ from quant_core.envfile import load_env_file
 from quant_core.logging import configure_logging
 from quant_core.timeutil import to_utc
 from quant_database import DATABASE_URL_ENV, KILL_SWITCH, Database, Repositories
+from quant_pipeline.benchmark import build_curves, write_benchmark
 from quant_pipeline.runner import PipelineRunner, RunOptions
 
 app = typer.Typer(help="Multi-agent IBKR trading pipelines.", no_args_is_help=True)
@@ -147,6 +148,52 @@ def validate(
             failed = True
             typer.echo(f"invalid {name}:\n{exc}", err=True)
     raise typer.Exit(1 if failed else 0)
+
+
+@app.command()
+def benchmark(
+    pipeline: Annotated[
+        list[str] | None,
+        typer.Option("--pipeline", "-p", help="pipeline to include (repeatable); default: all"),
+    ] = None,
+    out: Annotated[Path, typer.Option("--out", help="output folder")] = Path("benchmark"),
+    end: Annotated[
+        str | None, typer.Option("--end", help="last day, YYYY-MM-DD (default: today)")
+    ] = None,
+    readme: Annotated[
+        list[Path] | None,
+        typer.Option("--readme", help="README to update between the benchmark markers"),
+    ] = None,
+    configs: ConfigsOption = Path("configs"),
+    db_url: DbOption = None,
+) -> None:
+    """Write the paper-trading benchmark (README pages, equity.svg, data.json) to --out.
+
+    Covers every pipeline that ran in paper or live mode, and updates the summary between
+    `<!-- benchmark:start -->` and `<!-- benchmark:end -->` in README.md and README.zh-CN.md.
+    """
+    url = _db_url(db_url, offline=False)
+    try:
+        last = date.fromisoformat(end) if end else None
+    except ValueError as exc:
+        raise typer.BadParameter(f"--end: not a date: {end!r}") from exc
+    readmes = readme if readme is not None else [Path("README.md"), Path("README.zh-CN.md")]
+
+    async def main() -> list[Path]:
+        db = Database(url)
+        try:
+            curves = await build_curves(
+                Repositories.create(db),
+                ConfigStore(configs, env=dict(os.environ)),
+                pipeline,
+                end=last,
+            )
+        finally:
+            await db.dispose()
+        return write_benchmark(curves, out, readmes=readmes)
+
+    for path in asyncio.run(main()):
+        typer.echo(f"wrote {path}")
 
 
 @app.command("kill-switch")

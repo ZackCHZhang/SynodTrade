@@ -16,6 +16,7 @@ quant run -p demo_all_modules --offline --offline-llm bullish --as-of 2026-09-30
 quant run -p long_term_stocks --as-of 2026-10-01T10:00:00-04:00   # no offset means UTC
 quant validate [-p NAME]                       # validate pipelines and everything they reference
 quant kill-switch on --reason "..." | off | status
+quant benchmark                                # paper-trading benchmark into ./benchmark (see below)
 quant --env-file other.env run -p ...          # ./.env is read by default (never overrides variables already set)
 ```
 
@@ -59,6 +60,20 @@ These modules are replaced by fakes; everything else runs exactly as in a normal
 | Sentiment sources | a few synthetic posts and headlines per symbol (marked `synthetic` in metadata); the sentiment agents run too |
 | LLM | `schema_reply` returns valid output for the requested schema. Selection agents pick the first three candidates. Default `--offline-llm neutral`: every decision is HOLD, no orders; `--offline-llm bullish`: decisions buy, so the risk agents and order flow run as well |
 | Broker | DryRunBroker (orders recorded, never sent, never filled) |
+
+## Paper-trading benchmark (`quant benchmark`)
+
+Publishes how the pipelines actually did on their paper (or live) accounts:
+
+```bash
+quant benchmark                                  # every pipeline that ran in paper/live mode
+quant benchmark -p long_term_stocks --end 2026-12-31 --out benchmark
+```
+
+- Each pipeline's curve starts on the day of its first paper/live run at `budget.max_capital`. Every exchange session, its fills up to that day are booked with the same arithmetic as the trading ledger (`LedgerState.apply_fill`, commissions included) and open positions are valued at that day's daily close. Dry-run and offline runs never count.
+- The benchmark is the pipeline's `benchmark` symbol (SPY by default), indexed to the same base day. Reported: return, benchmark return, excess return, max drawdown, Sharpe and volatility (from 20 sessions), CAGR (from 60 sessions), fills, sells at a profit, realised P&L, commissions.
+- Writes `README.md` / `README.zh-CN.md`, `equity.svg` (light and dark) and `data.json` (the daily series) to `--out`, and refreshes the summary between `<!-- benchmark:start -->` and `<!-- benchmark:end -->` in `./README.md` and `./README.zh-CN.md` (`--readme` picks other files). Commit the result to publish it.
+- Daily bars come from the database: run a `data_update` stage (or a pipeline with one) first so the closes are current.
 
 ## Running tests
 

@@ -1,8 +1,15 @@
 <div align="center">
 
-# quant-system
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg">
+    <img alt="SynodTrade" src="docs/assets/wordmark-light.svg" height="72">
+  </picture>
+</h1>
 
-**A multi-agent LLM trading system for Interactive Brokers, built for safety, auditability and plain YAML configuration.**
+**A synod of AI agents that deliberates before every trade.**
+
+A multi-agent LLM trading system for Interactive Brokers, built for safety, auditability and plain YAML configuration.
 
 Teams of LLM agents pick stocks, read the crowd, vote on trades and check each other's risk,<br>
 while deterministic code holds the money, enforces the hard limits and places the orders.
@@ -17,7 +24,7 @@ while deterministic code holds the money, enforces the hard limits and places th
 
 **English** | [简体中文](README.zh-CN.md)
 
-[Features](#-features) · [How it works](#-how-it-works) · [Quick start](#-quick-start) · [Web console](#-web-console) · [Configuration](#-configuration) · [Development](#-development) · [License](#-license)
+[Features](#-features) · [How it works](#-how-it-works) · [Benchmark](#-paper-benchmark) · [Quick start](#-quick-start) · [Web console](#-web-console) · [Configuration](#-configuration) · [Development](#-development) · [License](#-license)
 
 </div>
 
@@ -69,12 +76,20 @@ core ← database ← {market_data, selection, sentiment, decision, risk, tradin
 
 Business packages never import each other. They cooperate through protocols in `quant_core.interfaces`, and the pipeline injects the implementations ([import-linter](https://github.com/seddonym/import-linter) checks this in CI).
 
+## 📊 Paper benchmark
+
+SynodTrade publishes its own track record. Every pipeline that trades an IBKR paper account gets a daily equity curve built from its real paper fills, measured against its benchmark (SPY by default). `poetry run quant benchmark` regenerates the [`benchmark/`](benchmark/README.md) folder (pages, chart and raw data) and the summary below.
+
+<!-- benchmark:start -->
+No paper-trading results published yet.
+<!-- benchmark:end -->
+
 ## 🚀 Quick start
 
 Requirements: **Python 3.12**, **Poetry 2.x**, and Node.js ≥ 20 for the web console.
 
 ```bash
-git clone https://github.com/ZackCHZhang/ROOT.git quant-system && cd quant-system
+git clone https://github.com/ZackCHZhang/ROOT.git synodtrade && cd synodtrade
 python tasks.py install                                   # one shared .venv, every package editable
 
 poetry run quant validate                                 # validate everything under configs/
@@ -189,7 +204,7 @@ By submitting a contribution you agree to the project's [Contributor License Agr
 
 Copyright (C) 2026 ZackCHZhang
 
-quant-system is free software, licensed under the **[GNU Affero General Public License v3.0 or later](LICENSE)** (AGPL-3.0-or-later). In short:
+SynodTrade is free software, licensed under the **[GNU Affero General Public License v3.0 or later](LICENSE)** (AGPL-3.0-or-later). In short:
 
 - You can use, study, modify and share it, including for commercial purposes.
 - If you distribute it, or let other people use a modified version **over a network** (for example as a hosted service built on the web console), you must make the complete corresponding source code of your version available to them under the same license. Running it privately for your own trading creates no such obligation.
