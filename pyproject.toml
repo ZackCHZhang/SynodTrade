@@ -6,6 +6,7 @@
 name = "quant-system"
 version = "0.1.0"
 description = "Multi-agent quantitative trading system on IBKR (monorepo dev environment)"
+license = "AGPL-3.0-or-later"
 requires-python = ">=3.12,<3.13"
 
 [tool.poetry]

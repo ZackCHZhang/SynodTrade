@@ -13,10 +13,11 @@
 ![Ruff](https://img.shields.io/badge/lint-ruff-D7FF64?logo=ruff&logoColor=black)
 ![React 19](https://img.shields.io/badge/web-React%2019%20%2B%20MUI-61DAFB?logo=react&logoColor=black)
 ![IBKR](https://img.shields.io/badge/broker-Interactive%20Brokers-D71920)
+[![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](LICENSE)
 
 [English](README.md) | **简体中文**
 
-[特性](#-特性) · [工作原理](#-工作原理) · [快速开始](#-快速开始) · [Web 控制台](#-web-控制台) · [配置](#-配置) · [开发](#-开发)
+[特性](#-特性) · [工作原理](#-工作原理) · [快速开始](#-快速开始) · [Web 控制台](#-web-控制台) · [配置](#-配置) · [开发](#-开发) · [许可证](#-许可证)
 
 </div>
 
@@ -104,7 +105,7 @@ poetry run quant-web serve          # http://127.0.0.1:8765
 - **调度器与账户同步**：启停调度器、查看运行计划、健康检查、立即同步账户。
 - **数据**：持仓与账户快照、关注列表、行情图表，以及所有数据表的只读浏览。
 
-界面支持 **English**（默认）和 **简体中文**，点顶栏的语言按钮切换。
+界面支持 **English**（默认）和 **简体中文**，点顶栏的语言按钮切换。旁边的 GitHub 按钮链接到源代码，这是 AGPL 对通过网络使用的软件的要求。
 
 > [!CAUTION]
 > 控制台没有登录且能下单，只监听本机，不要暴露到网络上。
@@ -181,3 +182,21 @@ tasks.py     跨平台任务入口
 ## 🤝 参与贡献
 
 欢迎提 issue 和 pull request。提交 PR 前请运行 `python tasks.py check`；如果改动了 Web 控制台，再在 `web/` 下运行 `npm run typecheck && npm run i18n:check`。新的界面文字要用 `t()` 包起来，并在 `web/src/i18n/zh.ts` 中添加中文（见 [`web/README.zh-CN.md`](web/README.zh-CN.md#多语言)）。
+
+提交贡献即表示你同意本项目的[贡献者许可协议](CLA.md)（CLA，英文）。CLA 让维护者既能以 AGPL 发布本项目，**也**能另外提供商业授权（见下文）；你贡献的代码版权仍归你所有。第一次提交 pull request 时，CLA 机器人会请你签署。
+
+## 📄 许可证
+
+Copyright (C) 2026 ZackCHZhang
+
+quant-system 是自由软件，采用 **[GNU Affero 通用公共许可证 v3.0 或更高版本](LICENSE)**（AGPL-3.0-or-later）。简单来说：
+
+- 你可以使用、研究、修改和分享它，包括用于商业目的。
+- 如果你分发它，或者让其他人**通过网络**使用你修改过的版本（例如基于 Web 控制台搭建的托管服务），就必须以同一许可证向这些人提供你这个版本的完整源代码。只是自己私下运行、用于自己的交易，没有这项义务。
+- 本软件**不提供任何担保**，它下的每一笔交易都由你自己负责。
+
+如果 AGPL 不适合你（例如想基于本项目做闭源产品或服务），可以获得商业授权：请在 GitHub 上提 issue 或联系维护者。
+
+Interactive Brokers、IBKR、TWS 和 IB Gateway 是 Interactive Brokers LLC 的商标。本项目是独立项目，与 Interactive Brokers 没有任何关联，也未获其认可或赞助。
+
+<sub>许可证以英文原文为准，以上中文说明仅供理解。</sub>
