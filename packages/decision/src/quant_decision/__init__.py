@@ -1,4 +1,4 @@
-"""决策 agent、技术指标计算、多 agent 决策聚合"""
+"""Decision agents, technical indicators, multi-agent decision aggregation"""
 
 from quant_decision.agent import DecisionAgent, DecisionOutput
 from quant_decision.aggregation import (

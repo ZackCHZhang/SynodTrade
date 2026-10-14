@@ -1,7 +1,7 @@
 [project]
 name = "quant-pipeline"
 version = "0.1.0"
-description = "主流程编排：从 YAML 构建流水线、多实例化、失败策略、CLI"
+description = "Orchestration: build pipelines from YAML, multi-instance stages, failure policies, CLI"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

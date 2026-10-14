@@ -309,14 +309,16 @@ class ConfigFiles:
         except yaml.YAMLError as exc:
             mark = getattr(exc, "problem_mark", None)
             line = mark.line + 1 if mark is not None else None
-            diag.error(f"YAML 语法错误: {exc}", line=line)
+            diag.error(f"YAML syntax error: {exc}", line=line)
             return diag
         if not isinstance(data, dict):
-            diag.error("文件内容必须是一个映射（key: value）")
+            diag.error("File content must be a mapping (key: value)")
             return diag
         missing = _missing_env(data, self.env)
         if missing:
-            diag.warn(f"环境变量未设置: {', '.join(sorted(missing))}（运行时会失败）")
+            diag.warn(
+                f"Environment variables not set: {', '.join(sorted(missing))} (the run will fail)"
+            )
         env = {**{n: "1" for n in missing}, **self.env}
         try:
             data = interpolate_env(data, env)
@@ -324,7 +326,7 @@ class ConfigFiles:
             diag.error(str(exc))
             return diag
         if kind.key is not None and data.get(kind.key) != name:
-            diag.error(f"{kind.key} 必须等于文件名 {name!r}", [kind.key])
+            diag.error(f"{kind.key} must equal the file name {name!r}", [kind.key])
         if kind.name == "pipelines":
             self._validate_pipeline(data, diag)
         elif kind.name == "agents":
@@ -345,7 +347,7 @@ class ConfigFiles:
         try:
             ast = env.parse(text)
         except jinja2.TemplateSyntaxError as exc:
-            diag.error(f"模板语法错误: {exc.message}", line=exc.lineno)
+            diag.error(f"Template syntax error: {exc.message}", line=exc.lineno)
             return
         diag.info["variables"] = sorted(jinja2.meta.find_undeclared_variables(ast))
 
@@ -359,27 +361,34 @@ class ConfigFiles:
         risk_rules = set(self.names(KINDS["risk"]))
         providers = self._provider_names()
         if pipeline is not None and pipeline.account not in accounts:
-            diag.error(f"账户 {pipeline.account!r} 不存在（configs/accounts/）", ["account"])
+            diag.error(
+                f"Account {pipeline.account!r} does not exist (configs/accounts/)", ["account"]
+            )
         for i, stage in enumerate(stages):
             if not isinstance(stage, dict):
                 continue
             loc: Loc = ["stages", i]
             stype = stage.get("type")
             if stype not in known_stages:
-                diag.error(f"未知的阶段类型 {stype!r}（可用: {sorted(known_stages)}）", loc)
+                diag.error(f"Unknown stage type {stype!r} (available: {sorted(known_stages)})", loc)
                 continue
             options_model = STAGE_OPTIONS.get(str(stype))
             if options_model is not None:
                 _check(options_model, stage, diag, loc)
                 allowed = set(options_model.model_fields) | set(STAGE_COMMON_KEYS)
                 for key in sorted(set(stage) - allowed):
-                    diag.warn(f"阶段 {stype} 不认识的选项 {key!r}（会被忽略）", [*loc, key])
+                    diag.warn(
+                        f"Stage {stype} has unknown option {key!r} (it will be ignored)",
+                        [*loc, key],
+                    )
             if stype == "selection":
                 self._validate_candidate_sources(stage.get("sources") or [], diag, loc)
             if stype == "sentiment":
                 self._validate_sentiment_sources(stage, diag, loc)
             if stype == "risk" and stage.get("rules", "default") not in risk_rules:
-                diag.error(f"风控规则 {stage.get('rules', 'default')!r} 不存在", [*loc, "rules"])
+                diag.error(
+                    f"Risk rules {stage.get('rules', 'default')!r} do not exist", [*loc, "rules"]
+                )
             self._validate_agent_refs(str(stype), stage.get("agents") or [], providers, diag, loc)
 
     def _validate_candidate_sources(self, sources: Any, diag: Diagnostics, loc: Loc) -> None:
@@ -392,7 +401,7 @@ class ConfigFiles:
             sloc: Loc = [*loc, "sources", j]
             stype = source.get("type")
             if stype not in known:
-                diag.error(f"未知的候选来源 {stype!r}（可用: {sorted(known)}）", sloc)
+                diag.error(f"Unknown candidate source {stype!r} (available: {sorted(known)})", sloc)
                 continue
             model = CANDIDATE_SOURCE_OPTIONS.get(str(stype))
             if model is not None:
@@ -406,7 +415,8 @@ class ConfigFiles:
         for j, source in enumerate(stage.get("sources") or []):
             if source not in known:
                 diag.error(
-                    f"未知的舆情来源 {source!r}（可用: {sorted(known)}）", [*loc, "sources", j]
+                    f"Unknown sentiment source {source!r} (available: {sorted(known)})",
+                    [*loc, "sources", j],
                 )
         options = stage.get("source_options") or {}
         if not isinstance(options, dict):
@@ -416,7 +426,9 @@ class ConfigFiles:
             if model is not None and isinstance(values, dict):
                 _check(model, values, diag, [*loc, "source_options", source])
             elif source not in known:
-                diag.warn(f"source_options 中的 {source!r} 不是已知来源", [*loc, "source_options"])
+                diag.warn(
+                    f"{source!r} in source_options is not a known source", [*loc, "source_options"]
+                )
 
     def _validate_agent_refs(
         self,
@@ -430,7 +442,7 @@ class ConfigFiles:
             return
         role = STAGE_AGENT_ROLE.get(stage_type)
         if refs and role is None:
-            diag.warn(f"阶段 {stage_type} 不使用 agent", [*loc, "agents"])
+            diag.warn(f"Stage {stage_type} does not use agents", [*loc, "agents"])
         for j, ref in enumerate(refs):
             if not isinstance(ref, dict):
                 continue
@@ -438,28 +450,28 @@ class ConfigFiles:
             agent_id = ref.get("agent")
             data = self.load_data("agents", agent_id) if isinstance(agent_id, str) else None
             if not isinstance(data, dict):
-                diag.error(f"agent {agent_id!r} 不存在或无法读取", [*rloc, "agent"])
+                diag.error(f"Agent {agent_id!r} does not exist or cannot be read", [*rloc, "agent"])
                 continue
             try:
                 agent = AgentConfig.model_validate(data)
             except ValidationError:
-                diag.error(f"agent {agent_id!r} 的配置无效", [*rloc, "agent"])
+                diag.error(f"Agent {agent_id!r} has an invalid config", [*rloc, "agent"])
                 continue
             if role is not None and agent.role is not role:
                 diag.error(
-                    f"阶段 {stage_type} 需要 {role.value} 角色的 agent，"
-                    f"{agent_id} 是 {agent.role.value}",
+                    f"Stage {stage_type} needs an agent with role {role.value}, "
+                    f"but {agent_id} is {agent.role.value}",
                     [*rloc, "agent"],
                 )
             try:
                 parsed = AgentRef.model_validate(ref)
                 model = resolve_model(agent, parsed.model)
             except (ValidationError, ValueError) as exc:
-                diag.error(f"agent {agent_id}: 模型配置无效: {exc}", [*rloc, "model"])
+                diag.error(f"Agent {agent_id}: invalid model config: {exc}", [*rloc, "model"])
                 continue
             if providers is not None and model.provider not in providers:
                 diag.error(
-                    f"LLM 供应商 {model.provider!r} 未在 llm_providers.yaml 中定义",
+                    f"LLM provider {model.provider!r} is not defined in llm_providers.yaml",
                     [*rloc, "model", "provider"],
                 )
 
@@ -475,10 +487,13 @@ class ConfigFiles:
             return
         template = self.root / "agents" / agent.prompt_template
         if not template.is_file():
-            diag.error(f"提示词模板 {agent.prompt_template} 不存在", ["prompt_template"])
+            diag.error(
+                f"Prompt template {agent.prompt_template} does not exist", ["prompt_template"]
+            )
         if agent.registry_key not in AGENTS.names():
             diag.error(
-                f"实现 {agent.registry_key!r} 未注册（可用: {AGENTS.names()}）",
+                f"Implementation {agent.registry_key!r} is not registered "
+                f"(available: {AGENTS.names()})",
                 ["impl" if agent.impl else "role"],
             )
 
@@ -489,7 +504,8 @@ class ConfigFiles:
         for name, provider in config.providers.items():
             if provider.api_key_env and not self.env.get(provider.api_key_env):
                 diag.warn(
-                    f"{name}: 环境变量 {provider.api_key_env} 未设置（用到它的 agent 会失败）",
+                    f"{name}: environment variable {provider.api_key_env} is not set "
+                    "(agents using it will fail)",
                     ["providers", name, "api_key_env"],
                 )
 
@@ -500,7 +516,9 @@ class ConfigFiles:
         pipelines = set(self.names(KINDS["pipelines"]))
         for i, job in enumerate(data.get("jobs") or []):
             if isinstance(job, dict) and job.get("pipeline") not in pipelines:
-                diag.error(f"流水线 {job.get('pipeline')!r} 不存在", ["jobs", i, "pipeline"])
+                diag.error(
+                    f"Pipeline {job.get('pipeline')!r} does not exist", ["jobs", i, "pipeline"]
+                )
 
     def _validate_account_sync(self, data: dict[str, Any], diag: Diagnostics) -> None:
         config = _check(KIND_MODELS["account_sync"], data, diag, [])
@@ -509,7 +527,7 @@ class ConfigFiles:
         accounts = set(self.names(KINDS["accounts"]))
         for i, name in enumerate(config.accounts):
             if name not in accounts:
-                diag.error(f"账户 {name!r} 不存在（configs/accounts/）", ["accounts", i])
+                diag.error(f"Account {name!r} does not exist (configs/accounts/)", ["accounts", i])
 
     # ------------------------------------------------------------ write
 
@@ -547,7 +565,7 @@ class ConfigFiles:
             raise NotFoundError(f"{kind.name} {name!r} not found")
         current = path.read_text(encoding="utf-8")
         if expected_etag is not None and etag(current) != expected_etag:
-            raise ConflictError("文件已被其他人或程序修改，请重新加载后再保存")
+            raise ConflictError("The file was modified by someone else; reload it before saving")
         self._guard(kind, name, text, force)
         if text != current:
             self._backup(path)
@@ -579,6 +597,10 @@ class ConfigFiles:
 
     def _guard(self, kind: ConfigKind, name: str, text: str, force: bool) -> None:
         diag = self.validate(kind.name, name, text)
-        syntax = [p for p in diag.errors if p.message.startswith(("YAML 语法错误", "模板语法错误"))]
+        syntax = [
+            p
+            for p in diag.errors
+            if p.message.startswith(("YAML syntax error", "Template syntax error"))
+        ]
         if syntax or (diag.errors and not force):
             raise InvalidConfigError(diag)

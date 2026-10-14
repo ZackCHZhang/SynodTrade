@@ -1,7 +1,7 @@
 [project]
 name = "quant-database"
 version = "0.1.0"
-description = "数据库管理：ORM 模型、Repository、Alembic 迁移"
+description = "Database layer: ORM models, repositories, Alembic migrations"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

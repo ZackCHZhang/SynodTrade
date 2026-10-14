@@ -65,21 +65,21 @@ class ConfigKind:
 KINDS: dict[str, ConfigKind] = {
     k.name: k
     for k in (
-        ConfigKind("pipelines", "流水线", folder="pipelines", key="name"),
+        ConfigKind("pipelines", "Pipelines", folder="pipelines", key="name"),
         ConfigKind("agents", "Agent", folder="agents", key="agent_id"),
         ConfigKind(
             "prompts",
-            "提示词模板",
+            "Prompt templates",
             folder="agents/prompts",
             ext=".j2",
             name_pattern=PROMPT_NAME,
             yaml=False,
         ),
-        ConfigKind("accounts", "账户", folder="accounts", key="name"),
-        ConfigKind("risk", "风控规则", folder="risk", key="name"),
-        ConfigKind("llm_providers", "LLM 供应商", file="llm_providers.yaml"),
-        ConfigKind("schedules", "调度", file="schedules.yaml"),
-        ConfigKind("account_sync", "账户同步", file="account_sync.yaml"),
+        ConfigKind("accounts", "Accounts", folder="accounts", key="name"),
+        ConfigKind("risk", "Risk rules", folder="risk", key="name"),
+        ConfigKind("llm_providers", "LLM providers", file="llm_providers.yaml"),
+        ConfigKind("schedules", "Schedules", file="schedules.yaml"),
+        ConfigKind("account_sync", "Account sync", file="account_sync.yaml"),
     )
 }
 

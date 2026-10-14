@@ -1,4 +1,4 @@
-"""共享基础：数据模型、接口协议、LLM 客户端、配置加载、日志、注册表"""
+"""Shared foundation: data models, protocols, LLM client, config loading, logging, registries"""
 
 __version__ = "0.1.0"
 

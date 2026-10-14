@@ -1,43 +1,43 @@
-# 演示流水线：一个配置文件用到全部 6 个阶段和所有模块，方便快速检查整条链路。
-# 先选股（从候选池 + IBKR 扫描器里挑 3 只），后面的阶段只处理选出的股票和已有持仓。
+# Demo pipeline: one config that uses all 6 stages and every module, to check the whole chain quickly.
+# It selects stocks first (3 picks from the universe + IBKR scanner); later stages only handle the picks and existing holdings.
 #
-#   离线试跑（无需网关、API key，不联网）：
+#   Offline trial run (no gateway, no API keys, no network):
 #     quant run -p demo_all_modules --offline --offline-llm bullish --as-of 2026-09-30T14:00:00Z
-#   真实数据 + 真实 LLM，只记录订单不下单：
+#   Real data + real LLM, orders are recorded but not placed:
 #     quant run -p demo_all_modules --dry-run
-#   真实数据 + 真实 LLM + TWS paper 账户下单：
+#   Real data + real LLM + orders placed on the TWS paper account:
 #     quant run -p demo_all_modules --paper
 #
-# 默认 mode: dry_run；只有加 --paper 才会向 paper 账户下单，永远不会碰真实资金。
-# 模型：DeepSeek（configs/llm_providers.yaml 的 deepseek，key 放在 .env 的 DEEPSEEK_API_KEY）。
+# Default mode: dry_run; only --paper places orders on the paper account, never on real money.
+# Model: DeepSeek (deepseek in configs/llm_providers.yaml; put the key in DEEPSEEK_API_KEY in .env).
 
 name: demo_all_modules
-mode: paper                 # dry_run | paper | live（live 还需要 QUANT_ALLOW_LIVE=1）
+mode: paper                 # dry_run | paper | live (live also needs QUANT_ALLOW_LIVE=1)
 account: ibkr_main            # configs/accounts/ibkr_main.yaml
-# 有 selection 阶段时，universe 是选股的候选池；这里关掉了（include_universe: false），
-# 候选全部来自全市场扫描器，这个列表只作备用
+# With a selection stage, universe is the candidate pool; it is switched off here (include_universe: false),
+# so all candidates come from the market-wide scanner and this list is only a fallback
 universe: [AAPL, MSFT, NVDA, AMZN, GOOGL, META, JPM, V, COST, LLY]
-benchmark: SPY                # 大盘基准：市场状态、beta、相对强弱（data_update 自动更新它的日线）
+benchmark: SPY                # market benchmark: market regime, beta, relative strength (data_update refreshes its daily bars)
 budget:
-  max_capital: 10000          # 这条流水线自己的虚拟子账本资金
+  max_capital: 10000          # capital of this pipeline's own virtual sub-ledger
 sizing:
-  buy_base: available_cash    # 买入档按可用现金的 15% / 30%
+  buy_base: available_cash    # buy tiers are 15% / 30% of available cash
   min_one_lot_on_sell: true
 
 stages:
-  # 0. 选股：全市场扫描（4 个榜单）+ 关注列表 -> 量化初筛 -> 选股 agent 各自挑 -> 聚合取前 3
-  #    -> 前 3 名加入关注列表（10 天没再被选中就移出，最多 12 只），后面阶段处理整个关注列表
+  # 0. Selection: market-wide scan (4 scan lists) + watchlist -> quant screen -> each selection agent picks -> aggregate top 3
+  #    -> the top 3 join the watchlist (dropped after 10 days without being picked again, at most 12); later stages handle the whole watchlist
   - type: selection
-    include_universe: false      # 不用上面固定的 universe，候选全部来自扫描器
+    include_universe: false      # ignore the static universe above; all candidates come from the scanner
     sources:
       - { type: ibkr_scanner,
           scan_codes: [MOST_ACTIVE, TOP_PERC_GAIN, HOT_BY_VOLUME, HIGH_VS_52W_HL],
           rows: 15, above_price: 10,
-          market_cap_above: 2000,                   # 市值单位：百万美元（20 亿美元以上）
-          stock_type: CORP }                        # 只要普通股，排除 ETF
+          market_cap_above: 2000,                   # market cap in millions of USD (above $2B)
+          stock_type: CORP }                        # common stock only, no ETFs
     screen: { min_price: 5, min_avg_dollar_volume: 20000000, max_candidates: 25 }
     watchlist: { enabled: true, max_age_days: 10, max_size: 12 }
-    fundamentals: true           # 初筛后的候选拉取 SEC EDGAR 基本面（需要 .env 的 SEC_EDGAR_USER_AGENT）
+    fundamentals: true           # fetch SEC EDGAR fundamentals for screened candidates (needs SEC_EDGAR_USER_AGENT in .env)
     agents:
       - { agent: momentum_screener,  count: 1, weight: 1.0,
           model: { provider: deepseek, name: deepseek-chat } }
@@ -48,16 +48,16 @@ stages:
       - { agent: shareholder_yield_screen, count: 1, model: { provider: deepseek, name: deepseek-chat } }
     aggregation: { method: weighted_score, top_n: 3, min_score: 0.2 }
     max_picks_per_agent: 5
-    keep_holdings: true          # 已持有的股票始终保留，落选后仍可卖出
-    fallback: previous           # agent 全部失败时沿用上次选股
+    keep_holdings: true          # holdings always stay, so they can still be sold after dropping out
+    fallback: previous           # if every agent fails, reuse the previous selection
 
-  # 1. 行情：IBKR 历史日线（只补缺失部分）、报价快照、账户与持仓快照
+  # 1. Market data: IBKR daily history (only missing bars), quote snapshots, account and position snapshots
   - type: data_update
     timeframes: [1d]
-    lookback_days: 400          # 超过一年的交易日：52 周 / 1 年指标需要
-    fundamentals: true          # 持仓等不在候选里的股票也补上基本面
+    lookback_days: 400          # more than a year of trading days: needed by 52-week / 1-year indicators
+    fundamentals: true          # also fetch fundamentals for holdings and other symbols that were not candidates
 
-  # 2. 舆情：三个数据源 + 两个舆情 agent；失败时跳过，不影响后续
+  # 2. Sentiment: three sources + two sentiment agents; skipped on failure without affecting later stages
   - type: sentiment
     on_error: skip
     sources: [reddit, stocktwits, ibkr_news]
@@ -67,8 +67,8 @@ stages:
       - { agent: retail_mood,     count: 1, model: { provider: deepseek, name: deepseek-chat } }
       - { agent: event_extractor, count: 1, model: { provider: deepseek, name: deepseek-chat } }
 
-  # 3. 决策：与选股风格一致的趋势 / 动量型 agent 为主，价值型只作估值刹车（权重 0.5）
-  #    HOLD 票按一半权重计（hold_weight: 0.5）："没看到我的形态"不应该完全抵消别人的买入票
+  # 3. Decision: mostly trend / momentum agents matching the selection style; the value agent only acts as a valuation brake (weight 0.5)
+  #    HOLD votes count at half weight (hold_weight: 0.5): "I don't see my setup" should not fully cancel other agents' buy votes
   - type: decision
     agents:
       - { agent: trend_follower, count: 1, weight: 1.0,
@@ -83,7 +83,7 @@ stages:
     bars_lookback: 260
     history_limit: 5
 
-  # 4. 风控：先硬规则（configs/risk/default.yaml），再风控 agent（只能降低风险）
+  # 4. Risk: hard rules first (configs/risk/default.yaml), then risk agents (can only reduce risk)
   - type: risk
     rules: default
     agents:
@@ -92,13 +92,13 @@ stages:
       - { agent: liquidity_checker, count: 1, model: { provider: deepseek, name: deepseek-chat } }
       - { agent: volatility_position_sizer, count: 1,
           model: { provider: deepseek, name: deepseek-chat } }
-    # median：取三个风控 agent 结论的中位数（平局取更保守的一方），一个反对不再一票否决；
-    # 风控 agent 数量保持奇数，偶数时较低中位数仍偏保守
+    # median: take the median of the three risk agents' verdicts (ties go to the more conservative side), so one objection is no longer a veto;
+    # keep an odd number of risk agents; with an even number the lower median still leans conservative
     combine: median
     on_agent_failure: reject
 
-  # 5. 交易：限价单，幂等下单，跟踪到成交/撤销（dry_run 时只记录）
+  # 5. Trading: limit orders, idempotent placement, tracked until filled/cancelled (dry_run only records)
   - type: trading
     order_type: limit
-    limit_offset_bps: 25        # 行情延迟约 15 分钟：限价放宽到 0.25%，更容易成交
-    cancel_after_minutes: 5     # 测试用：5 分钟未成交就撤单
+    limit_offset_bps: 25        # quotes are ~15 min delayed: widen the limit by 0.25% so it fills more easily
+    cancel_after_minutes: 5     # for testing: cancel if not filled within 5 minutes

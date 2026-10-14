@@ -1,4 +1,4 @@
-"""行情/账户数据更新（IBKR 历史 K 线、实时快照、账户与持仓）"""
+"""Market/account data updates (IBKR historical bars, live snapshots, account and positions)"""
 
 from quant_market_data.fake import (
     FakeFundamentalsRefresher,
