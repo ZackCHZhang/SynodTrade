@@ -71,7 +71,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, []);
   useEffect(() => {
     document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
-    document.title = t('Quant Console');
+    document.title = 'SynodTrade';
   }, [lang]);
   const value = useMemo(() => ({ lang, setLang }), [lang, setLang]);
   return (

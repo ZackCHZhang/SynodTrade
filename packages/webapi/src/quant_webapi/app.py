@@ -520,7 +520,7 @@ def create_app(settings: WebSettings) -> FastAPI:
             if web.offline_db is not None:
                 await web.offline_db.dispose()
 
-    app = FastAPI(title="quant-system web", lifespan=lifespan)
+    app = FastAPI(title="SynodTrade web console", lifespan=lifespan)
     app.include_router(api)
 
     @app.exception_handler(NotFoundError)
