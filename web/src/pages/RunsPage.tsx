@@ -12,6 +12,7 @@ import { ModeChip, StatusChip } from '../components/StatusChip';
 import { PageHeader } from '../components/common';
 import { fmtDuration, fmtTime, shortId } from '../lib/format';
 import { STAGE_INFO, stageLabel } from '../lib/labels';
+import { t } from '../i18n';
 
 export function StageDots({ run }: { run: RunLight }) {
   const stages = run.stages_run ?? [];
@@ -49,16 +50,16 @@ export function ActiveJobs({ jobs }: { jobs: Job[] }) {
               <Typography sx={{ fontWeight: 600 }}>{j.pipeline}</Typography>
               <ModeChip mode={j.request.offline ? 'dry_run' : j.request.mode} offline={j.request.offline} />
               <Typography variant="body2" color="text.secondary">
-                已运行 {fmtDuration(j.created_at, null)}
+                {t('Running for {d}', { d: fmtDuration(j.created_at, null) })}
               </Typography>
               <Box sx={{ flex: 1 }} />
               {j.run_id && (
                 <Button size="small" component={RouterLink} to={`/runs/${j.run_id}`}>
-                  查看进度
+                  {t('View progress')}
                 </Button>
               )}
               <Button size="small" color="error" startIcon={<StopIcon />} onClick={() => cancel.mutate(j.id)}>
-                取消
+                {t('Cancel')}
               </Button>
             </Stack>
           </CardContent>
@@ -87,15 +88,15 @@ export function RunsPage() {
   const rejected = (jobs.data ?? []).filter((j) => j.status === 'error').slice(0, 3);
 
   const columns: GridColDef<RunLight>[] = [
-    { field: 'status', headerName: '状态', width: 120, renderCell: (p) => <StatusChip status={p.row.live ? 'running' : p.value} /> },
-    { field: 'pipeline_name', headerName: '流水线', width: 170 },
-    { field: 'mode', headerName: '模式', width: 130, renderCell: (p) => <ModeChip mode={p.value} offline={p.row.offline} /> },
-    { field: 'stages', headerName: '阶段', width: 150, sortable: false, renderCell: (p) => <StageDots run={p.row} /> },
-    { field: 'started_at', headerName: '开始', width: 165, valueFormatter: (v) => fmtTime(v as string, true) },
-    { field: 'duration', headerName: '耗时', width: 100, sortable: false, valueGetter: (_v, r) => fmtDuration(r.started_at, r.ended_at) },
+    { field: 'status', headerName: t('Status'), width: 120, renderCell: (p) => <StatusChip status={p.row.live ? 'running' : p.value} /> },
+    { field: 'pipeline_name', headerName: t('Pipeline'), width: 170 },
+    { field: 'mode', headerName: t('Mode'), width: 130, renderCell: (p) => <ModeChip mode={p.value} offline={p.row.offline} /> },
+    { field: 'stages', headerName: t('Stages'), width: 150, sortable: false, renderCell: (p) => <StageDots run={p.row} /> },
+    { field: 'started_at', headerName: t('Started'), width: 165, valueFormatter: (v) => fmtTime(v as string, true) },
+    { field: 'duration', headerName: t('Duration'), width: 100, sortable: false, valueGetter: (_v, r) => fmtDuration(r.started_at, r.ended_at) },
     {
       field: 'orders',
-      headerName: '决策 / 订单',
+      headerName: t('Decisions / orders'),
       flex: 1,
       minWidth: 220,
       sortable: false,
@@ -109,48 +110,48 @@ export function RunsPage() {
               orders.map(([sym, st]) => <Chip key={sym} size="small" label={`${sym} ${st}`} variant="outlined" />)
             ) : (
               <Typography variant="body2" color="text.secondary">
-                {Object.keys(s.final_decisions ?? {}).length} 个决策，无订单
+                {t('{n|decision|decisions}, no orders', { n: Object.keys(s.final_decisions ?? {}).length })}
               </Typography>
             )}
           </Stack>
         );
       },
     },
-    { field: 'error', headerName: '错误', flex: 1, minWidth: 160 },
+    { field: 'error', headerName: t('Error'), flex: 1, minWidth: 160 },
     { field: 'run_id', headerName: 'Run', width: 100, valueFormatter: (v) => shortId(v as string) },
   ];
 
   return (
     <Box>
       <PageHeader
-        title="运行记录"
-        subtitle="数据库中所有流水线运行（含 CLI 和调度器启动的）；本服务内启动的运行可以实时查看日志"
+        title={t('Runs')}
+        subtitle={t('Every pipeline run in the database (including CLI and scheduler runs); runs started by this server stream live logs')}
         actions={
           <Button variant="contained" startIcon={<PlayArrowIcon />} onClick={() => setRunning(true)}>
-            运行流水线
+            {t('Run pipeline')}
           </Button>
         }
       />
       <ActiveJobs jobs={jobs.data ?? []} />
       {rejected.map((j) => (
         <Alert key={j.id} severity="error" sx={{ mb: 1 }}>
-          {fmtTime(j.created_at, true)} {j.pipeline}：{j.error}
+          {fmtTime(j.created_at, true)} {j.pipeline}: {j.error}
         </Alert>
       ))}
       <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-        <TextField select size="small" label="流水线" value={pipeline} onChange={(e) => setPipeline(e.target.value)} sx={{ minWidth: 200 }}>
-          <MenuItem value="">全部</MenuItem>
+        <TextField select size="small" label={t('Pipeline')} value={pipeline} onChange={(e) => setPipeline(e.target.value)} sx={{ minWidth: 200 }}>
+          <MenuItem value="">{t('All')}</MenuItem>
           {pipelines.map((p) => (
             <MenuItem key={p} value={p}>
               {p}
             </MenuItem>
           ))}
         </TextField>
-        <TextField select size="small" label="状态" value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 140 }}>
-          <MenuItem value="">全部</MenuItem>
-          <MenuItem value="running">运行中</MenuItem>
-          <MenuItem value="succeeded">成功</MenuItem>
-          <MenuItem value="failed">失败</MenuItem>
+        <TextField select size="small" label={t('Status')} value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 140 }}>
+          <MenuItem value="">{t('All')}</MenuItem>
+          <MenuItem value="running">{t('Running')}</MenuItem>
+          <MenuItem value="succeeded">{t('Succeeded')}</MenuItem>
+          <MenuItem value="failed">{t('Failed')}</MenuItem>
         </TextField>
         {meta?.offline_db && (
           <ToggleButtonGroup
@@ -164,8 +165,8 @@ export function RunsPage() {
               }
             }}
           >
-            <ToggleButton value="main">正式数据库</ToggleButton>
-            <ToggleButton value="offline">离线沙盒</ToggleButton>
+            <ToggleButton value="main">{t('Main database')}</ToggleButton>
+            <ToggleButton value="offline">{t('Offline sandbox')}</ToggleButton>
           </ToggleButtonGroup>
         )}
       </Stack>

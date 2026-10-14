@@ -1,4 +1,4 @@
-"""数据库管理：ORM 模型、Repository、Alembic 迁移"""
+"""Database layer: ORM models, repositories, Alembic migrations"""
 
 from quant_database.engine import DATABASE_URL_ENV, Database
 from quant_database.records import (

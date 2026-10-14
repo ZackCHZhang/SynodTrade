@@ -38,6 +38,7 @@ import { applyJson, parseYaml } from '../lib/yamlDoc';
 import { CodeEditor } from './CodeEditor';
 import { ConfirmDialog, PageHeader } from './common';
 import { ErrorsContext } from './SchemaForm';
+import { t } from '../i18n';
 
 export interface FormProps {
   data: any;
@@ -122,7 +123,7 @@ export function ConfigEditor({
       if (err instanceof ApiError && err.status === 409) setConflict(true);
       if (err instanceof ApiError && err.status === 422) {
         const d = err.body?.diagnostics as Diagnostics;
-        const syntax = d.errors.some((e) => e.message.includes('语法错误'));
+        const syntax = d.errors.some((e) => e.message.includes('syntax error'));
         setSaveProblem({ diagnostics: d, syntax });
       }
     },
@@ -194,14 +195,14 @@ export function ConfigEditor({
         title={
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             <span>{kindInfo?.single ? kindInfo.label : name}</span>
-            {dirty && <Chip size="small" color="warning" label="未保存" />}
+            {dirty && <Chip size="small" color="warning" label={t('Unsaved')} />}
             {validation.isFetching ? (
               <CircularProgress size={16} />
             ) : diagnostics ? (
               diagnostics.ok ? (
-                <Chip size="small" color="success" variant="outlined" icon={<CheckCircleOutlineIcon />} label={warnCount ? `有效 · ${warnCount} 警告` : '有效'} />
+                <Chip size="small" color="success" variant="outlined" icon={<CheckCircleOutlineIcon />} label={warnCount ? t('Valid · {n|warning|warnings}', { n: warnCount }) : t('Valid')} />
               ) : (
-                <Chip size="small" color="error" variant="outlined" icon={<ErrorOutlineIcon />} label={`${errorCount} 个错误`} />
+                <Chip size="small" color="error" variant="outlined" icon={<ErrorOutlineIcon />} label={t('{n|error|errors}', { n: errorCount })} />
               )
             ) : null}
           </Stack>
@@ -213,20 +214,20 @@ export function ConfigEditor({
             {!kindInfo?.single && (
               <>
                 <Button size="small" startIcon={<ContentCopyIcon />} onClick={() => setCopyName(`${name}_copy`)}>
-                  复制
+                  {t('Duplicate')}
                 </Button>
                 <Button size="small" color="error" startIcon={<DeleteOutlineIcon />} onClick={() => setConfirmDelete(true)}>
-                  删除
+                  {t('Delete')}
                 </Button>
               </>
             )}
             <Button size="small" startIcon={<RefreshIcon />} disabled={!dirty} onClick={() => setText(file.data!.text)}>
-              放弃修改
+              {t('Discard changes')}
             </Button>
             <Tooltip title="Ctrl+S">
               <span>
                 <Button variant="contained" size="small" startIcon={<SaveIcon />} disabled={!dirty || save.isPending} onClick={() => save.mutate(false)}>
-                  保存
+                  {t('Save')}
                 </Button>
               </span>
             </Tooltip>
@@ -248,11 +249,11 @@ export function ConfigEditor({
                 setConflict(false);
               }}
             >
-              重新加载（丢弃本地修改）
+              {t('Reload (discard local changes)')}
             </Button>
           }
         >
-          文件在你编辑期间被其他程序或页面修改了，保存已取消。
+          {t('The file was changed by another program or page while you were editing; the save was cancelled.')}
         </Alert>
       )}
       {save.error && !(save.error instanceof ApiError && [409, 422].includes(save.error.status)) && (
@@ -267,12 +268,12 @@ export function ConfigEditor({
           action={
             !saveProblem.syntax && (
               <Button color="inherit" size="small" onClick={() => save.mutate(true)}>
-                仍然保存
+                {t('Save anyway')}
               </Button>
             )
           }
         >
-          <AlertTitle>配置校验失败，未保存</AlertTitle>
+          <AlertTitle>{t('Config validation failed; not saved')}</AlertTitle>
           {saveProblem.diagnostics.errors.map((e, i) => (
             <div key={i}>{e.message}</div>
           ))}
@@ -283,13 +284,13 @@ export function ConfigEditor({
         <Grid size={{ xs: 12, lg: side ? 8.5 : 9 }}>
           {Form && (
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
-              <Tab value="form" label="可视化编辑" />
+              <Tab value="form" label={t('Visual editor')} />
               <Tab value="yaml" label="YAML" />
             </Tabs>
           )}
           {tab === 'form' && Form ? (
             parsed?.error ? (
-              <Alert severity="error">YAML 有语法错误，请先在 YAML 标签页修复：{parsed.error}</Alert>
+              <Alert severity="error">{t('The YAML has a syntax error; fix it on the YAML tab first: {error}', { error: parsed.error })}</Alert>
             ) : (
               <ErrorsContext.Provider value={errorsByPath}>
                 {formError && (
@@ -312,7 +313,7 @@ export function ConfigEditor({
               <Card variant="outlined">
                 <CardContent>
                   <Typography variant="subtitle2" gutterBottom>
-                    被引用
+                    {t('Referenced by')}
                   </Typography>
                   <List dense disablePadding>
                     {file.data.used_by.map((u) => {
@@ -339,27 +340,27 @@ export function ConfigEditor({
 
       <ConfirmDialog
         open={confirmDelete}
-        title={`删除 ${kind}/${name}？`}
+        title={t('Delete {path}?', { path: `${kind}/${name}` })}
         danger
-        confirmText="删除"
+        confirmText={t('Delete')}
         onClose={() => setConfirmDelete(false)}
         onConfirm={() => {
           setConfirmDelete(false);
           remove.mutate();
         }}
       >
-        <Typography>文件会先备份到 configs/.web_backups/ 再删除。</Typography>
+        <Typography>{t('The file is backed up to configs/.web_backups/ before it is deleted.')}</Typography>
         {!!file.data?.used_by.length && (
           <Alert severity="warning" sx={{ mt: 2 }}>
-            仍被引用：{file.data.used_by.join('，')}。删除后这些配置会校验失败。
+            {t('Still referenced by: {list}. These configs will fail validation after the delete.', { list: file.data.used_by.join(', ') })}
           </Alert>
         )}
       </ConfirmDialog>
 
       <ConfirmDialog
         open={copyName !== null}
-        title="复制为新文件"
-        confirmText="创建"
+        title={t('Duplicate as new file')}
+        confirmText={t('Create')}
         onClose={() => setCopyName(null)}
         onConfirm={() => copyName && duplicate.mutate(copyName)}
       >
@@ -368,10 +369,10 @@ export function ConfigEditor({
           fullWidth
           size="small"
           sx={{ mt: 1 }}
-          label="新名称"
+          label={t('New name')}
           value={copyName ?? ''}
           onChange={(e) => setCopyName(e.target.value)}
-          helperText={kindInfo ? `格式 ${kindInfo.name_pattern}` : undefined}
+          helperText={kindInfo ? t('Format {pattern}', { pattern: kindInfo.name_pattern }) : undefined}
         />
         {duplicate.error && (
           <Alert severity="error" sx={{ mt: 2 }}>
@@ -382,13 +383,13 @@ export function ConfigEditor({
 
       <ConfirmDialog
         open={blocker.state === 'blocked'}
-        title="有未保存的修改"
-        confirmText="离开并丢弃"
+        title={t('Unsaved changes')}
+        confirmText={t('Leave and discard')}
         danger
         onClose={() => blocker.reset?.()}
         onConfirm={() => blocker.proceed?.()}
       >
-        <Typography>离开此页面会丢失未保存的修改。</Typography>
+        <Typography>{t('Leaving this page loses your unsaved changes.')}</Typography>
       </ConfirmDialog>
     </Box>
   );
@@ -401,12 +402,12 @@ export function DiagnosticsCard({ diagnostics }: { diagnostics: Diagnostics | nu
     <Card variant="outlined">
       <CardContent>
         <Typography variant="subtitle2" gutterBottom>
-          校验结果
+          {t('Validation')}
         </Typography>
         {!errors.length && !warnings.length && (
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center', color: 'success.main' }}>
             <CheckCircleOutlineIcon fontSize="small" />
-            <Typography variant="body2">与运行时使用的模型一致，可以运行</Typography>
+            <Typography variant="body2">{t('Matches the runtime model; ready to run')}</Typography>
           </Stack>
         )}
         <Stack spacing={1}>
@@ -414,7 +415,7 @@ export function DiagnosticsCard({ diagnostics }: { diagnostics: Diagnostics | nu
             <Stack key={`e${i}`} direction="row" spacing={1}>
               <ErrorOutlineIcon fontSize="small" color="error" sx={{ mt: '2px' }} />
               <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
-                {e.line ? `第 ${e.line} 行：` : ''}
+                {e.line ? t('Line {line}: ', { line: e.line }) : ''}
                 {e.message}
               </Typography>
             </Stack>
@@ -431,7 +432,7 @@ export function DiagnosticsCard({ diagnostics }: { diagnostics: Diagnostics | nu
         {diagnostics.info?.variables && (
           <Box sx={{ mt: 1.5 }}>
             <Typography variant="caption" color="text.secondary">
-              模板变量
+              {t('Template variables')}
             </Typography>
             <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
               {(diagnostics.info.variables as string[]).map((v) => (

@@ -26,6 +26,7 @@ import { parse as parseYamlText } from 'yaml';
 import { type Field, formatDefault } from '../lib/schema';
 import { help, label } from '../lib/labels';
 import { toYaml } from '../lib/yamlDoc';
+import { t } from '../i18n';
 
 export type Path = (string | number)[];
 export const pathKey = (p: Path) => p.join('.');
@@ -57,8 +58,8 @@ function FieldLabel({ name }: { name: string | number }) {
 function helperText(name: string | number, field: Field, error?: string): React.ReactNode {
   if (error) return error;
   const parts = [help(name)];
-  if (field.hasDefault && field.default !== undefined && typeof field.default !== 'object') parts.push(`默认 ${formatDefault(field.default)}`);
-  if (field.default === null && field.nullable) parts.push('默认不限制');
+  if (field.hasDefault && field.default !== undefined && typeof field.default !== 'object') parts.push(t('Default {value}', { value: formatDefault(field.default) }));
+  if (field.default === null && field.nullable) parts.push(t('No limit by default'));
   return parts.filter(Boolean).join(' · ') || undefined;
 }
 
@@ -192,7 +193,7 @@ function EnumInput({ name, field, value, onChange, path, required }: { name: str
     >
       {!required && (
         <MenuItem value={unset}>
-          <em>{field.hasDefault ? `默认（${formatDefault(field.default)}）` : '未设置'}</em>
+          <em>{field.hasDefault ? t('Default ({value})', { value: formatDefault(field.default) }) : t('Not set')}</em>
         </MenuItem>
       )}
       {field.nullable && <MenuItem value="__null__">null</MenuItem>}
@@ -218,14 +219,14 @@ function BooleanInput({ name, field, value, onChange, path }: { name: string | n
               <FieldLabel name={name} />
               {value === undefined && (
                 <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                  （默认）
+                  {t('(default)')}
                 </Typography>
               )}
             </Typography>
           }
         />
         {value !== undefined && field.hasDefault && (
-          <Tooltip title="恢复默认（从 YAML 中移除）">
+          <Tooltip title={t('Reset to default (remove from YAML)')}>
             <IconButton size="small" onClick={() => onChange(undefined)}>
               <RestartAltIcon fontSize="inherit" />
             </IconButton>
@@ -273,9 +274,9 @@ function ScalarList({ name, field, value, onChange, path, required }: { name: st
           {...params}
           size="small"
           label={<FieldLabel name={name} />}
-          placeholder={items.length ? '' : enumOptions ? '选择…' : '输入后回车'}
+          placeholder={items.length ? '' : enumOptions ? t('Choose…') : t('Type and press Enter')}
           error={!!error}
-          helperText={error ?? help(name) ?? (field.hasDefault && field.default ? `默认 ${formatDefault(field.default)}` : undefined)}
+          helperText={error ?? help(name) ?? (field.hasDefault && field.default ? t('Default {value}', { value: formatDefault(field.default) }) : undefined)}
           slotProps={{ ...params.slotProps, inputLabel: { shrink: true } }}
         />
       )}
@@ -308,7 +309,7 @@ function AnyInput({ name, value, onChange, path }: { name: string | number; valu
         }
       }}
       error={!!(error || bad)}
-      helperText={bad ?? error ?? 'YAML 片段'}
+      helperText={bad ?? error ?? t('YAML snippet')}
       slotProps={{ inputLabel: { shrink: true }, htmlInput: { style: { fontFamily: 'monospace', fontSize: 13 } } }}
     />
   );
@@ -349,7 +350,7 @@ function MapInput({ name, field, value, onChange, path }: { name: string | numbe
           </Stack>
         ))}
         <Stack direction="row" spacing={1}>
-          <TextField size="small" placeholder="新键名" value={newKey} onChange={(e) => setNewKey(e.target.value)} />
+          <TextField size="small" placeholder={t('New key')} value={newKey} onChange={(e) => setNewKey(e.target.value)} />
           <Button
             size="small"
             startIcon={<AddIcon />}
@@ -360,7 +361,7 @@ function MapInput({ name, field, value, onChange, path }: { name: string | numbe
               setNewKey('');
             }}
           >
-            添加
+            {t('Add')}
           </Button>
         </Stack>
       </Stack>
@@ -387,7 +388,7 @@ function ObjectList({ name, field, value, onChange, path }: { name: string | num
         ))}
         <Box>
           <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...items, {}])}>
-            添加
+            {t('Add')}
           </Button>
         </Box>
       </Stack>
@@ -417,7 +418,7 @@ export function FieldEditor({
   if (!field) {
     return (
       <Typography variant="body2" color="warning.main" sx={{ py: 1 }}>
-        {String(name)}：服务器的配置结构里没有这个字段。网页比后台服务新，请重启 quant-web serve。
+        {t("{name}: the server's config schema has no such field. The web page is newer than the backend; restart quant-web serve.", { name: String(name) })}
       </Typography>
     );
   }

@@ -1,7 +1,8 @@
 [project]
 name = "quant-webapi"
 version = "0.1.0"
-description = "Web 控制台后端：可视化编辑 configs/、启动流水线、实时进度、调度器、数据库浏览"
+description = "Web console backend: visual configs/ editing, pipeline launches, live progress, scheduler, database browser"
+license = "AGPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

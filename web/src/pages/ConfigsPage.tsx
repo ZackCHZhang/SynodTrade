@@ -31,8 +31,9 @@ import { AgentForm } from '../editors/AgentForm';
 import { AccountForm, AccountSyncForm, ProvidersForm, RiskForm, SchedulesForm } from '../editors/OtherForms';
 import { PipelineForm } from '../editors/PipelineForm';
 import { fmtTime } from '../lib/format';
-import { ROLE_LABEL, STAGE_INFO, stageLabel } from '../lib/labels';
+import { STAGE_INFO, roleLabel, stageLabel } from '../lib/labels';
 import { applyJson, parseYaml } from '../lib/yamlDoc';
+import { t } from '../i18n';
 
 const FORMS: Record<string, React.ComponentType<any>> = {
   pipelines: PipelineForm,
@@ -45,17 +46,17 @@ const FORMS: Record<string, React.ComponentType<any>> = {
 };
 
 const DESCRIPTIONS: Record<string, string> = {
-  pipelines: '一条流水线 = 账户 + 资金 + 股票池 + 有序阶段（选股 → 行情 → 舆情 → 决策 → 风控 → 交易），每个阶段可实例化多个 agent。',
-  agents: 'Agent = 角色 + 人设 + 提示词模板 + 策略说明。模型在流水线中实例化时选择。',
-  prompts: 'Jinja2 提示词模板（configs/agents/prompts/），agent 通过 prompt_template 引用。',
-  accounts: 'IBKR 连接参数。账户号和密钥写成 ${ENV} 引用，真实值放在 .env。',
-  risk: '硬风控规则：在任何风控 agent 之前由确定性代码执行，LLM 无法覆盖。',
+  pipelines: 'A pipeline = account + capital + universe + ordered stages (selection → market data → sentiment → decision → risk → trading); each stage can instantiate several agents.',
+  agents: 'Agent = role + persona + prompt template + strategy instructions. The model is chosen when a pipeline instantiates it.',
+  prompts: 'Jinja2 prompt templates (configs/agents/prompts/), referenced by agents through prompt_template.',
+  accounts: 'IBKR connection settings. Write account numbers and secrets as ${ENV} references and keep the real values in .env.',
+  risk: 'Hard risk rules: deterministic code that runs before any risk agent; the LLM cannot override them.',
 };
 
 function template(kind: string, name: string, firstAccount?: string): string {
   switch (kind) {
     case 'pipelines':
-      return `# 在 Web 控制台创建
+      return `# Created in the web console
 name: ${name}
 mode: dry_run                 # dry_run | paper | live
 account: ${firstAccount ?? 'ibkr_main'}
@@ -78,7 +79,7 @@ stages:
     cancel_after_minutes: 30
 `;
     case 'agents':
-      return `# 在 Web 控制台创建
+      return `# Created in the web console
 agent_id: ${name}
 role: decision
 prompt_version: v1
@@ -99,7 +100,7 @@ Time (UTC): {{ as_of }}
 {% endif -%}
 `;
     case 'accounts':
-      return `# 在 Web 控制台创建；每条同时运行的流水线需要不同的 client_id
+      return `# Created in the web console; pipelines that run at the same time need different client_ids
 name: ${name}
 broker: ibkr
 account_id: \${IBKR_ACCOUNT}
@@ -109,7 +110,7 @@ client_id: 37
 base_currency: USD
 `;
     case 'risk':
-      return `# 在 Web 控制台创建
+      return `# Created in the web console
 name: ${name}
 kill_switch: false
 max_position_pct: 0.20
@@ -136,14 +137,14 @@ trading_hours:
 }
 
 function EntrySummary({ kind, e }: { kind: string; e: ConfigEntry }) {
-  if (e.broken) return <Chip size="small" color="error" label="无法解析" />;
+  if (e.broken) return <Chip size="small" color="error" label={t('Cannot parse')} />;
   if (kind === 'pipelines')
     return (
       <Stack spacing={1}>
         <Stack direction="row" sx={{ gap: 0.5, flexWrap: 'wrap' }}>
           <Chip size="small" variant="outlined" color={e.mode === 'live' ? 'error' : e.mode === 'paper' ? 'info' : 'default'} label={e.mode} />
           <Chip size="small" variant="outlined" label={e.account} />
-          <Chip size="small" variant="outlined" label={`${e.universe_size} 只股票`} />
+          <Chip size="small" variant="outlined" label={t('{n|symbol|symbols}', { n: e.universe_size })} />
         </Stack>
         <Stack direction="row" sx={{ gap: 0.5, flexWrap: 'wrap' }}>
           {(e.stages ?? []).map((s) => (
@@ -155,7 +156,7 @@ function EntrySummary({ kind, e }: { kind: string; e: ConfigEntry }) {
   if (kind === 'agents')
     return (
       <Stack direction="row" sx={{ gap: 0.5, flexWrap: 'wrap' }}>
-        <Chip size="small" color="primary" variant="outlined" label={ROLE_LABEL[e.role ?? ''] ?? e.role} />
+        <Chip size="small" color="primary" variant="outlined" label={roleLabel(e.role)} />
         <Chip size="small" variant="outlined" label={e.prompt_template} />
       </Stack>
     );
@@ -201,8 +202,8 @@ export function ConfigListPage() {
   return (
     <Box>
       <PageHeader
-        title={info?.label ?? kind}
-        subtitle={DESCRIPTIONS[kind]}
+        title={info ? t(info.label) : kind}
+        subtitle={DESCRIPTIONS[kind] && t(DESCRIPTIONS[kind])}
         actions={
           <Button
             variant="contained"
@@ -213,7 +214,7 @@ export function ConfigListPage() {
               setCreating(true);
             }}
           >
-            新建
+            {t('New')}
           </Button>
         }
       />
@@ -230,7 +231,7 @@ export function ConfigListPage() {
                     </Typography>
                   </Stack>
                   <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 1.5 }}>
-                    {e.path} · 修改于 {fmtTime(e.modified)}
+                    {e.path} · {t('modified {time}', { time: fmtTime(e.modified) })}
                   </Typography>
                   <EntrySummary kind={kind} e={e} />
                 </CardContent>
@@ -238,7 +239,7 @@ export function ConfigListPage() {
               {kind === 'pipelines' && (
                 <Box sx={{ px: 2, pb: 1.5 }}>
                   <Button size="small" startIcon={<PlayArrowIcon />} onClick={() => setRunFor(e.name)}>
-                    运行
+                    {t('Run')}
                   </Button>
                 </Box>
               )}
@@ -248,30 +249,30 @@ export function ConfigListPage() {
       </Grid>
       {!entries.length && (
         <Alert severity="info" sx={{ mt: 2 }}>
-          还没有 {info?.label}。
+          {t('Nothing here yet: {kind}.', { kind: info ? t(info.label) : kind })}
         </Alert>
       )}
 
       <Dialog open={creating} onClose={() => setCreating(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>新建{info?.label}</DialogTitle>
+        <DialogTitle>{t('Create in {kind}', { kind: info ? t(info.label) : kind })}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               autoFocus
               size="small"
-              label="名称（也是文件名）"
+              label={t('Name (also the file name)')}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               error={!!newName && !valid}
-              helperText={info ? `格式 ${info.name_pattern}` : undefined}
+              helperText={info ? t('Format {pattern}', { pattern: info.name_pattern }) : undefined}
             />
-            <TextField select size="small" label="基于" value={base} onChange={(e) => setBase(e.target.value)} slotProps={{ inputLabel: { shrink: true } }}>
+            <TextField select size="small" label={t('Based on')} value={base} onChange={(e) => setBase(e.target.value)} slotProps={{ inputLabel: { shrink: true } }}>
               <MenuItem value="">
-                <em>空白模板</em>
+                <em>{t('Blank template')}</em>
               </MenuItem>
               {entries.map((e) => (
                 <MenuItem key={e.name} value={e.name}>
-                  复制 {e.name}
+                  {t('Copy of {name}', { name: e.name })}
                 </MenuItem>
               ))}
             </TextField>
@@ -279,9 +280,9 @@ export function ConfigListPage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreating(false)}>取消</Button>
+          <Button onClick={() => setCreating(false)}>{t('Cancel')}</Button>
           <Button variant="contained" disabled={!valid || create.isPending} onClick={() => create.mutate()}>
-            创建
+            {t('Create')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -304,8 +305,8 @@ export function ConfigEditPage() {
         actions={
           kind === 'pipelines'
             ? ({ dirty }) => (
-                <Button size="small" variant="outlined" startIcon={<PlayArrowIcon />} onClick={() => setRunning(true)} disabled={dirty} title={dirty ? '先保存再运行' : undefined}>
-                  运行
+                <Button size="small" variant="outlined" startIcon={<PlayArrowIcon />} onClick={() => setRunning(true)} disabled={dirty} title={dirty ? t('Save before running') : undefined}>
+                  {t('Run')}
                 </Button>
               )
             : undefined

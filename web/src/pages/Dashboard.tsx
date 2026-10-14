@@ -33,6 +33,7 @@ import { ModeChip, StatusChip } from '../components/StatusChip';
 import { Empty, PageHeader, Section, StatCard } from '../components/common';
 import { fmtDuration, fmtNum, fmtPct, fmtTime } from '../lib/format';
 import { ActiveJobs, StageDots } from './RunsPage';
+import { t } from '../i18n';
 
 function KillSwitchCard({ active, reason }: { active: boolean; reason: string | null }) {
   const qc = useQueryClient();
@@ -50,32 +51,32 @@ function KillSwitchCard({ active, reason }: { active: boolean; reason: string | 
       <CardContent>
         <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="body2" sx={{ opacity: 0.8 }}>
-            全局熔断（kill switch）
+            {t('Global kill switch')}
           </Typography>
           <ReportProblemIcon />
         </Stack>
         <Stack direction="row" sx={{ alignItems: 'center', mt: 0.5 }}>
           <Typography variant="h5" sx={{ fontWeight: 600, flex: 1 }}>
-            {active ? '已开启' : '关闭'}
+            {active ? t('On') : t('Off')}
           </Typography>
           <Switch checked={active} color="default" onChange={(e) => (e.target.checked ? setOpen(true) : set.mutate(false))} />
         </Stack>
         <Typography variant="caption" component="div" sx={{ opacity: 0.8 }}>
-          {active ? reason ?? '所有流水线都不会下单' : '开启后所有流水线的订单都变为 HOLD'}
+          {active ? reason ?? t('No pipeline will place orders') : t("When on, every pipeline's orders become HOLD")}
         </Typography>
       </CardContent>
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>开启全局熔断</DialogTitle>
+        <DialogTitle>{t('Turn on the global kill switch')}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            开启后，任何流水线（包括其他进程和调度器）都不会再提交订单，直到手动关闭。
+            {t('Once on, no pipeline (including other processes and the scheduler) submits orders until it is turned off manually.')}
           </Typography>
-          <TextField autoFocus fullWidth size="small" label="原因（可选）" value={why} onChange={(e) => setWhy(e.target.value)} />
+          <TextField autoFocus fullWidth size="small" label={t('Reason (optional)')} value={why} onChange={(e) => setWhy(e.target.value)} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>取消</Button>
+          <Button onClick={() => setOpen(false)}>{t('Cancel')}</Button>
           <Button color="error" variant="contained" onClick={() => set.mutate(true)}>
-            开启熔断
+            {t('Turn on kill switch')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -90,41 +91,41 @@ export function Dashboard() {
   const { data: configs } = useConfigs();
   const [runFor, setRunFor] = useState<string | null>(null);
   const o = overview.data;
-  if (overview.error) return <Alert severity="error">无法连接 API：{String((overview.error as Error).message)}。请先启动 quant-web serve。</Alert>;
+  if (overview.error) return <Alert severity="error">{t('Cannot reach the API: {error}. Start quant-web serve first.', { error: String((overview.error as Error).message) })}</Alert>;
   const byStatus = o?.runs_by_status ?? {};
   const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
   const ledgers = Object.fromEntries((portfolio.data?.pipelines ?? []).map((p) => [p.name, p]));
 
   return (
     <Box>
-      <PageHeader title="总览" subtitle={o ? `数据库 ${o.database.url}` : undefined} />
+      <PageHeader title={t('Overview')} subtitle={o ? t('Database {url}', { url: o.database.url }) : undefined} />
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <KillSwitchCard active={!!o?.kill_switch.active} reason={o?.kill_switch.reason ?? null} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
-            label="调度器"
+            label={t('Scheduler')}
             icon={<ScheduleIcon />}
-            value={o?.scheduler.running ? '运行中' : '未启动'}
+            value={o?.scheduler.running ? t('Running') : t('Not started')}
             color={o?.scheduler.running ? '#2e7d32' : undefined}
             hint={
               o?.scheduler.running && o.scheduler.jobs[0]
-                ? `下次：${o.scheduler.jobs[0].pipeline} ${fmtTime(o.scheduler.jobs[0].next_run.utc)}`
-                : <RouterLink to="/scheduler">去调度器页面启动</RouterLink>
+                ? t('Next: {pipeline} {time}', { pipeline: o.scheduler.jobs[0].pipeline, time: fmtTime(o.scheduler.jobs[0].next_run.utc) })
+                : <RouterLink to="/scheduler">{t('Start it on the scheduler page')}</RouterLink>
             }
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
-            label="运行次数"
+            label={t('Run count')}
             icon={<StorageIcon />}
             value={total}
-            hint={`成功 ${byStatus.succeeded ?? 0} · 失败 ${byStatus.failed ?? 0} · 运行中 ${byStatus.running ?? 0}`}
+            hint={t('Succeeded {s} · Failed {f} · Running {r}', { s: byStatus.succeeded ?? 0, f: byStatus.failed ?? 0, r: byStatus.running ?? 0 })}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard label="未完成订单" icon={<ReceiptLongIcon />} value={o?.open_orders ?? '—'} hint={<RouterLink to="/portfolio">查看持仓与订单</RouterLink>} />
+          <StatCard label={t('Open orders')} icon={<ReceiptLongIcon />} value={o?.open_orders ?? '—'} hint={<RouterLink to="/portfolio">{t('View positions and orders')}</RouterLink>} />
         </Grid>
       </Grid>
 
@@ -133,10 +134,10 @@ export function Dashboard() {
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, lg: 8 }}>
           <Section
-            title="最近运行"
+            title={t('Recent runs')}
             actions={
               <Button size="small" component={RouterLink} to="/runs">
-                全部
+                {t('All')}
               </Button>
             }
           >
@@ -145,7 +146,7 @@ export function Dashboard() {
                 {o.recent_runs.map((r) => (
                   <ListItemButton key={r.run_id} onClick={() => navigate(`/runs/${r.run_id}`)} sx={{ borderRadius: 1 }}>
                     <Stack direction="row" spacing={2} sx={{ alignItems: 'center', width: '100%' }}>
-                      <Box sx={{ width: 96 }}>
+                      <Box sx={{ width: 116, flexShrink: 0 }}>
                         <StatusChip status={r.status} />
                       </Box>
                       <ListItemText
@@ -162,21 +163,21 @@ export function Dashboard() {
                 ))}
               </List>
             ) : (
-              <Empty>还没有运行记录</Empty>
+              <Empty>{t('No runs yet')}</Empty>
             )}
           </Section>
         </Grid>
         <Grid size={{ xs: 12, lg: 4 }}>
-          <Section title="运行结果分布">
+          <Section title={t('Run outcomes')}>
             {total ? (
               <PieChart
                 height={200}
                 series={[
                   {
                     data: [
-                      { id: 's', value: byStatus.succeeded ?? 0, label: '成功', color: '#43a047' },
-                      { id: 'f', value: byStatus.failed ?? 0, label: '失败', color: '#e53935' },
-                      { id: 'r', value: byStatus.running ?? 0, label: '运行中', color: '#1e88e5' },
+                      { id: 's', value: byStatus.succeeded ?? 0, label: t('Succeeded'), color: '#43a047' },
+                      { id: 'f', value: byStatus.failed ?? 0, label: t('Failed'), color: '#e53935' },
+                      { id: 'r', value: byStatus.running ?? 0, label: t('Running'), color: '#1e88e5' },
                     ].filter((x) => x.value > 0),
                     innerRadius: 50,
                     paddingAngle: 2,
@@ -185,13 +186,13 @@ export function Dashboard() {
                 ]}
               />
             ) : (
-              <Empty>暂无数据</Empty>
+              <Empty>{t('No data yet')}</Empty>
             )}
           </Section>
         </Grid>
       </Grid>
 
-      <Section title="流水线">
+      <Section title={t('Pipelines')}>
         <Grid container spacing={2}>
           {(configs?.pipelines ?? []).map((p) => {
             const stats = o?.pipelines[p.name];
@@ -207,15 +208,15 @@ export function Dashboard() {
                       <ModeChip mode={p.mode ?? 'dry_run'} />
                     </Stack>
                     <Typography variant="body2" color="text.secondary">
-                      {stats ? `运行 ${stats.runs} 次 · 最近 ${fmtTime(stats.last_started)}` : '从未运行'}
+                      {stats ? t('{n|run|runs} · last {time}', { n: stats.runs, time: fmtTime(stats.last_started) }) : t('Never run')}
                     </Typography>
                     {ledger && !ledger.error && (
                       <Typography variant="body2" sx={{ mt: 0.5 }}>
-                        净值 <b>{fmtNum(ledger.nav)}</b>（{fmtPct(ledger.return_pct)}）· 持仓 {ledger.positions.length} 只
+                        {t('NAV')} <b>{fmtNum(ledger.nav)}</b> ({fmtPct(ledger.return_pct)}) · {t('{n|position|positions}', { n: ledger.positions.length })}
                       </Typography>
                     )}
                     <Button size="small" startIcon={<PlayArrowIcon />} sx={{ mt: 1 }} onClick={() => setRunFor(p.name)}>
-                      运行
+                      {t('Run')}
                     </Button>
                   </CardContent>
                 </Card>
