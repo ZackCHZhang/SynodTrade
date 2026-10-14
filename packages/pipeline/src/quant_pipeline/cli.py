@@ -190,9 +190,20 @@ def benchmark(
             )
         finally:
             await db.dispose()
+        for c in curves:
+            if c.bars_through is None or c.bars_through < c.points[-1].day:
+                typer.echo(
+                    f"warning: {c.pipeline}: {c.benchmark} daily bars end {c.bars_through};"
+                    " later sessions use the last known closes. Run data_update first.",
+                    err=True,
+                )
         return write_benchmark(curves, out, readmes=readmes)
 
-    for path in asyncio.run(main()):
+    try:
+        written = asyncio.run(main())
+    except ConfigError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    for path in written:
         typer.echo(f"wrote {path}")
 
 

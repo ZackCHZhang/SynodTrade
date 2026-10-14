@@ -54,6 +54,7 @@ class PipelineCurve:
     commissions: float = 0.0
     open_positions: int = 0
     invested: float = 0.0  # share of the final NAV held in positions
+    bars_through: date | None = None  # last session with a benchmark bar
 
     @property
     def returns(self) -> list[float]:
@@ -165,6 +166,9 @@ async def build_curve(
         span = (last - first).days + 1
         calendar = (first + timedelta(n) for n in range(span))
         sessions = [d for d in calendar if d.weekday() < 5]
+    # A fill on a day without bars (bars not updated yet) still books on that day.
+    fill_days = {exchange_day(f.ts) for f in fills}
+    sessions = sorted(set(sessions) | {d for d in fill_days if first <= d <= last})
     before = [d for d in bench_closes if d < first]
     base_day = max(before) if before else (sessions[0] - timedelta(days=1) if sessions else first)
 
@@ -177,6 +181,7 @@ async def build_curve(
         capital=float(capital),
         started=started,
         points=[DayPoint(base_day, float(capital), bench_closes.get(base_day))],
+        bars_through=max(bench_closes, default=None),
     )
     last_close: dict[str, Decimal] = {}
     bench_last: float | None = curve.points[0].benchmark_close
@@ -214,12 +219,15 @@ async def build_curves(
     end: date | None = None,
 ) -> list[PipelineCurve]:
     """Curves of `pipelines` (default: every configured pipeline that ran in paper/live)."""
-    configured = set(store.list("pipelines"))
-    ran = await repos.runs.pipelines_run_in(PUBLISHED_MODES)
-    names = pipelines or [n for n in ran if n in configured]
+    if pipelines:
+        configs = [store.pipeline(n) for n in pipelines]  # unknown names fail before any query
+    else:
+        configured = set(store.list("pipelines"))
+        ran = await repos.runs.pipelines_run_in(PUBLISHED_MODES)
+        configs = [store.pipeline(n) for n in ran if n in configured]
     curves = []
-    for name in names:
-        curve = await build_curve(repos, store.pipeline(name), end=end)
+    for config in configs:
+        curve = await build_curve(repos, config, end=end)
         if curve is not None:
             curves.append(curve)
     return curves
