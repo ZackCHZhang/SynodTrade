@@ -188,11 +188,13 @@ async def test_write_benchmark_files_and_readme_markers(
     root = readme.read_text()
     assert "old" not in root
     assert root.endswith("<!-- benchmark:end -->\ntail\n")
-    assert "+3.96%" in root
+    assert "| **long_term_stocks** | +3.96% | SPY -1.00% | +4.96% | -0.02% | — |" in root
     assert "benchmark/equity.svg" in root
 
     page = (tmp_path / "benchmark" / "README.md").read_text()
-    assert "| **long_term_stocks** | SPY | 2026-10-02 | 3 | +3.96% | -1.00% | +4.96% |" in page
+    assert (
+        "| **long_term_stocks** | 2026-10-02 | +3.96% | SPY -1.00% | +4.96% | -0.02% | — |" in page
+    )
     assert "Updated 2026-10-08 · data through 2026-10-07" in page
     assert "数据截至 2026-10-07" in (tmp_path / "benchmark" / "README.zh-CN.md").read_text()
 
