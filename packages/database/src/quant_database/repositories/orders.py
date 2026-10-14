@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from quant_core.models import Fill, OrderIntent, OrderResult, OrderSide, OrderStatus
 from quant_core.timeutil import utcnow
 from quant_database.models import FillRow, OrderRow
-from quant_database.records import LedgerPosition, LedgerState, OrderRecord
+from quant_database.records import LedgerState, OrderRecord
 from quant_database.repositories.base import (
     Repository,
     as_of_or_now,
@@ -195,6 +195,32 @@ class OrderRepository(Repository):
             for r in rows
         ]
 
+    async def list_pipeline_fills(
+        self, pipeline_name: str, until: datetime | None = None
+    ) -> list[Fill]:
+        """Every fill of the pipeline's orders up to `until` (default: now), oldest first."""
+        stmt = (
+            select(FillRow, OrderRow.client_order_id)
+            .join(OrderRow, OrderRow.id == FillRow.order_id)
+            .where(OrderRow.pipeline_name == pipeline_name, FillRow.ts <= as_of_or_now(until))
+            .order_by(FillRow.ts, FillRow.id)
+        )
+        async with self._db.transaction() as s:
+            rows = (await s.execute(stmt)).all()
+        return [
+            Fill(
+                exec_id=r.exec_id,
+                client_order_id=client_order_id,
+                symbol=r.symbol,
+                side=OrderSide(r.side),
+                qty=r.qty,
+                price=r.price,
+                commission=r.commission,
+                ts=r.ts,
+            )
+            for r, client_order_id in rows
+        ]
+
     async def list_by_run(self, run_id: UUID) -> list[OrderRecord]:
         stmt = select(OrderRow).where(OrderRow.run_id == run_id).order_by(OrderRow.id)
         async with self._db.transaction() as s:
@@ -269,23 +295,7 @@ class LedgerRepository(Repository):
 
         state = LedgerState(pipeline_name=pipeline_name, max_capital=max_capital, cash=max_capital)
         for f in fills:
-            pos = state.positions.setdefault(f.symbol, LedgerPosition(symbol=f.symbol))
-            state.commissions += f.commission
-            if f.side == OrderSide.BUY.value:
-                state.cash -= f.qty * f.price + f.commission
-                pos.qty += f.qty
-                pos.cost_basis += f.qty * f.price + f.commission
-            else:
-                sold = min(f.qty, pos.qty)  # the ledger never goes short
-                cost_released = pos.avg_cost * sold
-                proceeds = f.qty * f.price - f.commission
-                state.cash += proceeds
-                state.realized_pnl += proceeds - cost_released
-                pos.cost_basis -= cost_released
-                pos.qty -= sold
-            if pos.qty == 0:
-                pos.cost_basis = Decimal(0)
-        state.positions = {k: v for k, v in state.positions.items() if v.qty != 0}
+            state.apply_fill(OrderSide(f.side), f.symbol, f.qty, f.price, f.commission)
 
         for order in open_buys:
             remaining = max(Decimal(0), order.quantity - order.filled_qty)

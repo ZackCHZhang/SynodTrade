@@ -11,7 +11,7 @@ from uuid import UUID
 from pydantic import Field
 
 from quant_core.agent import Agent
-from quant_core.models import CoreModel, OrderIntent, OrderStatus, RunMode
+from quant_core.models import CoreModel, OrderIntent, OrderSide, OrderStatus, RunMode
 from quant_core.timeutil import UtcDatetime, utcnow
 
 
@@ -141,6 +141,30 @@ class LedgerState:
     @property
     def available_cash(self) -> Decimal:
         return max(Decimal(0), self.cash - self.reserved_cash)
+
+    def apply_fill(
+        self, side: OrderSide, symbol: str, qty: Decimal, price: Decimal, commission: Decimal
+    ) -> Decimal:
+        """Book one fill (commission included) and return the P&L it realised (0 for a buy)."""
+        pos = self.positions.setdefault(symbol, LedgerPosition(symbol=symbol))
+        self.commissions += commission
+        realized = Decimal(0)
+        if side is OrderSide.BUY:
+            self.cash -= qty * price + commission
+            pos.qty += qty
+            pos.cost_basis += qty * price + commission
+        else:
+            sold = min(qty, pos.qty)  # the ledger never goes short
+            cost_released = pos.avg_cost * sold
+            proceeds = qty * price - commission
+            self.cash += proceeds
+            realized = proceeds - cost_released
+            self.realized_pnl += realized
+            pos.cost_basis -= cost_released
+            pos.qty -= sold
+        if pos.qty == 0:
+            del self.positions[symbol]
+        return realized
 
     def position_qty(self, symbol: str) -> Decimal:
         pos = self.positions.get(symbol.upper())

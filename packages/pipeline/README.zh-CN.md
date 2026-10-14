@@ -16,6 +16,7 @@ quant run -p demo_all_modules --offline --offline-llm bullish --as-of 2026-09-30
 quant run -p long_term_stocks --as-of 2026-10-01T10:00:00-04:00   # 不带时区时按 UTC
 quant validate [-p NAME]                       # 校验流水线及其引用的全部配置
 quant kill-switch on --reason "..." | off | status
+quant benchmark                                # 生成模拟盘基准到 ./benchmark（见下文）
 quant --env-file other.env run -p ...          # 默认读取 ./.env（不覆盖已有的环境变量）
 ```
 
@@ -59,6 +60,20 @@ quant --env-file other.env run -p ...          # 默认读取 ./.env（不覆盖
 | 舆情数据源 | 每只股票几条合成帖子和新闻（metadata 中标有 `synthetic`），舆情 agent 也会被调用 |
 | LLM | `schema_reply` 根据要求的输出格式返回合法结果。选股 agent 选候选表里的前三只。默认 `--offline-llm neutral`：决策全部 HOLD，不会产生订单；`--offline-llm bullish`：决策给出买入，风控 agent 和下单流程也会走一遍 |
 | 券商 | DryRunBroker（订单只记录、不发送、不成交） |
+
+## 模拟盘基准（`quant benchmark`）
+
+公开各流水线在模拟（或实盘）账户上的真实表现：
+
+```bash
+quant benchmark                                  # 所有以 paper/live 模式运行过的流水线
+quant benchmark -p long_term_stocks --end 2026-12-31 --out benchmark
+```
+
+- 每条流水线的曲线从它首次 paper/live 运行当天开始，初始资金为 `budget.max_capital`。每个交易日，按与交易账本完全相同的方法（`LedgerState.apply_fill`，含佣金）记入截至当天的成交，持仓按当天的日线收盘价估值。dry-run 和离线运行永远不计入。
+- 基准是流水线配置的 `benchmark`（默认 SPY），从同一个基准日开始计算。输出：收益、基准收益、超额收益、最大回撤、夏普比率和波动率（满 20 个交易日）、年化收益（满 60 个交易日）、成交数、盈利卖出占比、已实现盈亏、佣金。
+- 在 `--out` 下写入 `README.md` / `README.zh-CN.md`、`equity.svg`（自动适配浅色和深色）和 `data.json`（每日数据），并更新 `./README.md` 和 `./README.zh-CN.md` 中 `<!-- benchmark:start -->` 与 `<!-- benchmark:end -->` 之间的概览（`--readme` 可指定其他文件）。提交这些文件即可发布。
+- 日线来自数据库：先运行 `data_update` 阶段（或包含它的流水线），保证收盘价是最新的。
 
 ## 运行测试
 

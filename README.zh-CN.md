@@ -1,8 +1,15 @@
 <div align="center">
 
-# quant-system
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg">
+    <img alt="SynodTrade" src="docs/assets/wordmark-light.svg" height="72">
+  </picture>
+</h1>
 
-**面向盈透证券（IBKR）的多 Agent LLM 量化交易系统：安全、可审计、纯 YAML 配置。**
+**一个由 AI agent 组成的议事会（synod），每笔交易都先商议、再表决。**
+
+面向盈透证券（IBKR）的多 Agent LLM 量化交易系统：安全、可审计、纯 YAML 配置。
 
 一组组 LLM agent 负责选股、读舆情、对交易投票、互相把关风险，<br>
 而资金、硬性风控和下单始终由确定性代码掌控。
@@ -17,7 +24,7 @@
 
 [English](README.md) | **简体中文**
 
-[特性](#-特性) · [工作原理](#-工作原理) · [快速开始](#-快速开始) · [Web 控制台](#-web-控制台) · [配置](#-配置) · [开发](#-开发) · [许可证](#-许可证)
+[特性](#-特性) · [工作原理](#-工作原理) · [模拟盘基准](#-模拟盘基准) · [快速开始](#-快速开始) · [Web 控制台](#-web-控制台) · [配置](#-配置) · [开发](#-开发) · [许可证](#-许可证)
 
 </div>
 
@@ -69,12 +76,20 @@ core ← database ← {market_data, selection, sentiment, decision, risk, tradin
 
 业务包之间从不互相 import，而是通过 `quant_core.interfaces` 中的协议协作，由 pipeline 注入实现（CI 中由 [import-linter](https://github.com/seddonym/import-linter) 检查）。
 
+## 📊 模拟盘基准
+
+SynodTrade 公开自己的交易表现。每条在 IBKR 模拟账户（paper）上交易的流水线，都会用它真实的模拟成交生成每日净值曲线，并与基准（默认 SPY）对比。运行 `poetry run quant benchmark` 会重新生成 [`benchmark/`](benchmark/README.zh-CN.md) 目录（页面、图表和原始数据）以及下面的概览。
+
+<!-- benchmark:start -->
+还没有发布模拟盘结果。
+<!-- benchmark:end -->
+
 ## 🚀 快速开始
 
 需要 **Python 3.12**、**Poetry 2.x**；Web 控制台另需 Node.js ≥ 20。
 
 ```bash
-git clone https://github.com/ZackCHZhang/ROOT.git quant-system && cd quant-system
+git clone https://github.com/ZackCHZhang/ROOT.git synodtrade && cd synodtrade
 python tasks.py install                                   # 根目录一个共享 .venv，所有包 editable 安装
 
 poetry run quant validate                                 # 校验 configs/ 下的全部配置
@@ -189,7 +204,7 @@ tasks.py     跨平台任务入口
 
 Copyright (C) 2026 ZackCHZhang
 
-quant-system 是自由软件，采用 **[GNU Affero 通用公共许可证 v3.0 或更高版本](LICENSE)**（AGPL-3.0-or-later）。简单来说：
+SynodTrade 是自由软件，采用 **[GNU Affero 通用公共许可证 v3.0 或更高版本](LICENSE)**（AGPL-3.0-or-later）。简单来说：
 
 - 你可以使用、研究、修改和分享它，包括用于商业目的。
 - 如果你分发它，或者让其他人**通过网络**使用你修改过的版本（例如基于 Web 控制台搭建的托管服务），就必须以同一许可证向这些人提供你这个版本的完整源代码。只是自己私下运行、用于自己的交易，没有这项义务。
