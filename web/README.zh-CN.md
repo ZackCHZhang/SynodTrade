@@ -1,4 +1,4 @@
-# web — Quant 控制台前端
+# web — SynodTrade 控制台前端
 
 [English](README.md) | **简体中文**
 

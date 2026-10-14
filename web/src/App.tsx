@@ -199,9 +199,12 @@ function Layout() {
                 <MenuIcon />
               </IconButton>
             )}
-            <ShowChartIcon color="primary" sx={{ mr: 1 }} />
-            <Typography variant="h6" sx={{ fontWeight: 700, flex: 1, fontSize: 17 }} noWrap>
-              {t('Quant Console')}
+            <Box component="img" src="/favicon.svg" alt="" sx={{ width: 26, height: 26, mr: 1.25 }} />
+            <Typography variant="h6" sx={{ fontWeight: 700, flex: 1, fontSize: 17, letterSpacing: '-0.01em' }} noWrap>
+              Synod
+              <Box component="span" sx={{ fontWeight: 500, color: mode === 'dark' ? '#5eead4' : '#0f766e' }}>
+                Trade
+              </Box>
             </Typography>
             {kill && <Chip color="error" icon={<ReportProblemIcon />} label={t('Kill switch on')} sx={{ mr: 1 }} component={RouterLink} to="/" clickable />}
             {overview.data?.scheduler.running && <Chip size="small" color="success" variant="outlined" icon={<ScheduleIcon />} label={t('Scheduling')} sx={{ mr: 1 }} />}

@@ -46,7 +46,7 @@ class StocktwitsSource:
         self._client = client or httpx.AsyncClient(
             base_url=options.base_url,
             timeout=options.timeout_s,
-            headers={"User-Agent": "quant-system/0.1"},
+            headers={"User-Agent": "SynodTrade/0.1"},
         )
 
     async def aclose(self) -> None:

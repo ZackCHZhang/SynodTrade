@@ -1,4 +1,4 @@
-# web — Quant console frontend
+# web — SynodTrade console frontend
 
 **English** | [简体中文](README.zh-CN.md)
 

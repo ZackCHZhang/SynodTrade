@@ -478,7 +478,6 @@ export const zh: Record<string, string> = {
   'Prompt templates': '提示词模板',
   'Prompt version': '提示词版本',
   'Providers': '供应商',
-  'Quant Console': 'Quant 控制台',
   'Quant screen': '量化初筛',
   'Quantity': '数量',
   'Quote snapshots': '报价快照',

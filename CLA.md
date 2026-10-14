@@ -1,6 +1,6 @@
 # Contributor License Agreement
 
-Thank you for contributing to quant-system (the "Project"), maintained by ZackCHZhang (the "Maintainer").
+Thank you for contributing to SynodTrade (the "Project"), maintained by ZackCHZhang (the "Maintainer").
 This agreement clarifies the rights you grant in your contributions. It is adapted from the Apache Software
 Foundation Individual Contributor License Agreement v2.2. You keep the copyright to your contributions; you only
 grant the licenses below.
