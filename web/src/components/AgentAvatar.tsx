@@ -1,6 +1,6 @@
 import { Avatar, Stack, Tooltip } from '@mui/material';
 import { useConfigs } from '../api/hooks';
-import { ROLE_LABEL, STAGE_INFO } from '../lib/labels';
+import { STAGE_INFO, roleLabel } from '../lib/labels';
 
 /** Two letters from an agent id: `value_investor` → `VI`, `kelly_sizer` → `KS`. */
 function initials(agentId: string): string {
@@ -41,7 +41,7 @@ export function AgentAvatar({ agentId, size = 28, src, role }: { agentId: string
 /** Avatar + agent id in one line, for tables and lists. */
 export function AgentLabel({ agentId, size = 24, children }: { agentId: string; size?: number; children?: React.ReactNode }) {
   const info = useAgentInfo(agentId);
-  const role = info?.role ? ROLE_LABEL[info.role] ?? info.role : null;
+  const role = info?.role ? roleLabel(info.role) : null;
   return (
     <Stack direction="row" spacing={1} component="span" sx={{ alignItems: 'center', display: 'inline-flex', verticalAlign: 'middle' }}>
       <Tooltip title={role ? `${agentId} · ${role}` : agentId}>

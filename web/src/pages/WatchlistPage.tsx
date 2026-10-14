@@ -8,6 +8,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { api, type WatchlistEntry } from '../api/client';
 import { Empty, PageHeader, Section } from '../components/common';
 import { fmtNum, fmtTime } from '../lib/format';
+import { t } from '../i18n';
 
 function AddForm({ pipeline }: { pipeline: string }) {
   const qc = useQueryClient();
@@ -26,11 +27,11 @@ function AddForm({ pipeline }: { pipeline: string }) {
   return (
     <Box>
       <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ gap: 1, alignItems: { sm: 'center' } }}>
-        <TextField size="small" label="股票代码" value={symbol} onChange={(e) => setSymbol(e.target.value)} sx={{ width: { sm: 130 } }} />
-        <TextField size="small" label="备注（可选）" value={note} onChange={(e) => setNote(e.target.value)} sx={{ flex: 1 }} />
-        <FormControlLabel control={<Checkbox checked={pinned} onChange={(e) => setPinned(e.target.checked)} />} label="固定（不会过期）" />
+        <TextField size="small" label={t('Symbol')} value={symbol} onChange={(e) => setSymbol(e.target.value)} sx={{ width: { sm: 130 } }} />
+        <TextField size="small" label={t('Note (optional)')} value={note} onChange={(e) => setNote(e.target.value)} sx={{ flex: 1 }} />
+        <FormControlLabel control={<Checkbox checked={pinned} onChange={(e) => setPinned(e.target.checked)} />} label={t('Pinned (never expires)')} />
         <Button variant="contained" disabled={!symbol.trim() || add.isPending} onClick={() => add.mutate()}>
-          加入
+          {t('Add')}
         </Button>
       </Stack>
       {add.error && <Alert severity="error" sx={{ mt: 1 }}>{String((add.error as Error).message)}</Alert>}
@@ -49,26 +50,26 @@ function EntryRow({ pipeline, e }: { pipeline: string; e: WatchlistEntry }) {
         <RouterLink to={`/market?symbol=${e.symbol}`} style={{ color: 'inherit' }}>
           {e.symbol}
         </RouterLink>
-        {e.pinned && <Chip size="small" label="固定" sx={{ ml: 1 }} />}
+        {e.pinned && <Chip size="small" label={t('Pinned')} sx={{ ml: 1 }} />}
       </TableCell>
       <TableCell>{fmtTime(e.added_at)}</TableCell>
-      <TableCell>{e.last_selected_at ? fmtTime(e.last_selected_at) : '手动加入'}</TableCell>
+      <TableCell>{e.last_selected_at ? fmtTime(e.last_selected_at) : t('Added manually')}</TableCell>
       <TableCell align="right">{e.times_selected}</TableCell>
       <TableCell align="right">{e.last_score === null ? '—' : fmtNum(e.last_score)}</TableCell>
       <TableCell sx={{ maxWidth: 420 }}>
         <Typography variant="body2" sx={{ whiteSpace: 'normal' }}>
-          {e.active ? e.last_reason ?? e.note ?? '' : `已移出：${e.removed_reason ?? ''}（${fmtTime(e.removed_at)}）`}
+          {e.active ? e.last_reason ?? e.note ?? '' : t('Removed: {reason} ({time})', { reason: e.removed_reason ?? '', time: fmtTime(e.removed_at) })}
         </Typography>
       </TableCell>
       <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
         {e.active && (
           <>
-            <Tooltip title={e.pinned ? '取消固定' : '固定（不会过期）'}>
+            <Tooltip title={e.pinned ? t('Unpin') : t('Pinned (never expires)')}>
               <IconButton size="small" onClick={() => pin.mutate()} disabled={pin.isPending}>
                 {e.pinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
               </IconButton>
             </Tooltip>
-            <Tooltip title="移出关注列表">
+            <Tooltip title={t('Remove from watchlist')}>
               <IconButton size="small" onClick={() => remove.mutate()} disabled={remove.isPending}>
                 <DeleteOutlineIcon fontSize="small" />
               </IconButton>
@@ -85,8 +86,8 @@ export function WatchlistPage() {
   return (
     <Box>
       <PageHeader
-        title="关注列表"
-        subtitle="选股阶段每天把选出的前几名加入；超过设定天数没再被选中就自动移出（固定的和已持仓的不会）。列表里的股票都会进入行情、舆情、决策和风控。"
+        title={t('Watchlist')}
+        subtitle={t('The selection stage adds its top picks every day; symbols not picked again within the configured days are removed automatically (pinned and held ones stay). Every symbol here goes through market data, sentiment, decision and risk.')}
       />
       {lists.error && <Alert severity="error">{String((lists.error as Error).message)}</Alert>}
       {(lists.data ?? []).map((p) => {
@@ -97,7 +98,7 @@ export function WatchlistPage() {
             title={
               <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
                 <span>{p.pipeline}</span>
-                <Chip size="small" label={`${active.length} 只`} />
+                <Chip size="small" label={t('{n|symbol|symbols}', { n: active.length })} />
               </Stack>
             }
           >
@@ -106,12 +107,12 @@ export function WatchlistPage() {
               <Table size="small" sx={{ mt: 2 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>股票</TableCell>
-                    <TableCell>加入时间</TableCell>
-                    <TableCell>最近被选中</TableCell>
-                    <TableCell align="right">被选次数</TableCell>
-                    <TableCell align="right">最近得分</TableCell>
-                    <TableCell>理由 / 备注</TableCell>
+                    <TableCell>{t('Symbol')}</TableCell>
+                    <TableCell>{t('Added')}</TableCell>
+                    <TableCell>{t('Last picked')}</TableCell>
+                    <TableCell align="right">{t('Times picked')}</TableCell>
+                    <TableCell align="right">{t('Last score')}</TableCell>
+                    <TableCell>{t('Reason / note')}</TableCell>
                     <TableCell />
                   </TableRow>
                 </TableHead>
@@ -122,7 +123,7 @@ export function WatchlistPage() {
                 </TableBody>
               </Table>
             ) : (
-              <Empty>还没有关注的股票</Empty>
+              <Empty>{t('No symbols on the watchlist yet')}</Empty>
             )}
           </Section>
         );

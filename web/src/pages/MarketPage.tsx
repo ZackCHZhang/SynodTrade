@@ -22,6 +22,7 @@ import { api } from '../api/client';
 import { ActionChip } from '../components/StatusChip';
 import { Empty, PageHeader, Section, StatCard } from '../components/common';
 import { fmtCompact, fmtNum, fmtPct, fmtTime, sma } from '../lib/format';
+import { t } from '../i18n';
 
 export function MarketPage() {
   const [params, setParams] = useSearchParams();
@@ -62,8 +63,8 @@ export function MarketPage() {
   return (
     <Box>
       <PageHeader
-        title="行情"
-        subtitle="数据库中的 K 线与报价快照（由 data_update / 选股阶段写入）"
+        title={t('Market')}
+        subtitle={t('Bars and quote snapshots in the database (written by the data_update / selection stages)')}
         actions={
           <>
             <Autocomplete
@@ -71,17 +72,17 @@ export function MarketPage() {
               options={symbols}
               value={symbol || null}
               onChange={(_, v) => v && set({ symbol: v })}
-              renderInput={(p) => <TextField {...p} label="股票" />}
+              renderInput={(p) => <TextField {...p} label={t('Symbol')} />}
               sx={{ width: 160 }}
             />
-            <TextField select size="small" label="周期" value={timeframe} onChange={(e) => set({ tf: e.target.value })} sx={{ width: 90 }}>
-              {(timeframes.length ? timeframes : ['1d']).map((t) => (
-                <MenuItem key={t} value={t}>
-                  {t}
+            <TextField select size="small" label={t('Timeframe')} value={timeframe} onChange={(e) => set({ tf: e.target.value })} sx={{ width: 90 }}>
+              {(timeframes.length ? timeframes : ['1d']).map((tf) => (
+                <MenuItem key={tf} value={tf}>
+                  {tf}
                 </MenuItem>
               ))}
             </TextField>
-            <TextField select size="small" label="根数" value={limit} onChange={(e) => set({ n: e.target.value })} sx={{ width: 100 }}>
+            <TextField select size="small" label={t('Bar count')} value={limit} onChange={(e) => set({ n: e.target.value })} sx={{ width: 100 }}>
               {[60, 120, 260, 500, 1000].map((n) => (
                 <MenuItem key={n} value={n}>
                   {n}
@@ -92,31 +93,31 @@ export function MarketPage() {
         }
       />
       {!symbols.length && !instruments.isLoading ? (
-        <Empty>数据库中还没有 K 线。运行一次带 data_update 阶段的流水线即可。</Empty>
+        <Empty>{t('No bars in the database yet. Run a pipeline with a data_update stage once.')}</Empty>
       ) : (
         <>
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid size={{ xs: 6, md: 3 }}>
-              <StatCard label="最新收盘" value={fmtNum(last?.close)} hint={last ? fmtTime(last.ts) : undefined} />
+              <StatCard label={t('Last close')} value={fmtNum(last?.close)} hint={last ? fmtTime(last.ts) : undefined} />
             </Grid>
             <Grid size={{ xs: 6, md: 3 }}>
               <StatCard
-                label="单根涨跌"
+                label={t('Bar change')}
                 value={last && prev ? fmtPct(last.close / prev.close - 1) : '—'}
                 color={last && prev ? (last.close >= prev.close ? '#2e7d32' : '#c62828') : undefined}
               />
             </Grid>
             <Grid size={{ xs: 6, md: 3 }}>
-              <StatCard label="20 根收益" value={last && back20 ? fmtPct(last.close / back20.close - 1) : '—'} />
+              <StatCard label={t('20-bar return')} value={last && back20 ? fmtPct(last.close / back20.close - 1) : '—'} />
             </Grid>
             <Grid size={{ xs: 6, md: 3 }}>
-              <StatCard label="区间高 / 低（252 根）" value={`${fmtNum(high)} / ${fmtNum(low)}`} hint={inst?.timeframes[timeframe] ? `共 ${inst.timeframes[timeframe].bars} 根` : undefined} />
+              <StatCard label={t('High / low (252 bars)')} value={`${fmtNum(high)} / ${fmtNum(low)}`} hint={inst?.timeframes[timeframe] ? t('{n|bar|bars} total', { n: inst.timeframes[timeframe].bars }) : undefined} />
             </Grid>
           </Grid>
           <Card variant="outlined" sx={{ mb: 2 }}>
             <CardContent>
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                {symbol} 收盘价与均线
+                {t('{symbol} close and moving averages', { symbol })}
               </Typography>
               {data.length ? (
                 <>
@@ -125,7 +126,7 @@ export function MarketPage() {
                     xAxis={[{ data: chart.x, scaleType: 'time', valueFormatter: (d: Date) => d.toLocaleDateString('zh-CN') }]}
                     yAxis={[{ width: 64 }]}
                     series={[
-                      { data: chart.close, label: '收盘', showMark: false, color: '#1e88e5' },
+                      { data: chart.close, label: t('Close price'), showMark: false, color: '#1e88e5' },
                       { data: chart.sma20, label: 'SMA 20', showMark: false, color: '#fb8c00', connectNulls: false },
                       { data: chart.sma50, label: 'SMA 50', showMark: false, color: '#43a047' },
                       { data: chart.sma200, label: 'SMA 200', showMark: false, color: '#8e24aa' },
@@ -136,26 +137,26 @@ export function MarketPage() {
                     height={140}
                     xAxis={[{ data: chart.x.map((d) => d.toLocaleDateString('zh-CN')), scaleType: 'band', tickLabelInterval: (_v: any, i: number) => i % Math.ceil(data.length / 8) === 0 }]}
                     yAxis={[{ width: 64, valueFormatter: (v: number) => fmtCompact(v) }]}
-                    series={[{ data: chart.volume, label: '成交量', color: '#90a4ae' }]}
+                    series={[{ data: chart.volume, label: t('Volume'), color: '#90a4ae' }]}
                     hideLegend
                   />
                 </>
               ) : (
-                <Empty>{bars.isLoading ? '加载中…' : '没有数据'}</Empty>
+                <Empty>{bars.isLoading ? t('Loading…') : t('No data')}</Empty>
               )}
             </CardContent>
           </Card>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 6 }}>
-              <Section title="最近的最终决策">
+              <Section title={t('Recent final decisions')}>
                 {decisions.data?.rows.length ? (
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell>时间</TableCell>
-                        <TableCell>动作</TableCell>
-                        <TableCell>方法</TableCell>
-                        <TableCell>运行</TableCell>
+                        <TableCell>{t('Time')}</TableCell>
+                        <TableCell>{t('Action')}</TableCell>
+                        <TableCell>{t('Method')}</TableCell>
+                        <TableCell>{t('Run')}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -174,20 +175,20 @@ export function MarketPage() {
                     </TableBody>
                   </Table>
                 ) : (
-                  <Empty>没有决策记录</Empty>
+                  <Empty>{t('No decisions')}</Empty>
                 )}
               </Section>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <Section title="最近报价快照">
+              <Section title={t('Recent quote snapshots')}>
                 {bars.data?.quotes.length ? (
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell>时间</TableCell>
-                        <TableCell>买一</TableCell>
-                        <TableCell>卖一</TableCell>
-                        <TableCell>最新</TableCell>
+                        <TableCell>{t('Time')}</TableCell>
+                        <TableCell>{t('Bid')}</TableCell>
+                        <TableCell>{t('Ask')}</TableCell>
+                        <TableCell>{t('Last')}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -202,14 +203,14 @@ export function MarketPage() {
                     </TableBody>
                   </Table>
                 ) : (
-                  <Empty>没有报价快照</Empty>
+                  <Empty>{t('No quote snapshots')}</Empty>
                 )}
               </Section>
             </Grid>
           </Grid>
           <Stack sx={{ mt: 1 }}>
             <Typography variant="caption" color="text.secondary">
-              均线由浏览器根据显示的 K 线计算；根数不足时不显示。
+              {t('Moving averages are computed in the browser from the bars shown; they are hidden when there are too few bars.')}
             </Typography>
           </Stack>
         </>
