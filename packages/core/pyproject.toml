@@ -1,7 +1,8 @@
 [project]
 name = "quant-core"
 version = "0.1.0"
-description = "共享基础：数据模型、接口协议、LLM 客户端、配置加载、日志、注册表"
+description = "Shared foundation: data models, protocols, LLM client, config loading, logging, registries"
+license = "AGPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

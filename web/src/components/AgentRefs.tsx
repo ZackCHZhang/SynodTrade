@@ -8,11 +8,12 @@ import { useContext, useMemo, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { api } from '../api/client';
 import { useConfigs, useMeta } from '../api/hooks';
-import { ROLE_LABEL } from '../lib/labels';
+import { roleLabel } from '../lib/labels';
 import { objectFields } from '../lib/schema';
 import { parseYaml } from '../lib/yamlDoc';
 import { ErrorsContext, type Path, SchemaFields, pathKey } from './SchemaForm';
 import { AgentLabel } from './AgentAvatar';
+import { t } from '../i18n';
 
 export const MODEL_SUGGESTIONS = ['deepseek-chat', 'deepseek-reasoner', 'claude-opus-5', 'claude-sonnet-5', 'claude-haiku-4-5'];
 
@@ -76,11 +77,11 @@ export function AgentRefsEditor({ role, value, onChange, path, showWeight = true
     <Box>
       <Stack direction="row" sx={{ alignItems: 'center', mb: 1, gap: 1 }}>
         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-          Agent 实例
+          {t('Agent instances')}
         </Typography>
-        <Chip size="small" variant="outlined" label={`需要${ROLE_LABEL[role] ?? role}角色`} />
+        <Chip size="small" variant="outlined" label={t('Needs role {role}', { role: roleLabel(role) })} />
         <Typography variant="caption" color="text.secondary">
-          共 {refs.reduce((n, r) => n + (Number(r?.count) || 1), 0)} 个实例
+          {t('{n|instance|instances} total', { n: refs.reduce((n, r) => n + (Number(r?.count) || 1), 0) })}
         </Typography>
       </Stack>
       <Stack spacing={1}>
@@ -99,7 +100,7 @@ export function AgentRefsEditor({ role, value, onChange, path, showWeight = true
                     value={ref?.agent ?? ''}
                     onChange={(e) => update(i, { agent: e.target.value })}
                     error={!!(mismatch || err(i, 'agent'))}
-                    helperText={mismatch ? `角色是 ${agent?.role}` : err(i, 'agent')}
+                    helperText={mismatch ? t('Role is {role}', { role: agent?.role }) : err(i, 'agent')}
                     slotProps={{ inputLabel: { shrink: true } }}
                   >
                     {matching.map((a) => (
@@ -109,17 +110,17 @@ export function AgentRefsEditor({ role, value, onChange, path, showWeight = true
                     ))}
                     {ref?.agent && !matching.some((a) => a.name === ref.agent) && (
                       <MenuItem value={ref.agent} disabled>
-                        {ref.agent}（{agent ? agent.role : '不存在'}）
+                        {ref.agent} ({agent ? agent.role : t('missing')})
                       </MenuItem>
                     )}
                   </TextField>
                 </Grid>
                 <Grid size={{ xs: 4, md: 1.2 }}>
-                  <NumberBox label="实例数" value={ref?.count} onChange={(v) => update(i, { count: v })} error={err(i, 'count')} />
+                  <NumberBox label={t('Instances')} value={ref?.count} onChange={(v) => update(i, { count: v })} error={err(i, 'count')} />
                 </Grid>
                 {showWeight && (
                   <Grid size={{ xs: 4, md: 1.2 }}>
-                    <NumberBox label="权重" value={ref?.weight} step={0.1} onChange={(v) => update(i, { weight: v })} error={err(i, 'weight')} />
+                    <NumberBox label={t('Weight')} value={ref?.weight} step={0.1} onChange={(v) => update(i, { weight: v })} error={err(i, 'weight')} />
                   </Grid>
                 )}
                 <Grid size={{ xs: 12, md: 2.2 }}>
@@ -127,7 +128,7 @@ export function AgentRefsEditor({ role, value, onChange, path, showWeight = true
                     select
                     fullWidth
                     size="small"
-                    label="LLM 供应商"
+                    label={t('LLM provider')}
                     value={ref?.model?.provider ?? ''}
                     onChange={(e) => updateModel(i, { provider: e.target.value || undefined })}
                     error={!!err(i, 'model', 'provider') || !!err(i, 'model')}
@@ -135,14 +136,14 @@ export function AgentRefsEditor({ role, value, onChange, path, showWeight = true
                     slotProps={{ inputLabel: { shrink: true } }}
                   >
                     <MenuItem value="">
-                      <em>（用 agent 默认）</em>
+                      <em>{t('(agent default)')}</em>
                     </MenuItem>
                     {providers.map((p) => (
                       <MenuItem key={p} value={p}>
                         {p}
                       </MenuItem>
                     ))}
-                    {ref?.model?.provider && !providers.includes(ref.model.provider) && <MenuItem value={ref.model.provider}>{ref.model.provider}（未定义）</MenuItem>}
+                    {ref?.model?.provider && !providers.includes(ref.model.provider) && <MenuItem value={ref.model.provider}>{ref.model.provider} ({t('undefined')})</MenuItem>}
                   </TextField>
                 </Grid>
                 <Grid size={{ xs: 12, md: showWeight ? 2.8 : 4 }}>
@@ -156,7 +157,7 @@ export function AgentRefsEditor({ role, value, onChange, path, showWeight = true
                       <TextField
                         {...params}
                         size="small"
-                        label="模型名"
+                        label={t('Model name')}
                         error={!!err(i, 'model')}
                         helperText={err(i, 'model')}
                         slotProps={{ ...params.slotProps, inputLabel: { shrink: true } }}
@@ -165,19 +166,19 @@ export function AgentRefsEditor({ role, value, onChange, path, showWeight = true
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 1.4 }} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <Tooltip title="高级模型参数">
+                  <Tooltip title={t('Advanced model parameters')}>
                     <IconButton size="small" onClick={() => setOpen({ ...open, [i]: !open[i] })} color={open[i] ? 'primary' : 'default'}>
                       <TuneIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                   {ref?.agent && (
-                    <Tooltip title="编辑该 agent">
+                    <Tooltip title={t('Edit this agent')}>
                       <IconButton size="small" component={RouterLink} to={`/configs/agents/${ref.agent}`}>
                         <OpenInNewIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   )}
-                  <Tooltip title="移除">
+                  <Tooltip title={t('Remove')}>
                     <IconButton size="small" onClick={() => onChange(refs.filter((_, j) => j !== i))}>
                       <DeleteOutlineIcon fontSize="small" />
                     </IconButton>
@@ -216,11 +217,11 @@ export function AgentRefsEditor({ role, value, onChange, path, showWeight = true
           onChange([...refs, { agent: matching[0]?.name, count: 1, ...(last?.model ? { model: { provider: last.model.provider, name: last.model.name } } : {}) }]);
         }}
       >
-        添加 agent
+        {t('Add agent')}
       </Button>
       {!matching.length && (
         <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-          还没有{ROLE_LABEL[role] ?? role}角色的 agent，<RouterLink to="/configs/agents">去创建</RouterLink>
+          {t('No agents with role {role} yet, ', { role: roleLabel(role) })}<RouterLink to="/configs/agents">{t('create one')}</RouterLink>
         </Typography>
       )}
     </Box>

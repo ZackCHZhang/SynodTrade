@@ -3,9 +3,10 @@
 # they are installed here in editable mode so one venv can lint/type-check/test all.
 
 [project]
-name = "quant-system"
+name = "synodtrade"
 version = "0.1.0"
-description = "基于 IBKR 的多 Agent 量化交易系统（monorepo 开发环境）"
+description = "SynodTrade: a multi-agent LLM trading system for Interactive Brokers (monorepo dev environment)"
+license = "AGPL-3.0-or-later"
 requires-python = ">=3.12,<3.13"
 
 [tool.poetry]

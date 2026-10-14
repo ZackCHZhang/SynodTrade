@@ -12,6 +12,8 @@ import {
   ListItemIcon,
   ListItemText,
   ListSubheader,
+  Menu,
+  MenuItem,
   ThemeProvider,
   Toolbar,
   Tooltip,
@@ -38,6 +40,10 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import SyncIcon from '@mui/icons-material/Sync';
+import TranslateIcon from '@mui/icons-material/Translate';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import { enUS as coreEnUS, zhCN as coreZhCN } from '@mui/material/locale';
+import { enUS as gridEnUS, zhCN as gridZhCN } from '@mui/x-data-grid/locales';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import {
@@ -49,6 +55,7 @@ import {
   useRouteError,
 } from 'react-router-dom';
 import { api } from './api/client';
+import { fmtTime } from './lib/format';
 import { AccountSyncPage } from './pages/AccountSyncPage';
 import { ConfigEditPage, ConfigListPage } from './pages/ConfigsPage';
 import { Dashboard } from './pages/Dashboard';
@@ -59,38 +66,42 @@ import { RunDetailPage } from './pages/RunDetailPage';
 import { RunsPage } from './pages/RunsPage';
 import { SchedulerPage } from './pages/SchedulerPage';
 import { WatchlistPage } from './pages/WatchlistPage';
+import { LANGS, locale, t, useLang } from './i18n';
 
 const DRAWER = 232;
+// AGPL-3.0 section 13: users interacting with the console over a network can get its source here.
+// If you run a modified version for others, point this at your modified source.
+const SOURCE_URL = 'https://github.com/ZackCHZhang/ROOT';
 
 const NAV: { section?: string; items: { to: string; label: string; icon: React.ReactNode }[] }[] = [
   {
     items: [
-      { to: '/', label: '总览', icon: <DashboardIcon /> },
-      { to: '/runs', label: '运行记录', icon: <PlaylistPlayIcon /> },
-      { to: '/scheduler', label: '调度器', icon: <ScheduleIcon /> },
-      { to: '/account-sync', label: '账户同步', icon: <SyncIcon /> },
+      { to: '/', label: 'Overview', icon: <DashboardIcon /> },
+      { to: '/runs', label: 'Runs', icon: <PlaylistPlayIcon /> },
+      { to: '/scheduler', label: 'Scheduler', icon: <ScheduleIcon /> },
+      { to: '/account-sync', label: 'Account sync', icon: <SyncIcon /> },
     ],
   },
   {
-    section: '配置',
+    section: 'Configuration',
     items: [
-      { to: '/configs/pipelines', label: '流水线', icon: <AccountTreeIcon /> },
-      { to: '/configs/agents', label: 'Agent', icon: <SmartToyIcon /> },
-      { to: '/configs/prompts', label: '提示词模板', icon: <DescriptionIcon /> },
-      { to: '/configs/risk', label: '风控规则', icon: <ShieldIcon /> },
-      { to: '/configs/accounts', label: '账户', icon: <AccountBalanceIcon /> },
-      { to: '/configs/llm_providers', label: 'LLM 供应商', icon: <CloudIcon /> },
-      { to: '/configs/schedules', label: '调度配置', icon: <EventIcon /> },
-      { to: '/configs/account_sync', label: '同步配置', icon: <SyncIcon /> },
+      { to: '/configs/pipelines', label: 'Pipelines', icon: <AccountTreeIcon /> },
+      { to: '/configs/agents', label: 'Agents', icon: <SmartToyIcon /> },
+      { to: '/configs/prompts', label: 'Prompt templates', icon: <DescriptionIcon /> },
+      { to: '/configs/risk', label: 'Risk rules', icon: <ShieldIcon /> },
+      { to: '/configs/accounts', label: 'Accounts', icon: <AccountBalanceIcon /> },
+      { to: '/configs/llm_providers', label: 'LLM providers', icon: <CloudIcon /> },
+      { to: '/configs/schedules', label: 'Schedules', icon: <EventIcon /> },
+      { to: '/configs/account_sync', label: 'Sync settings', icon: <SyncIcon /> },
     ],
   },
   {
-    section: '数据',
+    section: 'Data',
     items: [
-      { to: '/portfolio', label: '持仓与账户', icon: <PieChartIcon /> },
-      { to: '/watchlist', label: '关注列表', icon: <VisibilityIcon /> },
-      { to: '/market', label: '行情', icon: <ShowChartIcon /> },
-      { to: '/data', label: '数据库', icon: <StorageIcon /> },
+      { to: '/portfolio', label: 'Portfolio & account', icon: <PieChartIcon /> },
+      { to: '/watchlist', label: 'Watchlist', icon: <VisibilityIcon /> },
+      { to: '/market', label: 'Market', icon: <ShowChartIcon /> },
+      { to: '/data', label: 'Database', icon: <StorageIcon /> },
     ],
   },
 ];
@@ -108,10 +119,13 @@ function readMode(): 'light' | 'dark' {
 function Layout() {
   const [mode, setMode] = useState<'light' | 'dark'>(readMode);
   const [open, setOpen] = useState(false);
+  const { lang, setLang } = useLang();
+  const [langAnchor, setLangAnchor] = useState<HTMLElement | null>(null);
   const location = useLocation();
   const theme = useMemo(
     () =>
-      createTheme({
+      createTheme(
+        {
         palette: { mode, primary: { main: mode === 'dark' ? '#64b5f6' : '#1565c0' }, background: mode === 'dark' ? { default: '#0f1214', paper: '#161a1d' } : { default: '#f6f7f9' } },
         shape: { borderRadius: 8 },
         typography: { fontFamily: '"Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif', fontSize: 13.5 },
@@ -120,8 +134,11 @@ function Layout() {
           MuiButton: { defaultProps: { disableElevation: true }, styleOverrides: { root: { textTransform: 'none' } } },
           MuiTab: { styleOverrides: { root: { textTransform: 'none' } } },
         },
-      }),
-    [mode],
+        },
+        lang === 'zh' ? coreZhCN : coreEnUS,
+        lang === 'zh' ? gridZhCN : gridEnUS,
+      ),
+    [mode, lang],
   );
   const wide = useMediaQuery(theme.breakpoints.up('md'));
   const overview = useQuery({ queryKey: ['overview'], queryFn: api.overview, refetchInterval: 10_000 });
@@ -131,13 +148,13 @@ function Layout() {
     null,
   );
   const syncChip = lastSync && (
-    <Tooltip title={`账户同步：${lastSync.status === 'ok' ? '成功' : lastSync.status === 'partial' ? '部分成功' : '失败'} · ${new Date(lastSync.finished_at).toLocaleString('zh-CN', { hour12: false })}`}>
+    <Tooltip title={`${t('Account sync')}: ${t(lastSync.status === 'ok' ? 'Succeeded' : lastSync.status === 'partial' ? 'Partially succeeded' : 'Failed')} · ${fmtTime(lastSync.finished_at, true)}`}>
       <Chip
         size="small"
         variant="outlined"
         color={lastSync.status === 'ok' ? 'success' : lastSync.status === 'partial' ? 'warning' : 'error'}
         icon={<SyncIcon />}
-        label={`同步 ${new Date(lastSync.finished_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })}`}
+        label={`${t('Synced')} ${new Date(lastSync.finished_at).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit', hour12: false })}`}
         component={RouterLink}
         to="/account-sync"
         clickable
@@ -150,7 +167,7 @@ function Layout() {
   const nav = (
     <Box sx={{ overflow: 'auto' }}>
       {NAV.map((group, i) => (
-        <List key={i} dense subheader={group.section ? <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '32px' }}>{group.section}</ListSubheader> : undefined}>
+        <List key={i} dense subheader={group.section ? <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '32px' }}>{t(group.section)}</ListSubheader> : undefined}>
           {group.items.map((item) => (
             <ListItemButton
               key={item.to}
@@ -161,7 +178,7 @@ function Layout() {
               sx={{ mx: 1, borderRadius: 1.5 }}
             >
               <ListItemIcon sx={{ minWidth: 36 }}>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
+              <ListItemText primary={t(item.label)} />
             </ListItemButton>
           ))}
           {i < NAV.length - 1 && <Divider sx={{ mt: 1 }} />}
@@ -182,14 +199,41 @@ function Layout() {
                 <MenuIcon />
               </IconButton>
             )}
-            <ShowChartIcon color="primary" sx={{ mr: 1 }} />
-            <Typography variant="h6" sx={{ fontWeight: 700, flex: 1, fontSize: 17 }} noWrap>
-              Quant 控制台
+            <Box component="img" src="/favicon.svg" alt="" sx={{ width: 26, height: 26, mr: 1.25 }} />
+            <Typography variant="h6" sx={{ fontWeight: 700, flex: 1, fontSize: 17, letterSpacing: '-0.01em' }} noWrap>
+              Synod
+              <Box component="span" sx={{ fontWeight: 500, color: mode === 'dark' ? '#5eead4' : '#0f766e' }}>
+                Trade
+              </Box>
             </Typography>
-            {kill && <Chip color="error" icon={<ReportProblemIcon />} label="熔断已开启" sx={{ mr: 1 }} component={RouterLink} to="/" clickable />}
-            {overview.data?.scheduler.running && <Chip size="small" color="success" variant="outlined" icon={<ScheduleIcon />} label="调度中" sx={{ mr: 1 }} />}
+            {kill && <Chip color="error" icon={<ReportProblemIcon />} label={t('Kill switch on')} sx={{ mr: 1 }} component={RouterLink} to="/" clickable />}
+            {overview.data?.scheduler.running && <Chip size="small" color="success" variant="outlined" icon={<ScheduleIcon />} label={t('Scheduling')} sx={{ mr: 1 }} />}
             {syncChip}
-            <Tooltip title={mode === 'dark' ? '浅色' : '深色'}>
+            <Tooltip title={t('Source code (AGPL-3.0)')}>
+              <IconButton component="a" href={SOURCE_URL} target="_blank" rel="noopener noreferrer">
+                <GitHubIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={t('Language')}>
+              <IconButton onClick={(e) => setLangAnchor(e.currentTarget)}>
+                <TranslateIcon />
+              </IconButton>
+            </Tooltip>
+            <Menu anchorEl={langAnchor} open={!!langAnchor} onClose={() => setLangAnchor(null)}>
+              {LANGS.map((l) => (
+                <MenuItem
+                  key={l.code}
+                  selected={l.code === lang}
+                  onClick={() => {
+                    setLangAnchor(null);
+                    setLang(l.code);
+                  }}
+                >
+                  {l.label}
+                </MenuItem>
+              ))}
+            </Menu>
+            <Tooltip title={t(mode === 'dark' ? 'Light' : 'Dark')}>
               <IconButton
                 onClick={() => {
                   const next = mode === 'dark' ? 'light' : 'dark';
@@ -235,19 +279,23 @@ function RouteError() {
   return (
     <Box sx={{ p: 3, maxWidth: 720 }}>
       <Typography variant="h6" gutterBottom>
-        页面出错了
+        {t('Something went wrong on this page')}
       </Typography>
       <Typography variant="body2" sx={{ fontFamily: 'monospace', mb: 2, whiteSpace: 'pre-wrap' }}>
         {message}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        如果刚更新过代码，可能是网页和后台服务的版本不一致：请重启 quant-web serve 后刷新页面。
+        {t('If the code was just updated, the page and the backend may be out of sync: restart quant-web serve and reload the page.')}
       </Typography>
       <Button variant="outlined" onClick={() => window.location.assign('/')}>
-        回到总览
+        {t('Back to overview')}
       </Button>
     </Box>
   );
+}
+
+function NotFound() {
+  return <Typography>{t('Page not found')}</Typography>;
 }
 
 export const router = createBrowserRouter([
@@ -266,7 +314,7 @@ export const router = createBrowserRouter([
       { path: '/watchlist', element: <WatchlistPage /> },
       { path: '/market', element: <MarketPage /> },
       { path: '/data', element: <DataPage /> },
-      { path: '*', element: <Typography>页面不存在</Typography> },
+      { path: '*', element: <NotFound /> },
     ],
   },
 ]);

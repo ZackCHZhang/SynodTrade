@@ -1,13 +1,14 @@
-# 账户同步：把 IBKR 账户的真实状态（订单是否成交、成交明细、账户与持仓）同步进数据库。
-#   - 每次 paper/live 实时运行的第一步，先同步这条流水线所用的账户
-#   - Web 控制台运行期间，每 interval_minutes 分钟自动同步一次所有账户（"账户同步"页面可修改）
-#   - 手动：Web "立即同步"，或命令行 quant-sync once
+# Account sync: syncs the real state of IBKR accounts (whether orders filled, fill details,
+# account and positions) into the database.
+#   - First step of every live paper/live run: syncs the account that pipeline uses
+#   - While the web console runs, all accounts sync every interval_minutes (editable on the "Account sync" page)
+#   - Manually: "Sync now" in the web console, or `quant-sync once` on the command line
 
-enabled: true                    # 定时自动同步（Web 控制台 / quant-sync loop）
-interval_minutes: 20             # 自动同步间隔（分钟）
-before_pipeline: true            # 每次 paper/live 运行前先同步
-required_before_pipeline: false  # true：运行前同步失败则整个运行失败（默认只记录，继续运行）
-gone_after_minutes: 30           # IBKR 查不到的挂单（不在挂单、已完成订单、成交记录里），多久没变化就按"已取消"关闭
-recheck_days: 3                  # 最近几天内已关闭的订单，再检查有没有迟到的成交
-snapshot: true                   # 保存账户与持仓快照
-accounts: []                     # 只同步这些账户配置（configs/accounts/）；空 = 所有流水线用到的账户
+enabled: true                    # scheduled automatic sync (web console / quant-sync loop)
+interval_minutes: 20             # automatic sync interval (minutes)
+before_pipeline: true            # sync before every paper/live run
+required_before_pipeline: false  # true: a failed pre-run sync fails the whole run (default: log it and continue)
+gone_after_minutes: 30           # open orders IBKR no longer knows about (not open, completed, or filled) close as "cancelled" after this long unchanged
+recheck_days: 3                  # orders closed within this many days are rechecked for late fills
+snapshot: true                   # save account and position snapshots
+accounts: []                     # only sync these account configs (configs/accounts/); empty = every account a pipeline uses

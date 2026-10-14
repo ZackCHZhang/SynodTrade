@@ -1,66 +1,44 @@
 # quant-account-sync
 
-[中文](#中文) | [English](#english)
+**English** | [简体中文](README.zh-CN.md)
 
----
+Account sync: brings the database up to date with the real state of the IBKR account. The problem it solves: after an order is placed, the database only knows it was "submitted", not whether it actually filled.
 
-## 中文
+Each sync (one connection per IBKR account, client id = account client_id + 4, so it never collides with a pipeline's connection):
 
-账户同步：把 IBKR 账户的真实状态同步进数据库。解决的问题是：下单后数据库里只有"已提交"，并不知道到底成交没有。
+1. **Open orders** (pending_submit / submitted / partially_filled): reads status, filled quantity and every execution (including commission) from IBKR and writes them back to `orders` / `fills`. An order IBKR cannot find (not open, not among completed orders, no executions) is closed as cancelled once it has been unchanged for `gone_after_minutes`; one that is partly filled but no longer open is closed at the filled quantity.
+2. **Late fills**: orders closed within the last `recheck_days` days get their executions checked again. An order that was marked cancelled because IBKR could not find it, but actually filled, gets its fills added and becomes filled (the sync report carries a warning).
+3. **Account and position snapshots**: NAV, cash, buying power and positions, written to `account_snapshots` / `position_snapshots`.
+4. **Reconciliation**: IBKR positions vs the sum of every pipeline's virtual ledger; open orders on IBKR the database does not know about (manual orders, or orders placed from another database).
 
-每次同步（一个 IBKR 账户一次连接，client id = 账户 client_id + 4，不和流水线的连接冲突）：
+Orders of pipelines that are still running are left alone (their own trading stage tracks them). Each sync's result is stored in the `account_syncs` table.
 
-1. **未完成的订单**（pending_submit / submitted / partially_filled）：从 IBKR 读取状态、成交数量和每笔成交（含佣金），写回 `orders` / `fills`。IBKR 查不到的订单（不在挂单里、不在已完成订单里、也没有成交记录），在 `gone_after_minutes` 内没有变化就按"已取消"关闭；有部分成交但已不再挂单的，按已成交数量关闭。
-2. **迟到的成交**：最近 `recheck_days` 天内已关闭的订单再查一次成交记录。比如之前因为查不到被标成"已取消"、实际上成交了的订单，会补上成交并改成 filled（同步报告里会有警告）。
-3. **账户与持仓快照**：净值、现金、购买力、持仓，写入 `account_snapshots` / `position_snapshots`。
-4. **核对**：IBKR 持仓 vs 各流水线虚拟账本之和；IBKR 上有、数据库里没有的挂单（手工下的单，或者另一个数据库下的单）。
+## When it syncs
 
-正在运行的流水线的订单不动（它自己的 trading 阶段在跟踪）。每次同步的结果存进 `account_syncs` 表。
+- **First pipeline step**: live paper / live runs (no `--as-of`) sync the pipeline's account before any stage (other pipelines on the same account are synced too); run details show it as step 1, "Account sync". `--offline`, `--dry-run` and `--as-of` replays do not sync.
+- **On a timer**: inside the web console process, every `interval_minutes` (default 20) for all accounts; the "Account sync" page can change it, turn it off, or sync right away. Without the web console, use `quant-sync loop`.
+- **Manually**: `quant-sync once`, or "Sync now" in the web console.
 
-### 什么时候同步
-
-- **流水线第一步**：paper / live 模式的实时运行（没有 `--as-of`），在任何阶段之前先同步这条流水线的账户（同账户的其他流水线一起同步），运行详情里显示为第 1 步"账户同步"。`--offline`、`--dry-run` 和指定 `--as-of` 的回放不同步。
-- **定时**：Web 控制台进程里每 `interval_minutes`（默认 20 分钟）同步一次所有账户；在"账户同步"页面可以修改、关闭、手动立即同步。没有 Web 控制台时可以用 `quant-sync loop`。
-- **手动**：`quant-sync once`，或 Web 页面上的"立即同步"。
-
-### 配置 `configs/account_sync.yaml`
+## Configuration: `configs/account_sync.yaml`
 
 ```yaml
-enabled: true                  # 定时同步（Web 控制台 / quant-sync loop）
+enabled: true                  # scheduled sync (web console / quant-sync loop)
 interval_minutes: 20
-before_pipeline: true          # 每次 paper/live 运行前先同步
-required_before_pipeline: false  # true：同步失败时整个运行失败（默认只记录，继续运行）
-gone_after_minutes: 30         # IBKR 查不到的挂单，多久没变化就按已取消关闭
-recheck_days: 3                # 最近几天内关闭的订单再检查迟到的成交
-snapshot: true                 # 保存账户与持仓快照
-accounts: []                   # 只同步这些账户配置；空 = 所有流水线用到的账户
+before_pipeline: true          # sync before every paper/live run
+required_before_pipeline: false  # true: a failed sync fails the whole run (default: log it and continue)
+gone_after_minutes: 30         # open orders IBKR cannot find are closed as cancelled after this long unchanged
+recheck_days: 3                # orders closed within this many days are rechecked for late fills
+snapshot: true                 # save account and position snapshots
+accounts: []                   # only sync these account configs; empty = every account a pipeline uses
 ```
 
-文件不存在时使用上面的默认值。
+Without the file, the defaults above apply.
 
-### 命令行
+## Command line
 
 ```bash
-quant-sync once  --db-url sqlite+aiosqlite:///./paper_test.db   # 同步一次，打印变化
-quant-sync loop  --db-url ...                                    # 按 interval_minutes 持续同步
+quant-sync once  --db-url sqlite+aiosqlite:///./paper_test.db   # sync once and print the changes
+quant-sync loop  --db-url ...                                    # keep syncing every interval_minutes
 ```
 
-注意：IBKR 默认只保留当天的成交记录（TWS 可以在 Global Configuration > API > Settings 里改成最多 7 天）。同步间隔越短，越不会漏掉成交明细。
-
----
-
-## English
-
-Account synchronisation: brings the database up to date with the real IBKR account, so an
-order recorded as "submitted" ends up filled, partly filled or cancelled.
-
-Each synchronisation (one connection per IBKR account, client id = account client_id + 4):
-updates every open order with the broker's status and fills; closes orders the broker no
-longer knows after `gone_after_minutes`; checks orders closed in the last `recheck_days`
-for late fills (and corrects them); saves an account and positions snapshot; reports
-broker positions vs the pipelines' ledgers and open broker orders the database does not
-know. Orders of runs still in progress are left alone. Results go to `account_syncs`.
-
-It runs as the first step of every live paper/live pipeline run, every
-`interval_minutes` (default 20) inside the web console process (configurable on the
-"账户同步" page), and on demand (`quant-sync once`). Settings: `configs/account_sync.yaml`.
+Note: by default IBKR only keeps the current day's executions (TWS can raise this to 7 days under Global Configuration > API > Settings). The shorter the sync interval, the less likely execution details are missed.

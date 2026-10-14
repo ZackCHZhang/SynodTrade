@@ -1,7 +1,8 @@
 [project]
 name = "quant-trading"
 version = "0.1.0"
-description = "交易执行：仓位→订单、幂等、Broker（IBKR / DryRun）、订单跟踪"
+description = "Trade execution: positions → orders, idempotency, brokers (IBKR / DryRun), order tracking"
+license = "AGPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

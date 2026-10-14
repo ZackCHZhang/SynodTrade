@@ -42,8 +42,10 @@ import { AgentAvatar, AgentLabel } from '../components/AgentAvatar';
 import { RunDialog } from '../components/RunDialog';
 import { ActionChip, ModeChip, StatusChip } from '../components/StatusChip';
 import { Empty, JsonView, PageHeader, Section } from '../components/common';
+import { locale } from '../i18n';
 import { fmtDuration, fmtNum, fmtSeconds, fmtTime, shortId } from '../lib/format';
 import { STAGE_INFO, stageLabel } from '../lib/labels';
+import { t } from '../i18n';
 
 // ------------------------------------------------------------------ progress
 
@@ -65,10 +67,10 @@ function StageProgress({ stages, statuses, runStatus }: { stages: string[]; stat
       <CardContent>
         <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            进度
+            {t('Progress')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {done} / {stages.length} 个阶段
+            {t('{done} / {total} stages', { done, total: stages.length })}
           </Typography>
         </Stack>
         <LinearProgress
@@ -144,19 +146,19 @@ function LogView({ events, state }: { events: RunEvent[]; state: string }) {
   return (
     <Box>
       <Stack direction="row" spacing={2} sx={{ mb: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-        <TextField size="small" placeholder="过滤…" value={filter} onChange={(e) => setFilter(e.target.value)} />
-        <TextField select size="small" value={level} onChange={(e) => setLevel(e.target.value)} sx={{ width: 140 }} label="级别" slotProps={{ inputLabel: { shrink: true } }}>
-          <MenuItem value="">全部</MenuItem>
+        <TextField size="small" placeholder={t('Filter…')} value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <TextField select size="small" value={level} onChange={(e) => setLevel(e.target.value)} sx={{ width: 140 }} label={t('Level')} slotProps={{ inputLabel: { shrink: true } }}>
+          <MenuItem value="">{t('All')}</MenuItem>
           {['info', 'warning', 'error', 'debug'].map((l) => (
             <MenuItem key={l} value={l}>
               {l}
             </MenuItem>
           ))}
         </TextField>
-        <FormControlLabel control={<Switch size="small" checked={follow} onChange={(e) => setFollow(e.target.checked)} />} label="自动滚动" />
-        <Chip size="small" label={state === 'live' ? '实时连接' : state === 'ended' ? '已结束' : state === 'error' ? '连接断开' : '连接中'} color={state === 'live' ? 'success' : 'default'} variant="outlined" />
+        <FormControlLabel control={<Switch size="small" checked={follow} onChange={(e) => setFollow(e.target.checked)} />} label={t('Auto-scroll')} />
+        <Chip size="small" label={t(state === 'live' ? 'Live' : state === 'ended' ? 'Ended' : state === 'error' ? 'Disconnected' : 'Connecting')} color={state === 'live' ? 'success' : 'default'} variant="outlined" />
         <Typography variant="caption" color="text.secondary">
-          {shown.length} / {events.length} 条
+          {t('{shown} / {total} entries', { shown: shown.length, total: events.length })}
         </Typography>
       </Stack>
       <Box
@@ -196,7 +198,7 @@ function LogView({ events, state }: { events: RunEvent[]; state: string }) {
             </Box>
           );
         })}
-        {!events.length && <Empty>{state === 'ended' ? '没有日志（该运行不是由本服务启动的，只能查看数据库中的结果）' : '等待事件…'}</Empty>}
+        {!events.length && <Empty>{state === 'ended' ? t('No logs (this run was not started by this server; only its results in the database are available)') : t('Waiting for events…')}</Empty>}
       </Box>
     </Box>
   );
@@ -210,16 +212,16 @@ function SymbolOverview({ d }: { d: RunDetail }) {
   const risk = s?.risk ?? {};
   const orders = Object.fromEntries(d.orders.map((o) => [o.intent.symbol, o]));
   const symbols = [...new Set([...(s?.universe ?? []), ...Object.keys(agg)])];
-  if (!symbols.length) return <Empty>还没有结果</Empty>;
+  if (!symbols.length) return <Empty>{t('No results yet')}</Empty>;
   return (
     <Table size="small">
       <TableHead>
         <TableRow>
-          <TableCell>股票</TableCell>
-          <TableCell>决策</TableCell>
-          <TableCell>得分</TableCell>
-          <TableCell>风控后</TableCell>
-          <TableCell>订单</TableCell>
+          <TableCell>{t('Symbol')}</TableCell>
+          <TableCell>{t('Decision')}</TableCell>
+          <TableCell>{t('Score')}</TableCell>
+          <TableCell>{t('After risk')}</TableCell>
+          <TableCell>{t('Orders')}</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -239,7 +241,7 @@ function SymbolOverview({ d }: { d: RunDetail }) {
                 {o ? (
                   <Typography variant="body2">
                     {o.intent.side} {o.intent.quantity} @ {o.intent.limit_price ?? 'MKT'} · <b>{o.status}</b>
-                    {o.filled_qty ? ` · 成交 ${o.filled_qty} @ ${fmtNum(o.avg_fill_price)}` : ''}
+                    {o.filled_qty ? ` · ${t('filled')} ${o.filled_qty} @ ${fmtNum(o.avg_fill_price)}` : ''}
                   </Typography>
                 ) : (
                   '—'
@@ -259,14 +261,14 @@ function SummaryTab({ d, statuses }: { d: RunDetail; statuses: Record<string, St
   return (
     <Grid container spacing={2}>
       <Grid size={{ xs: 12, lg: 7 }}>
-        <Section title="每只股票的结果">
+        <Section title={t('Results per symbol')}>
           <SymbolOverview d={d} />
         </Section>
         {!!s?.errors?.length && (
-          <Section title="错误">
+          <Section title={t('Errors')}>
             {s.errors.map((e, i) => (
               <Alert key={i} severity={e.skipped ? 'warning' : 'error'} sx={{ mb: 1 }}>
-                <b>{stageLabel(e.stage)}</b>（{e.error_type}{e.skipped ? '，已跳过' : ''}）：{e.message}
+                <b>{stageLabel(e.stage)}</b> ({e.error_type}{e.skipped ? `, ${t('skipped')}` : ''}): {e.message}
               </Alert>
             ))}
           </Section>
@@ -274,31 +276,32 @@ function SummaryTab({ d, statuses }: { d: RunDetail; statuses: Record<string, St
         {d.run.error && !s?.errors?.length && <Alert severity="error">{d.run.error}</Alert>}
       </Grid>
       <Grid size={{ xs: 12, lg: 5 }}>
-        <Section title="阶段耗时">
+        <Section title={t('Stage durations')}>
           {timed.length ? (
             <BarChart
               height={220}
               layout="horizontal"
               yAxis={[{ scaleType: 'band', data: timed.map(stageLabel), width: 72 }]}
-              series={[{ data: timed.map((x) => statuses[x].seconds ?? 0), label: '秒', color: '#1e88e5' }]}
+              series={[{ data: timed.map((x) => statuses[x].seconds ?? 0), label: t('seconds'), color: '#1e88e5' }]}
               hideLegend
             />
           ) : (
-            <Empty>运行结束后显示</Empty>
+            <Empty>{t('Shown after the run ends')}</Empty>
           )}
         </Section>
-        <Section title="数量">
+        <Section title={t('Counts')}>
           <Stack direction="row" sx={{ gap: 1, flexWrap: 'wrap' }}>
-            <Chip label={`Agent 实例 ${d.agent_instances.length}`} />
-            <Chip label={`LLM 调用 ${d.llm_calls.length}`} />
-            <Chip label={`舆情结果 ${d.sentiment_results.length}`} />
-            <Chip label={`决策 ${d.decisions.length}`} />
-            <Chip label={`风控评估 ${d.risk_assessments.length}`} />
-            <Chip label={`订单 ${d.orders.length}`} />
+            <Chip label={`${t('Agent instances')} ${d.agent_instances.length}`} />
+            <Chip label={`${t('LLM calls')} ${d.llm_calls.length}`} />
+            <Chip label={`${t('Sentiment results')} ${d.sentiment_results.length}`} />
+            <Chip label={`${t('Decisions')} ${d.decisions.length}`} />
+            <Chip label={`${t('Risk assessments')} ${d.risk_assessments.length}`} />
+            <Chip label={`${t('Orders')} ${d.orders.length}`} />
             <Chip
-              label={`Token ${d.llm_calls.reduce((n, c) => n + (c.input_tokens ?? 0), 0).toLocaleString()} 入 / ${d.llm_calls
-                .reduce((n, c) => n + (c.output_tokens ?? 0), 0)
-                .toLocaleString()} 出`}
+              label={t('Tokens {in} in / {out} out', {
+                in: d.llm_calls.reduce((n, c) => n + (c.input_tokens ?? 0), 0).toLocaleString(locale()),
+                out: d.llm_calls.reduce((n, c) => n + (c.output_tokens ?? 0), 0).toLocaleString(locale()),
+              })}
             />
           </Stack>
         </Section>
@@ -309,21 +312,21 @@ function SummaryTab({ d, statuses }: { d: RunDetail; statuses: Record<string, St
 
 function SelectionTab({ d }: { d: RunDetail }) {
   const sel = d.stock_selection;
-  if (!sel && !d.selection_results.length) return <Empty>这次运行没有选股阶段</Empty>;
+  if (!sel && !d.selection_results.length) return <Empty>{t('This run has no selection stage')}</Empty>;
   const scores: [string, number][] = sel ? Object.entries<number>(sel.scores).sort((a, b) => b[1] - a[1]) : [];
   return (
     <Grid container spacing={2}>
       {sel && (
         <Grid size={{ xs: 12, lg: 5 }}>
-          <Section title={`最终选择（${sel.method}）`}>
+          <Section title={t('Final selection ({method})', { method: sel.method })}>
             <Stack direction="row" sx={{ gap: 1, flexWrap: 'wrap', mb: 2 }}>
               {sel.selected.map((s: string) => (
                 <Chip key={s} color="primary" label={`${s} ${fmtNum(sel.scores[s], 2)}`} />
               ))}
               {sel.holdings.map((s: string) => (
-                <Chip key={s} variant="outlined" label={`${s}（持仓保留）`} />
+                <Chip key={s} variant="outlined" label={`${s} (${t('kept as holding')})`} />
               ))}
-              {!sel.selected.length && <Typography color="text.secondary">没有选出股票</Typography>}
+              {!sel.selected.length && <Typography color="text.secondary">{t('No symbols selected')}</Typography>}
             </Stack>
             {!!scores.length && (
               <BarChart
@@ -331,18 +334,18 @@ function SelectionTab({ d }: { d: RunDetail }) {
                 layout="horizontal"
                 yAxis={[{ scaleType: 'band', data: scores.map((x) => x[0]), width: 64 }]}
                 xAxis={[{ min: 0, max: 1 }]}
-                series={[{ data: scores.map((x) => x[1]), label: '聚合得分', color: '#8e24aa' }]}
+                series={[{ data: scores.map((x) => x[1]), label: t('Aggregated score'), color: '#8e24aa' }]}
                 hideLegend
               />
             )}
             {!!Object.keys(sel.rejected ?? {}).length && (
               <>
                 <Typography variant="subtitle2" sx={{ mt: 2 }}>
-                  初筛淘汰
+                  {t('Dropped by the screen')}
                 </Typography>
                 {Object.entries<string>(sel.rejected).map(([s, why]) => (
                   <Typography key={s} variant="body2">
-                    <b>{s}</b>：{why}
+                    <b>{s}</b>: {why}
                   </Typography>
                 ))}
               </>
@@ -352,7 +355,7 @@ function SelectionTab({ d }: { d: RunDetail }) {
       )}
       <Grid size={{ xs: 12, lg: sel ? 7 : 12 }}>
         {d.selection_results.map((r) => (
-          <Section key={r.id} title={<AgentLabel agentId={r.agent_id}>{`${r.agent_id} · ${shortId(r.instance_id)}`}</AgentLabel>} actions={r.error && <Chip size="small" color="error" label="失败" />}>
+          <Section key={r.id} title={<AgentLabel agentId={r.agent_id}>{`${r.agent_id} · ${shortId(r.instance_id)}`}</AgentLabel>} actions={r.error && <Chip size="small" color="error" label={t('Failed')} />}>
             {r.error && <Alert severity="error" sx={{ mb: 1 }}>{r.error}</Alert>}
             <Typography variant="body2" sx={{ mb: 1 }}>
               {r.summary}
@@ -396,17 +399,17 @@ function SentimentBar({ value }: { value: number }) {
 }
 
 function SentimentTab({ d }: { d: RunDetail }) {
-  if (!d.sentiment_results.length) return <Empty>没有舆情结果</Empty>;
+  if (!d.sentiment_results.length) return <Empty>{t('No sentiment results')}</Empty>;
   return (
     <Table size="small">
       <TableHead>
         <TableRow>
-          <TableCell>股票</TableCell>
+          <TableCell>{t('Symbol')}</TableCell>
           <TableCell>Agent</TableCell>
-          <TableCell>情绪</TableCell>
-          <TableCell>置信度</TableCell>
-          <TableCell>摘要</TableCell>
-          <TableCell>关键事件</TableCell>
+          <TableCell>{t('Sentiment score')}</TableCell>
+          <TableCell>{t('Confidence')}</TableCell>
+          <TableCell>{t('Summary')}</TableCell>
+          <TableCell>{t('Key events')}</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -424,10 +427,10 @@ function SentimentTab({ d }: { d: RunDetail }) {
             </TableCell>
             <TableCell>{fmtNum(r.confidence, 2)}</TableCell>
             <TableCell sx={{ maxWidth: 420 }}>
-              {r.error && <Chip size="small" color="error" label="失败" sx={{ mr: 1 }} />}
+              {r.error && <Chip size="small" color="error" label={t('Failed')} sx={{ mr: 1 }} />}
               {r.summary}
             </TableCell>
-            <TableCell>{(r.key_events ?? []).join('；')}</TableCell>
+            <TableCell>{(r.key_events ?? []).join('; ')}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -437,18 +440,18 @@ function SentimentTab({ d }: { d: RunDetail }) {
 
 function DecisionTab({ d }: { d: RunDetail }) {
   const [open, setOpen] = useState<string | null>(null);
-  if (!d.aggregated_decisions.length && !d.decisions.length) return <Empty>没有决策</Empty>;
+  if (!d.aggregated_decisions.length && !d.decisions.length) return <Empty>{t('No decisions')}</Empty>;
   const bySymbol: Record<string, any[]> = {};
   for (const x of d.decisions) (bySymbol[x.symbol] ??= []).push(x);
   return (
     <Table size="small">
       <TableHead>
         <TableRow>
-          <TableCell>股票</TableCell>
-          <TableCell>最终动作</TableCell>
-          <TableCell>方法</TableCell>
-          <TableCell>得分</TableCell>
-          <TableCell>投票</TableCell>
+          <TableCell>{t('Symbol')}</TableCell>
+          <TableCell>{t('Final action')}</TableCell>
+          <TableCell>{t('Method')}</TableCell>
+          <TableCell>{t('Score')}</TableCell>
+          <TableCell>{t('Votes')}</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -464,7 +467,7 @@ function DecisionTab({ d }: { d: RunDetail }) {
               <TableCell>
                 <Stack direction="row" sx={{ gap: 0.5, flexWrap: 'wrap' }}>
                   {a.votes.map((v: any) => (
-                    <Tooltip key={v.instance_id} title={`${v.agent_id} · 置信度 ${fmtNum(v.confidence, 2)} · 权重 ${v.weight}`}>
+                    <Tooltip key={v.instance_id} title={`${v.agent_id} · ${t('Confidence')} ${fmtNum(v.confidence, 2)} · ${t('Weight')} ${v.weight}`}>
                       <Stack direction="row" spacing={0.5} component="span" sx={{ alignItems: 'center' }}>
                         <AgentAvatar agentId={v.agent_id} size={22} />
                         <ActionChip action={v.action} />
@@ -484,7 +487,7 @@ function DecisionTab({ d }: { d: RunDetail }) {
                   <TableCell>
                     <AgentLabel agentId={x.agent_id} />
                     <Typography variant="caption" color="text.secondary" component="div">
-                      {shortId(x.instance_id)} · 置信度 {fmtNum(x.confidence, 2)}
+                      {shortId(x.instance_id)} · {t('Confidence')} {fmtNum(x.confidence, 2)}
                     </Typography>
                   </TableCell>
                   <TableCell colSpan={2}>
@@ -492,7 +495,7 @@ function DecisionTab({ d }: { d: RunDetail }) {
                     <Typography variant="body2">{x.reasoning}</Typography>
                     {!!x.referenced_data_ids?.length && (
                       <Typography variant="caption" color="text.secondary">
-                        引用：{x.referenced_data_ids.join(', ')}
+                        {t('References: {list}', { list: x.referenced_data_ids.join(', ') })}
                       </Typography>
                     )}
                   </TableCell>
@@ -506,17 +509,17 @@ function DecisionTab({ d }: { d: RunDetail }) {
 }
 
 function RiskTab({ d }: { d: RunDetail }) {
-  if (!d.risk_assessments.length) return <Empty>没有风控评估</Empty>;
+  if (!d.risk_assessments.length) return <Empty>{t('No risk assessments')}</Empty>;
   return (
     <Table size="small">
       <TableHead>
         <TableRow>
-          <TableCell>股票</TableCell>
-          <TableCell>来源</TableCell>
-          <TableCell>结论</TableCell>
-          <TableCell>动作</TableCell>
-          <TableCell>原因</TableCell>
-          <TableCell>规则命中</TableCell>
+          <TableCell>{t('Symbol')}</TableCell>
+          <TableCell>{t('Source')}</TableCell>
+          <TableCell>{t('Verdict')}</TableCell>
+          <TableCell>{t('Action')}</TableCell>
+          <TableCell>{t('Reason')}</TableCell>
+          <TableCell>{t('Rules hit')}</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -524,7 +527,7 @@ function RiskTab({ d }: { d: RunDetail }) {
           <TableRow key={r.id}>
             <TableCell sx={{ fontWeight: 600 }}>{r.symbol}</TableCell>
             <TableCell>
-              {r.source === 'rules' ? <Chip size="small" label="硬规则" /> : r.source === 'final' ? r.source : <AgentLabel agentId={r.source} />}
+              {r.source === 'rules' ? <Chip size="small" label={t('Hard rules')} /> : r.source === 'final' ? r.source : <AgentLabel agentId={r.source} />}
             </TableCell>
             <TableCell>
               <Chip size="small" label={r.verdict} color={r.verdict === 'approve' ? 'success' : r.verdict === 'reject' ? 'error' : 'warning'} variant="outlined" />
@@ -553,19 +556,19 @@ function RiskTab({ d }: { d: RunDetail }) {
 }
 
 function OrdersTab({ d }: { d: RunDetail }) {
-  if (!d.orders.length) return <Empty>没有订单</Empty>;
+  if (!d.orders.length) return <Empty>{t('No orders')}</Empty>;
   return (
     <Table size="small">
       <TableHead>
         <TableRow>
-          <TableCell>股票</TableCell>
-          <TableCell>动作</TableCell>
-          <TableCell>方向 × 数量</TableCell>
-          <TableCell>类型 / 限价</TableCell>
-          <TableCell>预估金额</TableCell>
-          <TableCell>状态</TableCell>
-          <TableCell>成交</TableCell>
-          <TableCell>信息</TableCell>
+          <TableCell>{t('Symbol')}</TableCell>
+          <TableCell>{t('Action')}</TableCell>
+          <TableCell>{t('Side × quantity')}</TableCell>
+          <TableCell>{t('Type / limit')}</TableCell>
+          <TableCell>{t('Est. notional')}</TableCell>
+          <TableCell>{t('Status')}</TableCell>
+          <TableCell>{t('Fills')}</TableCell>
+          <TableCell>{t('Message')}</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -589,7 +592,7 @@ function OrdersTab({ d }: { d: RunDetail }) {
               {o.filled_qty ? `${o.filled_qty} @ ${fmtNum(o.avg_fill_price)}` : '—'}
               {(o.fills ?? []).map((f: any) => (
                 <Typography key={f.exec_id} variant="caption" component="div" color="text.secondary">
-                  {fmtTime(f.ts, true)} {f.qty} @ {fmtNum(f.price)} 佣金 {fmtNum(f.commission)}
+                  {fmtTime(f.ts, true)} {f.qty} @ {fmtNum(f.price)} {t('commission')} {fmtNum(f.commission)}
                 </Typography>
               ))}
             </TableCell>
@@ -613,7 +616,7 @@ function LlmCallDialog({ id, onClose }: { id: string | null; onClose: () => void
   return (
     <Dialog open={!!id} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
-        LLM 调用 {c ? `· ${c.agent_id} · ${c.provider}/${c.model} · 第 ${c.attempt} 次` : ''}
+        {t('LLM call')} {c ? `· ${c.agent_id} · ${c.provider}/${c.model} · ${t('attempt {n}', { n: c.attempt })}` : ''}
         <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8 }}>
           <CloseIcon />
         </IconButton>
@@ -625,10 +628,10 @@ function LlmCallDialog({ id, onClose }: { id: string | null; onClose: () => void
           <Stack spacing={2}>
             {c.error && <Alert severity="error">{c.error}</Alert>}
             <Stack direction="row" sx={{ gap: 1, flexWrap: 'wrap' }}>
-              <Chip size="small" label={`输入 ${c.input_tokens ?? '?'} tokens`} />
-              <Chip size="small" label={`输出 ${c.output_tokens ?? '?'} tokens`} />
-              {!!c.cache_read_input_tokens && <Chip size="small" label={`缓存读 ${c.cache_read_input_tokens}`} />}
-              <Chip size="small" label={`耗时 ${fmtNum(c.latency_ms, 0)} ms`} />
+              <Chip size="small" label={t('Input {n} tokens', { n: c.input_tokens ?? '?' })} />
+              <Chip size="small" label={t('Output {n} tokens', { n: c.output_tokens ?? '?' })} />
+              {!!c.cache_read_input_tokens && <Chip size="small" label={t('Cache read {n}', { n: c.cache_read_input_tokens })} />}
+              <Chip size="small" label={t('Latency {n} ms', { n: fmtNum(c.latency_ms, 0) })} />
               <Chip size="small" label={`stop: ${c.stop_reason ?? '—'}`} />
             </Stack>
             {c.request?.system && (
@@ -644,12 +647,12 @@ function LlmCallDialog({ id, onClose }: { id: string | null; onClose: () => void
               </div>
             ))}
             <div>
-              <Typography variant="subtitle2">响应</Typography>
+              <Typography variant="subtitle2">{t('Response')}</Typography>
               <JsonView value={pretty ?? ''} maxHeight={360} />
             </div>
             {c.request?.json_schema && (
               <div>
-                <Typography variant="subtitle2">输出 JSON Schema</Typography>
+                <Typography variant="subtitle2">{t('Output JSON Schema')}</Typography>
                 <JsonView value={c.request.json_schema} maxHeight={240} asJson />
               </div>
             )}
@@ -662,19 +665,19 @@ function LlmCallDialog({ id, onClose }: { id: string | null; onClose: () => void
 
 function LlmTab({ d }: { d: RunDetail }) {
   const [open, setOpen] = useState<string | null>(null);
-  if (!d.llm_calls.length) return <Empty>没有 LLM 调用</Empty>;
+  if (!d.llm_calls.length) return <Empty>{t('No LLM calls')}</Empty>;
   return (
     <>
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>时间</TableCell>
+            <TableCell>{t('Time')}</TableCell>
             <TableCell>Agent</TableCell>
-            <TableCell>模型</TableCell>
-            <TableCell>尝试</TableCell>
-            <TableCell>Token 入 / 出</TableCell>
-            <TableCell>耗时</TableCell>
-            <TableCell>结果</TableCell>
+            <TableCell>{t('Model')}</TableCell>
+            <TableCell>{t('Attempt')}</TableCell>
+            <TableCell>{t('Tokens in / out')}</TableCell>
+            <TableCell>{t('Duration')}</TableCell>
+            <TableCell>{t('Result')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -706,16 +709,16 @@ function LlmTab({ d }: { d: RunDetail }) {
 }
 
 function AgentsTab({ d }: { d: RunDetail }) {
-  if (!d.agent_instances.length) return <Empty>没有 agent 实例</Empty>;
+  if (!d.agent_instances.length) return <Empty>{t('No agent instances')}</Empty>;
   return (
     <Table size="small">
       <TableHead>
         <TableRow>
-          <TableCell>实例</TableCell>
+          <TableCell>{t('Instance')}</TableCell>
           <TableCell>Agent</TableCell>
-          <TableCell>角色</TableCell>
-          <TableCell>模型</TableCell>
-          <TableCell>提示词版本</TableCell>
+          <TableCell>{t('Role')}</TableCell>
+          <TableCell>{t('Model')}</TableCell>
+          <TableCell>{t('Prompt version')}</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -767,7 +770,7 @@ export function RunDetailPage() {
   });
 
   if (detail.isLoading) return <CircularProgress />;
-  if (detail.error || !detail.data) return <Alert severity="error">{String((detail.error as Error)?.message ?? '未找到')}</Alert>;
+  if (detail.error || !detail.data) return <Alert severity="error">{String((detail.error as Error)?.message ?? t('Not found'))}</Alert>;
   const d = detail.data;
   const r = d.run;
   const statuses = stageStatuses(d, live);
@@ -783,39 +786,39 @@ export function RunDetailPage() {
             </RouterLink>
             <StatusChip status={status} size="medium" />
             <ModeChip mode={r.mode} offline={r.offline} />
-            {d.database === 'offline' && <Chip size="small" color="secondary" variant="outlined" label="离线沙盒数据库" />}
+            {d.database === 'offline' && <Chip size="small" color="secondary" variant="outlined" label={t('Offline sandbox database')} />}
           </Stack>
         }
         subtitle={
           <span>
-            Run <code>{r.run_id}</code> · 开始 {fmtTime(r.started_at, true)} · 耗时 {fmtDuration(r.started_at, r.ended_at)} · as_of {fmtTime(r.as_of, true)}
+            Run <code>{r.run_id}</code> · {t('started')} {fmtTime(r.started_at, true)} · {t('took {d}', { d: fmtDuration(r.started_at, r.ended_at) })} · as_of {fmtTime(r.as_of, true)}
           </span>
         }
         actions={
           <>
             {job && (
               <Button color="error" variant="outlined" startIcon={<StopIcon />} onClick={() => cancel.mutate(job.id)}>
-                取消运行
+                {t('Cancel run')}
               </Button>
             )}
             <Button startIcon={<ReplayIcon />} onClick={() => setRerun(true)}>
-              再次运行
+              {t('Run again')}
             </Button>
           </>
         }
       />
       <StageProgress stages={r.stages_run} statuses={statuses} runStatus={status} />
       <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Tab value="summary" label="概要" />
-        <Tab value="log" label={`实时日志${events.length ? ` (${events.length})` : ''}`} />
-        {r.stages_run.includes('selection') && <Tab value="selection" label="选股" />}
-        <Tab value="sentiment" label={`舆情 (${d.sentiment_results.length})`} />
-        <Tab value="decision" label={`决策 (${d.aggregated_decisions.length})`} />
-        <Tab value="risk" label={`风控 (${d.risk_assessments.length})`} />
-        <Tab value="orders" label={`订单 (${d.orders.length})`} />
+        <Tab value="summary" label={t('Summary')} />
+        <Tab value="log" label={`${t('Live log')}${events.length ? ` (${events.length})` : ''}`} />
+        {r.stages_run.includes('selection') && <Tab value="selection" label={t('Selection')} />}
+        <Tab value="sentiment" label={`${t('Sentiment')} (${d.sentiment_results.length})`} />
+        <Tab value="decision" label={`${t('Decision')} (${d.aggregated_decisions.length})`} />
+        <Tab value="risk" label={`${t('Risk')} (${d.risk_assessments.length})`} />
+        <Tab value="orders" label={`${t('Orders')} (${d.orders.length})`} />
         <Tab value="agents" label={`Agent (${d.agent_instances.length})`} />
-        <Tab value="llm" label={`LLM 调用 (${d.llm_calls.length})`} />
-        <Tab value="config" label="配置快照" />
+        <Tab value="llm" label={`${t('LLM calls')} (${d.llm_calls.length})`} />
+        <Tab value="config" label={t('Config snapshot')} />
       </Tabs>
       {tab === 'summary' && <SummaryTab d={d} statuses={statuses} />}
       {tab === 'log' && <LogView events={events} state={state} />}
@@ -827,7 +830,7 @@ export function RunDetailPage() {
       {tab === 'agents' && <AgentsTab d={d} />}
       {tab === 'llm' && <LlmTab d={d} />}
       {tab === 'config' && (
-        <Section title={`配置快照 · hash ${r.config_hash.slice(0, 12)}`}>
+        <Section title={`${t('Config snapshot')} · hash ${r.config_hash.slice(0, 12)}`}>
           <JsonView value={r.config} maxHeight={640} />
         </Section>
       )}

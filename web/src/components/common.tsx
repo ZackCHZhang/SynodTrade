@@ -1,5 +1,6 @@
 import { Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
 import { toYaml } from '../lib/yamlDoc';
+import { t } from '../i18n';
 
 /** Read-only structured value, shown as YAML (more readable than JSON for nested data). */
 export function JsonView({ value, maxHeight = 480, asJson = false }: { value: unknown; maxHeight?: number | string; asJson?: boolean }) {
@@ -55,7 +56,7 @@ export function ConfirmDialog({
   open,
   title,
   children,
-  confirmText = '确定',
+  confirmText,
   danger = false,
   onClose,
   onConfirm,
@@ -73,9 +74,9 @@ export function ConfirmDialog({
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>{children}</DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>取消</Button>
+        <Button onClick={onClose}>{t('Cancel')}</Button>
         <Button variant="contained" color={danger ? 'error' : 'primary'} onClick={onConfirm}>
-          {confirmText}
+          {confirmText ?? t('OK')}
         </Button>
       </DialogActions>
     </Dialog>

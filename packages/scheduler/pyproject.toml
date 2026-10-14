@@ -1,7 +1,8 @@
 [project]
 name = "quant-scheduler"
 version = "0.1.0"
-description = "调度器：交易日历、定时唤醒流水线、防重入、健康检查"
+description = "Scheduler: trading calendar, timed pipeline wake-ups, re-entrancy guard, health checks"
+license = "AGPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

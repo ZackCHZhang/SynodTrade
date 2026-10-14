@@ -1,7 +1,8 @@
 [project]
 name = "quant-market-data"
 version = "0.1.0"
-description = "行情/账户数据更新（IBKR 历史 K 线、实时快照、账户与持仓）"
+description = "Market/account data updates (IBKR historical bars, live snapshots, account and positions)"
+license = "AGPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

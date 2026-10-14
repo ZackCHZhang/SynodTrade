@@ -1,7 +1,8 @@
 [project]
 name = "quant-account-sync"
 version = "0.1.0"
-description = "账户同步：订单成交状态、迟到的成交、账户与持仓快照、账本核对（流水线第一步 + 定时）"
+description = "Account sync: order fill status, late fills, account and position snapshots, ledger reconciliation (first pipeline step + scheduled)"
+license = "AGPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

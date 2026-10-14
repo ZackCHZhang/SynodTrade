@@ -520,7 +520,7 @@ def create_app(settings: WebSettings) -> FastAPI:
             if web.offline_db is not None:
                 await web.offline_db.dispose()
 
-    app = FastAPI(title="quant-system web", lifespan=lifespan)
+    app = FastAPI(title="SynodTrade web console", lifespan=lifespan)
     app.include_router(api)
 
     @app.exception_handler(NotFoundError)
@@ -535,7 +535,7 @@ def create_app(settings: WebSettings) -> FastAPI:
     @app.exception_handler(InvalidConfigError)
     async def invalid(_: Request, exc: Exception) -> JSONResponse:
         assert isinstance(exc, InvalidConfigError)
-        return _error(422, "配置校验失败", diagnostics=exc.diagnostics.as_dict())
+        return _error(422, "Config validation failed", diagnostics=exc.diagnostics.as_dict())
 
     @app.exception_handler(ConfigError)
     @app.exception_handler(ValueError)

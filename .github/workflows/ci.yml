@@ -1,4 +1,4 @@
-# Lint, type-check and unit-test every pull request into the default branch.
+# Lint, type-check and unit-test every pull request into the default branch; type-check the web console.
 # Commands mirror tasks.py so CI and `python tasks.py check` behave identically.
 name: CI
 
@@ -75,3 +75,23 @@ jobs:
       - name: pytest
         # Integration tests (real IBKR / LLM / Postgres) are excluded by the default `-m` in pyproject.
         run: poetry run pytest --cov --cov-report=term-missing
+
+  web:
+    name: Web console (tsc + i18n)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Every UI string has a Chinese translation
+        run: npm run i18n:check
