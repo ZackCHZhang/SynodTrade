@@ -28,14 +28,17 @@ import { api, type Times } from '../api/client';
 import { RunDialog } from '../components/RunDialog';
 import { Empty, PageHeader, Section } from '../components/common';
 import { fmtTime } from '../lib/format';
+import { t } from '../i18n';
 
-function TimeCell({ t }: { t: Times }) {
-  if (!t.utc) return <>—</>;
+function TimeCell({ t: time }: { t: Times }) {
+  if (!time.utc) return <>—</>;
   return (
     <Box>
-      <Typography variant="body2">{fmtTime(t.utc)}（本地）</Typography>
+      <Typography variant="body2">
+        {fmtTime(time.utc)} ({t('local')})
+      </Typography>
       <Typography variant="caption" color="text.secondary">
-        纽约 {t.new_york?.replace('T', ' ').slice(0, 16)} · 柏林 {t.berlin?.replace('T', ' ').slice(0, 16)}
+        {t('New York')} {time.new_york?.replace('T', ' ').slice(0, 16)} · {t('Berlin')} {time.berlin?.replace('T', ' ').slice(0, 16)}
       </Typography>
     </Box>
   );
@@ -64,11 +67,11 @@ export function SchedulerPage() {
   return (
     <Box>
       <PageHeader
-        title="调度器"
-        subtitle="按交易所日历定时唤醒流水线（configs/schedules.yaml）"
+        title={t('Scheduler')}
+        subtitle={t('Wakes pipelines on the exchange calendar (configs/schedules.yaml)')}
         actions={
           <Button startIcon={<EditIcon />} component={RouterLink} to="/configs/schedules/schedules">
-            编辑调度配置
+            {t('Edit schedules')}
           </Button>
         }
       />
@@ -78,36 +81,36 @@ export function SchedulerPage() {
             <CardContent>
               <Stack direction="row" sx={{ alignItems: 'center', gap: 1, mb: 2 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600, flex: 1 }}>
-                  内置调度器
+                  {t('Built-in scheduler')}
                 </Typography>
-                <Chip color={running ? 'success' : 'default'} label={running ? '运行中' : '已停止'} />
+                <Chip color={running ? 'success' : 'default'} label={running ? t('Running') : t('Stopped')} />
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                在本 Web 服务进程内运行，任务保存在内存中；服务停止调度也停止。生产环境可以改用独立的 <code>quant-scheduler run</code>
-                （或 docker compose），不要两者同时运行，否则流水线会被唤醒两次。
+                {t('Runs inside this web server process and keeps jobs in memory; scheduling stops when the server stops. In production you can use a standalone')}{' '}
+                <code>quant-scheduler run</code> {t('(or docker compose) instead. Never run both, or pipelines wake up twice.')}
               </Typography>
               {running && status.data?.started_at && (
                 <Typography variant="body2" sx={{ mb: 2 }}>
-                  启动于 {fmtTime(status.data.started_at, true)}
+                  {t('Started at {time}', { time: fmtTime(status.data.started_at, true) })}
                 </Typography>
               )}
               <Stack direction="row" spacing={1}>
                 {!running ? (
                   <Button variant="contained" color="success" startIcon={<PlayArrowIcon />} disabled={action.isPending} onClick={() => action.mutate('start')}>
-                    启动
+                    {t('Start')}
                   </Button>
                 ) : (
                   <>
                     <Button variant="outlined" color="error" startIcon={<StopIcon />} disabled={action.isPending} onClick={() => action.mutate('stop')}>
-                      停止
+                      {t('Stop')}
                     </Button>
                     <Button startIcon={<RefreshIcon />} disabled={action.isPending} onClick={() => action.mutate('reload')}>
-                      重新加载配置
+                      {t('Reload config')}
                     </Button>
                   </>
                 )}
                 <Button startIcon={<HealthAndSafetyIcon />} disabled={check.isPending} onClick={() => check.mutate()}>
-                  健康检查
+                  {t('Health check')}
                 </Button>
               </Stack>
               {action.error && (
@@ -119,7 +122,7 @@ export function SchedulerPage() {
                 <Stack spacing={1} sx={{ mt: 2 }}>
                   {check.data.map((c) => (
                     <Alert key={c.pipeline} severity={c.ok ? 'success' : 'error'}>
-                      <b>{c.pipeline}</b>：{c.ok ? '数据库和 IB Gateway 均可连接' : c.problems.join('；')}
+                      <b>{c.pipeline}</b>: {c.ok ? t('Database and IB Gateway are both reachable') : c.problems.join('; ')}
                     </Alert>
                   ))}
                 </Stack>
@@ -127,13 +130,13 @@ export function SchedulerPage() {
             </CardContent>
           </Card>
           {running && (
-            <Section title="已排程的任务">
+            <Section title={t('Scheduled jobs')}>
               {status.data?.jobs.length ? (
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>任务</TableCell>
-                      <TableCell>下次运行</TableCell>
+                      <TableCell>{t('Job')}</TableCell>
+                      <TableCell>{t('Next run')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -156,18 +159,18 @@ export function SchedulerPage() {
                   </TableBody>
                 </Table>
               ) : (
-                <Empty>没有启用的任务</Empty>
+                <Empty>{t('No enabled jobs')}</Empty>
               )}
             </Section>
           )}
-          <Section title="配置中的任务">
+          <Section title={t('Jobs in config')}>
             {plan.error && <Alert severity="error">{String((plan.error as Error).message)}</Alert>}
             {(plan.data?.jobs ?? []).map((j) => (
               <Stack key={j.id} direction="row" sx={{ alignItems: 'center', py: 1, borderBottom: '1px solid', borderColor: 'divider', gap: 1 }}>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     {j.id}
-                    {!j.config.enabled && <Chip size="small" label="已禁用" sx={{ ml: 1 }} />}
+                    {!j.config.enabled && <Chip size="small" label={t('Disabled')} sx={{ ml: 1 }} />}
                     {j.config.dry_run && <Chip size="small" label="dry_run" sx={{ ml: 1 }} />}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
@@ -175,7 +178,7 @@ export function SchedulerPage() {
                   </Typography>
                 </Box>
                 <Button size="small" startIcon={<PlayArrowIcon />} onClick={() => setRunFor(j.config.pipeline)}>
-                  立即运行
+                  {t('Run now')}
                 </Button>
               </Stack>
             ))}
@@ -183,12 +186,12 @@ export function SchedulerPage() {
         </Grid>
         <Grid size={{ xs: 12, lg: 7 }}>
           <Section
-            title={`未来 ${days} 天的运行计划`}
+            title={t('Run plan for the next {n|day|days}', { n: days })}
             actions={
               <TextField select size="small" value={days} onChange={(e) => setDays(Number(e.target.value))} sx={{ width: 120 }}>
                 {[1, 3, 7, 14, 30].map((d) => (
                   <MenuItem key={d} value={d}>
-                    {d} 天
+                    {t('{n|day|days}', { n: d })}
                   </MenuItem>
                 ))}
               </TextField>
@@ -198,9 +201,9 @@ export function SchedulerPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>时间</TableCell>
-                    <TableCell>流水线</TableCell>
-                    <TableCell>触发</TableCell>
+                    <TableCell>{t('Time')}</TableCell>
+                    <TableCell>{t('Pipeline')}</TableCell>
+                    <TableCell>{t('Trigger')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -221,7 +224,7 @@ export function SchedulerPage() {
                 </TableBody>
               </Table>
             ) : (
-              <Empty>{plan.isLoading ? '计算中…' : '这段时间没有运行'}</Empty>
+              <Empty>{plan.isLoading ? t('Calculating…') : t('No runs in this period')}</Empty>
             )}
           </Section>
         </Grid>

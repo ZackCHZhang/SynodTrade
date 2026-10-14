@@ -1,8 +1,10 @@
+import { locale, t } from '../i18n';
+
 export function fmtTime(iso: string | null | undefined, withSeconds = false): string {
   if (!iso) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString('zh-CN', {
+  return d.toLocaleString(locale(), {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -24,12 +26,12 @@ export function fmtSeconds(s: number | null | undefined): string {
   if (s < 1) return `${Math.round(s * 1000)} ms`;
   if (s < 60) return `${s.toFixed(1)} s`;
   const m = Math.floor(s / 60);
-  return `${m} 分 ${Math.round(s % 60)} 秒`;
+  return t('{m} min {s} s', { m, s: Math.round(s % 60) });
 }
 
 export function fmtNum(v: number | null | undefined, digits = 2): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—';
-  return v.toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return v.toLocaleString(locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 export function fmtPct(v: number | null | undefined, digits = 2): string {
@@ -39,7 +41,7 @@ export function fmtPct(v: number | null | undefined, digits = 2): string {
 
 export function fmtCompact(v: number | null | undefined): string {
   if (v === null || v === undefined) return '—';
-  return Intl.NumberFormat('zh-CN', { notation: 'compact', maximumFractionDigits: 2 }).format(v);
+  return Intl.NumberFormat(locale(), { notation: 'compact', maximumFractionDigits: 2 }).format(v);
 }
 
 export function shortId(id: string | null | undefined): string {
