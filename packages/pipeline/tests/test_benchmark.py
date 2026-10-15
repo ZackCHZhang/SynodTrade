@@ -12,6 +12,7 @@ import pytest
 from typer.testing import CliRunner
 
 from quant_core.config import ConfigStore
+from quant_core.llm import LLMCallRecord, LLMUsage
 from quant_core.models import (
     Action,
     Bar,
@@ -188,13 +189,19 @@ async def test_write_benchmark_files_and_readme_markers(
     root = readme.read_text()
     assert "old" not in root
     assert root.endswith("<!-- benchmark:end -->\ntail\n")
-    assert "| **long_term_stocks** | +3.96% | SPY -1.00% | +4.96% | -0.02% | — |" in root
+    row = (
+        "| **long_term_stocks** | claude-opus-5 | +3.96% | SPY -1.00% | +4.96% | -0.02%"
+        " | — | $0.00 |"
+    )
+    assert row in root
     assert "benchmark/equity.svg" in root
 
     page = (tmp_path / "benchmark" / "README.md").read_text()
     assert (
-        "| **long_term_stocks** | 2026-10-02 | +3.96% | SPY -1.00% | +4.96% | -0.02% | — |" in page
+        "| **long_term_stocks** | claude-opus-5 | 2026-10-02 | +3.96% | SPY -1.00% | +4.96%"
+        " | -0.02% | — | $0.00 |" in page
     )
+    assert "| Models | `claude-opus-5` |" in page
     assert "Updated 2026-10-08 · data through 2026-10-07" in page
     assert "数据截至 2026-10-07" in (tmp_path / "benchmark" / "README.zh-CN.md").read_text()
 
@@ -202,6 +209,8 @@ async def test_write_benchmark_files_and_readme_markers(
     [entry] = data["pipelines"]
     assert [p["nav"] for p in entry["series"]] == [5000, 4999, 5099, 5198]
     assert entry["metrics"]["win_rate"] == 1
+    assert entry["models"] == ["claude-opus-5"]
+    assert entry["llm"]["total"]["calls"] == 0
 
     svg = ET.fromstring((tmp_path / "benchmark" / "equity.svg").read_text())
     assert svg.tag.endswith("svg")
@@ -292,3 +301,74 @@ def test_cli(configs: Path, tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     assert (out / "equity.svg").exists()
     assert "wrote" in result.output
+
+
+async def record_call(
+    repos: Repositories, run_id: UUID, at: datetime, usage: LLMUsage | None, model: str
+) -> None:
+    await repos.llm_calls.record(
+        LLMCallRecord(
+            run_id=run_id,
+            agent_id="trend_follower",
+            provider="anthropic",
+            model=model,
+            attempt=1,
+            request={},
+            usage=usage,
+            created_at=at,
+        )
+    )
+
+
+async def test_llm_cost_per_pipeline(
+    repos: Repositories, configs: Path, store: ConfigStore
+) -> None:
+    providers = configs / "llm_providers.yaml"
+    providers.write_text(
+        providers.read_text().replace(
+            "    api_key_env: ANTHROPIC_API_KEY\n",
+            "    api_key_env: ANTHROPIC_API_KEY\n"
+            "    prices:\n"
+            "      claude-opus-5: { input: 4, output: 20, cache_read: 0.2 }\n",
+            1,
+        )
+    )
+    paper = await start_run(repos, RunMode.PAPER)
+    dry = await start_run(repos, RunMode.DRY_RUN)
+    old = datetime(2026, 9, 20, 14, tzinfo=UTC)
+    new = datetime(2026, 10, 6, 14, tzinfo=UTC)
+    usage = LLMUsage(input_tokens=1_000_000, output_tokens=100_000, cache_read_input_tokens=500_000)
+    await record_call(repos, paper, old, usage, "claude-opus-5")
+    await record_call(repos, paper, new, usage, "claude-opus-5")
+    await record_call(repos, paper, new, None, "claude-opus-5")  # failed call: no usage
+    await record_call(repos, dry, new, usage, "claude-opus-5")  # dry runs never count
+
+    [curve] = await build_curves(repos, store, end=date(2026, 10, 7))
+
+    assert curve.models == ("claude-opus-5",)
+    total, recent = curve.llm_total, curve.llm_recent
+    assert total is not None
+    assert recent is not None
+    assert (total.calls, total.input_tokens, total.cache_read_tokens) == (3, 2_000_000, 1_000_000)
+    # Anthropic input excludes cache reads: per call 1M x $4 + 0.1M x $20 + 0.5M x $0.2 = $6.10
+    assert total.cost == pytest.approx(12.2)
+    assert recent.calls == 2
+    assert recent.cost == pytest.approx(6.1)
+
+    written = write_benchmark([curve], configs.parent / "out")
+    text = (configs.parent / "out" / "README.md").read_text()
+    assert "| LLM cost (total / last 7 days) | $12.20 / $6.10 |" in text
+    assert "| LLM tokens (in / out / cache read) | 2.00M / 200.0k / 1.00M |" in text
+    assert written
+
+
+async def test_unpriced_model_has_no_cost(repos: Repositories, store: ConfigStore) -> None:
+    run_id = await start_run(repos, RunMode.PAPER)
+    usage = LLMUsage(input_tokens=1000, output_tokens=10)
+    await record_call(repos, run_id, FIRST_RUN, usage, "claude-opus-5")
+
+    [curve] = await build_curves(repos, store, end=date(2026, 10, 7))
+
+    assert curve.llm_total is not None
+    assert curve.llm_total.cost is None
+    assert curve.llm_total.unpriced == ("anthropic/claude-opus-5",)

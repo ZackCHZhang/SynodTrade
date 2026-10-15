@@ -15,6 +15,7 @@ from quant_core.llm.base import (
 from quant_core.llm.config import (
     LLMProviderConfig,
     LLMProvidersConfig,
+    ModelPrice,
     ProviderKind,
     StructuredOutputMode,
 )
@@ -54,6 +55,7 @@ __all__ = [
     "LLMResponse",
     "LLMRetryableError",
     "LLMUsage",
+    "ModelPrice",
     "NullLLMCallRecorder",
     "OpenAICompatibleLLMClient",
     "ProviderKind",

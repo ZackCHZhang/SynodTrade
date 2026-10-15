@@ -17,6 +17,7 @@ from quant_core.config import (
     ConfigStore,
     LLMModelConfig,
     LLMModelOverride,
+    PipelineConfig,
     resolve_model,
 )
 from quant_core.llm import FakeLLMClient, LLMClientPool
@@ -122,3 +123,44 @@ def test_missing_model_is_a_config_error(configs_dir: Path) -> None:
         )
     with pytest.raises(ConfigError, match="stage decision: agent value_investor: no usable model"):
         store.validate_pipeline("long_term_stocks")
+
+
+def pipeline_data(**extra: Any) -> dict[str, Any]:
+    return {
+        "name": "p",
+        "account": "a",
+        "universe": ["AAPL"],
+        "budget": {"max_capital": 1000},
+        "stages": [
+            {
+                "type": "decision",
+                "agents": [
+                    {"agent": "trend_follower"},
+                    {"agent": "value_investor", "model": {"name": "own-model", "max_tokens": 50}},
+                ],
+            }
+        ],
+        **extra,
+    }
+
+
+def test_pipeline_default_model_fills_agent_refs() -> None:
+    cfg = PipelineConfig.model_validate(
+        pipeline_data(
+            default_model={"provider": "openrouter", "name": "x/model", "max_tokens": 4000}
+        )
+    )
+    stage = cfg.stage("decision")
+    assert stage is not None
+    first, second = stage.agents
+    assert first.model == LLMModelOverride(provider="openrouter", name="x/model", max_tokens=4000)
+    # A reference's own fields win, field by field.
+    assert second.model == LLMModelOverride(provider="openrouter", name="own-model", max_tokens=50)
+    assert cfg.default_model is not None
+    assert cfg.default_model.name == "x/model"
+
+
+def test_pipeline_without_default_model_is_unchanged() -> None:
+    stage = PipelineConfig.model_validate(pipeline_data()).stage("decision")
+    assert stage is not None
+    assert stage.agents[0].model is None

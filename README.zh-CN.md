@@ -78,14 +78,16 @@ core ← database ← {market_data, selection, sentiment, decision, risk, tradin
 
 ## 📊 模拟盘基准
 
-SynodTrade 公开自己的交易表现。每条在 IBKR 模拟账户（paper）上交易的流水线，都会用它真实的模拟成交生成每日净值曲线，并与基准（默认 SPY）对比。运行 `poetry run quant benchmark` 会重新生成 [`benchmark/`](benchmark/README.zh-CN.md) 目录（页面、图表和原始数据）以及下面的概览。
+SynodTrade 公开自己的交易表现。每条在 IBKR 模拟账户（paper）上交易的流水线，都会用它真实的模拟成交生成每日净值曲线，并与基准（默认 SPY）对比，同时列出它用的 LLM 模型和 LLM 调用花了多少钱。运行 `poetry run quant benchmark` 会重新生成 [`benchmark/`](benchmark/README.zh-CN.md) 目录（页面、图表和原始数据）以及下面的概览。
+
+**模型擂台。** `configs/pipelines/arena_*.yaml` 把完全相同的一条流水线（选股、情绪、5 个 agent 投票决策、3 个风控 agent）按每个 LLM 各跑一份，每份在同一个 IBKR 模拟账户里有自己 10 万的虚拟子账本。它们之间只有 `default_model`（以及 IBKR client id）不同，有测试保证这一点，所以基准比较的只是模型本身：通过 [OpenRouter](https://openrouter.ai) 接入的 DeepSeek、Qwen、GLM、GPT 和 Claude，另有 Gemini（旗舰定价，默认关闭）。
 
 <!-- benchmark:start -->
 <p align="center"><a href="benchmark/README.zh-CN.md"><img src="benchmark/equity.svg" alt="各流水线模拟盘累计收益与基准对比" width="880"></a></p>
 
-| 流水线 | 收益 | 基准 | 超额收益 | 最大回撤 | 夏普比率 |
-|:--|--:|--:|--:|--:|--:|
-| **demo_all_modules** | -0.53% | SPY -1.02% | +0.50% | -1.16% | — |
+| 流水线 | 模型 | 收益 | 基准 | 超额收益 | 最大回撤 | 夏普比率 | LLM 费用 |
+|:--|:--|--:|--:|--:|--:|--:|--:|
+| **demo_all_modules** | deepseek-chat | -0.53% | SPY -1.02% | +0.50% | -1.16% | — | — |
 
 <sub>IBKR 模拟盘 · 更新于 2026-10-14 · [详细数据、计算方法和原始数据](benchmark/README.zh-CN.md)</sub>
 <!-- benchmark:end -->
@@ -137,12 +139,12 @@ poetry run quant-web serve          # http://127.0.0.1:8765
 
 | 路径 | 内容 |
 |---|---|
-| `configs/pipelines/` | `long_term_stocks`（AAPL/MSFT/GOOGL/NVDA，每日）、`etf_allocation`（6 只 ETF，每周一）、`demo_all_modules`（用到全部阶段和模块，包括选股） |
+| `configs/pipelines/` | `long_term_stocks`（AAPL/MSFT/GOOGL/NVDA，每日）、`etf_allocation`（6 只 ETF，每周一）、`demo_all_modules`（用到全部阶段和模块，包括选股）、`arena_*`（模型擂台：每个 LLM 一条） |
 | `configs/agents/` | 66 个 agent：选股 22、舆情 2、决策 21、风控 21。同一角色的 agent 共用一个实现和一个提示词模板（`prompts/*_v1.j2`），区别在 `persona` 和 `params.instructions` |
-| `configs/risk/` | 两套硬规则：`default`、`etf` |
-| `configs/accounts/` | `ibkr_main`、`ibkr_etf`（client id 不同，两条流水线可以同时运行） |
-| `configs/llm_providers.yaml` | `anthropic` 和 `deepseek`；可以添加任意 OpenAI 兼容接口 |
-| `configs/schedules.yaml` | `long_term_stocks` 每个交易日开盘后 30 分钟；`etf_allocation` 每周一 11:00（纽约） |
+| `configs/risk/` | 三套硬规则：`default`、`etf`、`arena` |
+| `configs/accounts/` | `ibkr_main`、`ibkr_etf`、`ibkr_arena_*`（同一个账户、不同 client id，流水线可以同时运行） |
+| `configs/llm_providers.yaml` | `anthropic`、`deepseek` 和 `openrouter`；可以添加任意 OpenAI 兼容接口。可选的按模型 `prices` 用于计算基准里的 LLM 费用 |
+| `configs/schedules.yaml` | `long_term_stocks` 每个交易日开盘后 30 分钟；`etf_allocation` 每周一 11:00（纽约）；擂台流水线开盘后 30–42 分钟，每条间隔 3 分钟 |
 | `configs/account_sync.yaml` | 每次 paper/live 运行前同步，Web 控制台运行期间每 20 分钟同步 |
 
 模型在实例化 agent 的地方指定，所以同一个 agent 可以在不同流水线里用不同的厂商：
@@ -153,6 +155,12 @@ poetry run quant-web serve          # http://127.0.0.1:8765
     - { agent: trend_follower,   count: 2, weight: 1.0, model: { provider: anthropic, name: claude-opus-5 } }
     - { agent: value_investor,   count: 1, weight: 0.5, model: { provider: deepseek,  name: deepseek-chat } }
   aggregation: { method: weighted_vote, min_confidence: 0.6 }
+```
+
+流水线级的 `default_model` 会应用到所有没有单独写 `model` 的 agent 引用（逐字段合并），所以整条流水线换模型只要改一行：
+
+```yaml
+default_model: { provider: openrouter, name: deepseek/deepseek-v4.1-flash, max_tokens: 4000 }
 ```
 
 密钥永远不写进 `configs/`：配置文件里写 `${ENV_VAR}` 引用，真实值放在 `.env`。

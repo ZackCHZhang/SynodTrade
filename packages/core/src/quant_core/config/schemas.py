@@ -151,7 +151,36 @@ class PipelineConfig(CoreModel):
     benchmark: str | None = None
     budget: BudgetConfig
     sizing: SizingConfig = Field(default_factory=SizingConfig)
+    # Model for every agent reference of this pipeline. A reference's own `model` fields win
+    # over it, field by field. Lets one pipeline be cloned per LLM by changing a single block.
+    default_model: LLMModelOverride | None = None
     stages: list[StageConfig] = Field(min_length=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _apply_default_model(cls, data: Any) -> Any:
+        """Merge `default_model` under the `model` of every agent reference."""
+        if not isinstance(data, dict):
+            return data
+        default = data.get("default_model")
+        if isinstance(default, BaseModel):
+            default = default.model_dump(exclude_unset=True)
+        if not isinstance(default, dict) or not default or not isinstance(data.get("stages"), list):
+            return data
+        stages = []
+        for stage in data["stages"]:
+            if isinstance(stage, dict) and isinstance(stage.get("agents"), list):
+                refs = []
+                for ref in stage["agents"]:
+                    if isinstance(ref, dict):
+                        own = ref.get("model")
+                        if isinstance(own, BaseModel):
+                            own = own.model_dump(exclude_unset=True)
+                        ref = {**ref, "model": {**default, **(own or {})}}
+                    refs.append(ref)
+                stage = {**stage, "agents": refs}
+            stages.append(stage)
+        return {**data, "stages": stages}
 
     @field_validator("benchmark")
     @classmethod

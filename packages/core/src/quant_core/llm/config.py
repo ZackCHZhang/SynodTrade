@@ -36,6 +36,45 @@ class StructuredOutputMode(StrEnum):
     PROMPT = "prompt"  # schema in the prompt only, for providers without JSON mode
 
 
+class ModelPrice(BaseModel):
+    """List price of one model in USD per million tokens. Used only for reporting what the
+    LLM calls cost (e.g. the benchmark); it never affects what a run does."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    input: float = Field(ge=0)
+    output: float = Field(ge=0)
+    cache_read: float | None = Field(default=None, ge=0)  # None: billed like `input`
+    cache_write: float | None = Field(default=None, ge=0)  # None: billed like `input`
+
+    def cost(
+        self,
+        kind: ProviderKind,
+        *,
+        input_tokens: int,
+        output_tokens: int,
+        cache_read_tokens: int = 0,
+        cache_write_tokens: int = 0,
+    ) -> float:
+        """USD for one call (or summed calls) as the client recorded its usage.
+
+        Anthropic reports cache reads/writes separately from `input_tokens`; OpenAI-compatible
+        APIs include cache hits in their prompt token count, so they are taken out here.
+        """
+        uncached = input_tokens
+        if kind is ProviderKind.OPENAI_COMPATIBLE:
+            uncached = max(0, input_tokens - cache_read_tokens - cache_write_tokens)
+        read = self.input if self.cache_read is None else self.cache_read
+        write = self.input if self.cache_write is None else self.cache_write
+        total = (
+            uncached * self.input
+            + output_tokens * self.output
+            + cache_read_tokens * read
+            + cache_write_tokens * write
+        )
+        return total / 1_000_000
+
+
 class LLMProviderConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -49,6 +88,9 @@ class LLMProviderConfig(BaseModel):
     max_tokens_param: Literal["max_tokens", "max_completion_tokens"] = "max_tokens"
     extra_headers: dict[str, str] = Field(default_factory=dict)
     extra_body: dict[str, Any] = Field(default_factory=dict)  # vendor-specific request fields
+    # Optional list prices by model name (as written in the agent/pipeline config), for cost
+    # reporting only. Models without a price are reported with tokens but no cost.
+    prices: dict[str, ModelPrice] = Field(default_factory=dict)
 
     @field_validator("base_url")
     @classmethod

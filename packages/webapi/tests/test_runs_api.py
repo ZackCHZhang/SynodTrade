@@ -140,11 +140,13 @@ def test_overview_portfolio_market_and_kill_switch(client: TestClient) -> None:
 
 def test_scheduler_plan_start_stop(client: TestClient) -> None:
     plan = client.get("/api/scheduler/plan?days=14").json()
-    assert [j["id"] for j in plan["jobs"]] == ["long_term_stocks#0", "etf_allocation#0"]
+    assert [j["id"] for j in plan["jobs"]][:2] == ["long_term_stocks#0", "etf_allocation#0"]
     assert plan["jobs"][0]["upcoming"]
     started = client.post("/api/scheduler/start").json()
     assert started["running"] is True
-    assert {j["id"] for j in started["jobs"]} == {"long_term_stocks#0", "etf_allocation#0"}
+    started_ids = {j["id"] for j in started["jobs"]}
+    assert {"long_term_stocks#0", "etf_allocation#0", "arena_deepseek#0"} <= started_ids
+    assert "arena_gemini#0" not in started_ids  # disabled
     assert all(j["next_run"]["utc"] for j in started["jobs"])
     assert client.post("/api/scheduler/stop").json()["running"] is False
     assert client.post("/api/scheduler/bogus").status_code == 404
