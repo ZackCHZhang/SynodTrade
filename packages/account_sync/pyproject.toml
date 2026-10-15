@@ -2,7 +2,7 @@
 name = "quant-account-sync"
 version = "0.1.0"
 description = "Account sync: order fill status, late fills, account and position snapshots, ledger reconciliation (first pipeline step + scheduled)"
-license = "AGPL-3.0-or-later"
+license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
