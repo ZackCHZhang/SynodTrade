@@ -11,9 +11,9 @@
 
 ## Summary
 
-| Pipeline | Since | Return | Benchmark | Excess | Max drawdown | Sharpe |
-|:--|--:|--:|--:|--:|--:|--:|
-| **demo_all_modules** | 2026-10-07 | -0.53% | SPY -1.02% | +0.50% | -1.16% | — |
+| Pipeline | Model | Since | Return | Benchmark | Excess | Max drawdown | Sharpe | LLM cost |
+|:--|:--|--:|--:|--:|--:|--:|--:|--:|
+| **demo_all_modules** | deepseek-chat | 2026-10-07 | -0.53% | SPY -1.02% | +0.50% | -1.16% | — | — |
 
 ## Pipelines
 
@@ -21,6 +21,7 @@
 
 | | |
 |:--|--:|
+| Models | `deepseek-chat` |
 | Mode | paper |
 | Sessions | 5 |
 | Starting capital | 10,000.00 |
@@ -35,6 +36,9 @@
 | Volatility (annualised) | — |
 | CAGR | — |
 | Benchmark max drawdown | -1.20% |
+| LLM calls | — |
+| LLM tokens (in / out / cache read) | — |
+| LLM cost (total / last 7 days) | — / — |
 
 ## Methodology
 
@@ -42,6 +46,7 @@
 - Every session, the pipeline's fills up to that day are booked with the same arithmetic as the trading ledger (commissions included) and open positions are valued at that day's close (the last known close when a symbol has no bar).
 - The benchmark is the pipeline's `benchmark` symbol (SPY by default), indexed to the same base day. Excess = return − benchmark return.
 - Sharpe and volatility are annualised from daily returns (252 sessions, risk-free rate 0) and need at least 20 sessions; CAGR needs at least 60. A dash means not enough data.
+- LLM cost is the pipeline's recorded token usage (every attempt, including retries) priced at the list prices in `configs/llm_providers.yaml`; a dash means a model has no price. It is an estimate: providers may bill differently (routing, discounts, time of day).
 - Dry-run and offline runs are never included.
 
 ## Reproduce

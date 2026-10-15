@@ -16,3 +16,37 @@ jobs:
   - pipeline: etf_allocation
     trigger: cron
     cron: "0 11 * * MON"        # Mondays 11:00 New York (skipped if Monday is a holiday)
+
+  # Model arena: the same pipeline on different LLMs (configs/pipelines/arena_*.yaml).
+  # Staggered by 3 minutes so their IBKR historical-data requests do not hit the pacing limits
+  # at once; within one session the quotes they see differ by a few minutes at most.
+  - pipeline: arena_deepseek
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 30
+
+  - pipeline: arena_qwen
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 33
+
+  - pipeline: arena_glm
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 36
+
+  - pipeline: arena_gpt
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 39
+
+  - pipeline: arena_claude
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 42
+
+  - pipeline: arena_gemini      # flagship-priced (about 20x the others per run): off by default
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 45
+    enabled: false

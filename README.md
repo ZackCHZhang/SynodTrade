@@ -78,14 +78,16 @@ Business packages never import each other. They cooperate through protocols in `
 
 ## 📊 Paper benchmark
 
-SynodTrade publishes its own track record. Every pipeline that trades an IBKR paper account gets a daily equity curve built from its real paper fills, measured against its benchmark (SPY by default). `poetry run quant benchmark` regenerates the [`benchmark/`](benchmark/README.md) folder (pages, chart and raw data) and the summary below.
+SynodTrade publishes its own track record. Every pipeline that trades an IBKR paper account gets a daily equity curve built from its real paper fills, measured against its benchmark (SPY by default), together with the LLM models it runs on and what its LLM calls cost. `poetry run quant benchmark` regenerates the [`benchmark/`](benchmark/README.md) folder (pages, chart and raw data) and the summary below.
+
+**Model arena.** `configs/pipelines/arena_*.yaml` run the very same pipeline (selection, sentiment, a 5-agent decision vote and 3 risk agents) once per LLM, each with its own 100k virtual sub-ledger on one IBKR paper account. They differ only in `default_model` (and their IBKR client ids), which a test enforces, so the benchmark compares models and nothing else: DeepSeek, Qwen, GLM, GPT and Claude through [OpenRouter](https://openrouter.ai), plus Gemini (off by default, flagship-priced).
 
 <!-- benchmark:start -->
 <p align="center"><a href="benchmark/README.md"><img src="benchmark/equity.svg" alt="Cumulative paper-trading return of each pipeline against its benchmark" width="880"></a></p>
 
-| Pipeline | Return | Benchmark | Excess | Max drawdown | Sharpe |
-|:--|--:|--:|--:|--:|--:|
-| **demo_all_modules** | -0.53% | SPY -1.02% | +0.50% | -1.16% | — |
+| Pipeline | Model | Return | Benchmark | Excess | Max drawdown | Sharpe | LLM cost |
+|:--|:--|--:|--:|--:|--:|--:|--:|
+| **demo_all_modules** | deepseek-chat | -0.53% | SPY -1.02% | +0.50% | -1.16% | — | — |
 
 <sub>Paper trading on IBKR · updated 2026-10-14 · [details, methodology and raw data](benchmark/README.md)</sub>
 <!-- benchmark:end -->
@@ -137,12 +139,12 @@ Everything that drives a run lives in `configs/` and can be edited in YAML or in
 
 | Path | Contents |
 |---|---|
-| `configs/pipelines/` | `long_term_stocks` (AAPL/MSFT/GOOGL/NVDA, daily), `etf_allocation` (6 ETFs, Mondays), `demo_all_modules` (every stage and module, including selection) |
+| `configs/pipelines/` | `long_term_stocks` (AAPL/MSFT/GOOGL/NVDA, daily), `etf_allocation` (6 ETFs, Mondays), `demo_all_modules` (every stage and module, including selection), `arena_*` (the model arena: one pipeline per LLM) |
 | `configs/agents/` | 66 agents: 22 selection, 2 sentiment, 21 decision, 21 risk. Agents of one role share an implementation and a prompt template (`prompts/*_v1.j2`) and differ in `persona` and `params.instructions` |
-| `configs/risk/` | Hard-rule sets `default` and `etf` |
-| `configs/accounts/` | `ibkr_main`, `ibkr_etf` (separate client ids, so both pipelines can run at once) |
-| `configs/llm_providers.yaml` | `anthropic` and `deepseek`; any OpenAI-compatible endpoint can be added |
-| `configs/schedules.yaml` | `long_term_stocks` 30 minutes after every open; `etf_allocation` Mondays 11:00 New York |
+| `configs/risk/` | Hard-rule sets `default`, `etf` and `arena` |
+| `configs/accounts/` | `ibkr_main`, `ibkr_etf`, `ibkr_arena_*` (separate client ids on the same account, so pipelines can run at once) |
+| `configs/llm_providers.yaml` | `anthropic`, `deepseek` and `openrouter`; any OpenAI-compatible endpoint can be added. Optional per-model `prices` drive the benchmark's LLM cost |
+| `configs/schedules.yaml` | `long_term_stocks` 30 minutes after every open; `etf_allocation` Mondays 11:00 New York; the arena pipelines 30-42 minutes after the open, 3 minutes apart |
 | `configs/account_sync.yaml` | Sync before every paper/live run and every 20 minutes in the web console |
 
 The model is chosen where an agent is instantiated, so the same agent can run on different providers in different pipelines:
@@ -153,6 +155,12 @@ The model is chosen where an agent is instantiated, so the same agent can run on
     - { agent: trend_follower,   count: 2, weight: 1.0, model: { provider: anthropic, name: claude-opus-5 } }
     - { agent: value_investor,   count: 1, weight: 0.5, model: { provider: deepseek,  name: deepseek-chat } }
   aggregation: { method: weighted_vote, min_confidence: 0.6 }
+```
+
+A pipeline-level `default_model` applies to every agent reference that does not set its own `model` (field by field), so a whole pipeline switches LLMs with one line:
+
+```yaml
+default_model: { provider: openrouter, name: deepseek/deepseek-v4.1-flash, max_tokens: 4000 }
 ```
 
 Secrets never go into `configs/`: files reference them as `${ENV_VAR}` and the values live in `.env`.

@@ -3,6 +3,7 @@
 
 export const zh: Record<string, string> = {
   '(agent default)': '（用 agent 默认）',
+  '(pipeline default: {name})': '（用流水线默认：{name}）',
   '(before runs + on a timer) and the data_update stage': '（运行前 + 定时）和 data_update 阶段更新',
   '(default)': '（默认）',
   '(or docker compose) instead. Never run both, or pipelines wake up twice.': '（或 docker compose），不要两者同时运行，否则流水线会被唤醒两次。',
@@ -340,6 +341,10 @@ export const zh: Record<string, string> = {
   'Mode': '模式',
   'Model': '模型',
   'Model name': '模型名',
+  '(none)': '（无）',
+  'Default LLM provider': '默认 LLM 服务商',
+  'Default model name': '默认模型名',
+  'Used by every agent without its own model': '没单独指定模型的 agent 都用它',
   'modified {time}': '修改于 {time}',
   'most_conservative takes the most conservative; median takes the median': 'most_conservative 取最保守；median 取中位',
   'Move down': '下移',

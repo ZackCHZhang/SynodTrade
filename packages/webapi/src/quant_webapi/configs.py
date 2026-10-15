@@ -360,6 +360,9 @@ class ConfigFiles:
         accounts = set(self.names(KINDS["accounts"]))
         risk_rules = set(self.names(KINDS["risk"]))
         providers = self._provider_names()
+        default_model = data.get("default_model")
+        if not isinstance(default_model, dict):
+            default_model = {}
         if pipeline is not None and pipeline.account not in accounts:
             diag.error(
                 f"Account {pipeline.account!r} does not exist (configs/accounts/)", ["account"]
@@ -389,7 +392,9 @@ class ConfigFiles:
                 diag.error(
                     f"Risk rules {stage.get('rules', 'default')!r} do not exist", [*loc, "rules"]
                 )
-            self._validate_agent_refs(str(stype), stage.get("agents") or [], providers, diag, loc)
+            self._validate_agent_refs(
+                str(stype), stage.get("agents") or [], providers, diag, loc, default_model
+            )
 
     def _validate_candidate_sources(self, sources: Any, diag: Diagnostics, loc: Loc) -> None:
         if not isinstance(sources, list):
@@ -437,7 +442,9 @@ class ConfigFiles:
         providers: set[str] | None,
         diag: Diagnostics,
         loc: Loc,
+        default_model: dict[str, Any] | None = None,
     ) -> None:
+        """`default_model` is the pipeline's; a reference's own `model` fields win over it."""
         if not isinstance(refs, list):
             return
         role = STAGE_AGENT_ROLE.get(stage_type)
@@ -463,6 +470,9 @@ class ConfigFiles:
                     f"but {agent_id} is {agent.role.value}",
                     [*rloc, "agent"],
                 )
+            if default_model:
+                own = ref.get("model")
+                ref = {**ref, "model": {**default_model, **(own if isinstance(own, dict) else {})}}
             try:
                 parsed = AgentRef.model_validate(ref)
                 model = resolve_model(agent, parsed.model)

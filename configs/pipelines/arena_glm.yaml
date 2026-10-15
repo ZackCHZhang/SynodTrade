@@ -1,0 +1,83 @@
+# Model arena: GLM 5.3 FlashX.
+#
+# arena_*.yaml are the same pipeline (the demo_all_modules stages: selection, market data,
+# sentiment, a 5-agent decision vote and 3 risk agents) run once per LLM. They differ ONLY in
+# `name`, `account` (own IBKR client ids, so they can run at once) and `default_model`;
+# tests/test_repo_configs checks that. Each trades its own 100k virtual sub-ledger on the same
+# IBKR paper account, and `quant benchmark` compares them (return, drawdown, LLM cost).
+#
+# Add a model: copy this file, change those three values, add an account and a schedule job.
+
+name: arena_glm
+mode: paper                 # dry_run | paper | live (live also needs QUANT_ALLOW_LIVE=1)
+account: ibkr_arena_glm
+universe: [AAPL, MSFT, NVDA, AMZN, GOOGL, META, JPM, V, COST, LLY]  # fallback only (scanner below)
+benchmark: SPY
+budget:
+  max_capital: 100000         # large enough that IBKR commissions do not dominate the result
+sizing:
+  buy_base: available_cash
+  min_one_lot_on_sell: true
+
+# The one line that differs between arena pipelines. Every agent below uses it.
+default_model: { provider: openrouter, name: z-ai/glm-5.3-flashx, max_tokens: 4000 }
+
+stages:
+  - type: selection
+    include_universe: false
+    sources:
+      - { type: ibkr_scanner,
+          scan_codes: [MOST_ACTIVE, TOP_PERC_GAIN, HOT_BY_VOLUME, HIGH_VS_52W_HL],
+          rows: 15, above_price: 10, market_cap_above: 2000, stock_type: CORP }
+    screen: { min_price: 5, min_avg_dollar_volume: 20000000, max_candidates: 25 }
+    watchlist: { enabled: true, max_age_days: 10, max_size: 8 }   # caps decision calls per run
+    fundamentals: true
+    agents:
+      - { agent: momentum_screener, count: 1, weight: 1.0 }
+      - { agent: defensive_screener, count: 1, weight: 1.0 }
+      - { agent: thematic_innovation, count: 1 }
+      - { agent: earnings_surprise_screen, count: 1 }
+      - { agent: shareholder_yield_screen, count: 1 }
+    aggregation: { method: weighted_score, top_n: 3, min_score: 0.2 }
+    max_picks_per_agent: 5
+    keep_holdings: true
+    fallback: previous
+
+  - type: data_update
+    timeframes: [1d]
+    lookback_days: 400
+    fundamentals: true
+
+  - type: sentiment
+    on_error: skip
+    sources: [reddit, stocktwits, ibkr_news]
+    lookback_hours: 24
+    prefilter: { max_items_per_symbol: 10, max_chars_per_item: 500 }
+    agents:
+      - { agent: retail_mood, count: 1 }
+      - { agent: event_extractor, count: 1 }
+
+  - type: decision
+    agents:
+      - { agent: trend_follower, count: 1, weight: 1.0 }
+      - { agent: canslim_momentum, count: 1, weight: 1.0 }
+      - { agent: breakout_trader, count: 1 }
+      - { agent: pullback_buyer, count: 1 }
+      - { agent: value_investor, count: 1, weight: 0.5 }
+    aggregation: { method: weighted_vote, min_confidence: 0.5, hold_weight: 0.5 }
+    bars_lookback: 260
+    history_limit: 5
+
+  - type: risk
+    rules: arena
+    agents:
+      - { agent: conservative_risk_officer, count: 1 }
+      - { agent: liquidity_checker, count: 1 }
+      - { agent: volatility_position_sizer, count: 1 }
+    combine: median
+    on_agent_failure: reject
+
+  - type: trading
+    order_type: limit
+    limit_offset_bps: 25
+    cancel_after_minutes: 15
