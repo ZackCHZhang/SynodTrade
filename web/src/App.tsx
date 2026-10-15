@@ -69,9 +69,8 @@ import { WatchlistPage } from './pages/WatchlistPage';
 import { LANGS, locale, t, useLang } from './i18n';
 
 const DRAWER = 232;
-// AGPL-3.0 section 13: users interacting with the console over a network can get its source here.
-// If you run a modified version for others, point this at your modified source.
-const SOURCE_URL = 'https://github.com/ZackCHZhang/ROOT';
+// Link to the project's source code (Apache-2.0). Point it at your fork if you run a modified version.
+const SOURCE_URL = 'https://github.com/ZackCHZhang/SynodTrade';
 
 const NAV: { section?: string; items: { to: string; label: string; icon: React.ReactNode }[] }[] = [
   {
@@ -209,7 +208,7 @@ function Layout() {
             {kill && <Chip color="error" icon={<ReportProblemIcon />} label={t('Kill switch on')} sx={{ mr: 1 }} component={RouterLink} to="/" clickable />}
             {overview.data?.scheduler.running && <Chip size="small" color="success" variant="outlined" icon={<ScheduleIcon />} label={t('Scheduling')} sx={{ mr: 1 }} />}
             {syncChip}
-            <Tooltip title={t('Source code (AGPL-3.0)')}>
+            <Tooltip title={t('Source code on GitHub')}>
               <IconButton component="a" href={SOURCE_URL} target="_blank" rel="noopener noreferrer">
                 <GitHubIcon />
               </IconButton>
