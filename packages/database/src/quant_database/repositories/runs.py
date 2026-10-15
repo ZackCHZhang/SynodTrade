@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from quant_core.llm import LLMCallRecord, LLMUsage
 from quant_core.timeutil import to_utc, utcnow
 from quant_database.models import AgentInstanceRow, LLMCallRow, PipelineRunRow
-from quant_database.records import AgentInstance, PipelineRun, RunStatus
+from quant_database.records import AgentInstance, ModelUsage, PipelineRun, RunStatus
 from quant_database.repositories.base import Repository, row_dict
 
 
@@ -164,3 +164,51 @@ class LLMCallRepository(Repository):
         async with self._db.transaction() as s:
             rows = {r.id: r for r in (await s.execute(stmt)).scalars().all()}
         return [self._to_record(rows[i]) for i in ids if i in rows]
+
+    async def usage_by_model(
+        self,
+        pipeline_name: str,
+        modes: Sequence[str],
+        *,
+        since: datetime | None = None,
+        until: datetime | None = None,
+    ) -> list[ModelUsage]:
+        """Tokens of the pipeline's LLM calls in runs of `modes`, summed per (provider, model).
+
+        `since` / `until` bound the call time (inclusive / exclusive). Calls that failed
+        before a response (no usage recorded) still count as calls.
+        """
+        coalesce = func.coalesce
+        stmt = (
+            select(
+                LLMCallRow.provider,
+                LLMCallRow.model,
+                func.count(LLMCallRow.id),
+                func.sum(coalesce(LLMCallRow.input_tokens, 0)),
+                func.sum(coalesce(LLMCallRow.output_tokens, 0)),
+                func.sum(coalesce(LLMCallRow.cache_read_input_tokens, 0)),
+                func.sum(coalesce(LLMCallRow.cache_creation_input_tokens, 0)),
+            )
+            .join(PipelineRunRow, PipelineRunRow.run_id == LLMCallRow.run_id)
+            .where(PipelineRunRow.pipeline_name == pipeline_name, PipelineRunRow.mode.in_(modes))
+            .group_by(LLMCallRow.provider, LLMCallRow.model)
+            .order_by(LLMCallRow.provider, LLMCallRow.model)
+        )
+        if since is not None:
+            stmt = stmt.where(LLMCallRow.created_at >= since)
+        if until is not None:
+            stmt = stmt.where(LLMCallRow.created_at < until)
+        async with self._db.transaction() as s:
+            rows = (await s.execute(stmt)).all()
+        return [
+            ModelUsage(
+                provider=provider,
+                model=model,
+                calls=int(calls),
+                input_tokens=int(tin or 0),
+                output_tokens=int(tout or 0),
+                cache_read_input_tokens=int(cread or 0),
+                cache_creation_input_tokens=int(cwrite or 0),
+            )
+            for provider, model, calls, tin, tout, cread, cwrite in rows
+        ]

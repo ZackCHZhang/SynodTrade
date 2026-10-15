@@ -29,7 +29,7 @@ def test_list_and_read(client: TestClient) -> None:
     assert listing["schedules"][0]["name"] == "schedules"
     file = client.get("/api/configs/agents/value_investor").json()
     assert "persona:" in file["text"]
-    assert file["used_by"] == [
+    assert [u for u in file["used_by"] if not u.startswith("pipelines/arena_")] == [
         "pipelines/demo_all_modules",
         "pipelines/etf_allocation",
         f"pipelines/{PIPELINE}",

@@ -6,6 +6,9 @@ as the trading ledger (`LedgerState.apply_fill`) and open positions are valued a
 close (the last known close if a symbol has no bar that day, the cost basis if it has none
 at all). The benchmark (the pipeline's `benchmark`, SPY by default) is indexed to the same
 start, so both curves begin at 0%.
+
+Each curve also carries the LLM models the pipeline is configured with and what its LLM calls
+cost: tokens from the call log, priced with the optional `prices` in llm_providers.yaml.
 """
 
 from __future__ import annotations
@@ -16,11 +19,12 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from itertools import pairwise
 
-from quant_core.config import ConfigStore, PipelineConfig
+from quant_core.config import ConfigError, ConfigStore, PipelineConfig, resolve_model
+from quant_core.llm import LLMProvidersConfig
 from quant_core.models import OrderSide, Timeframe
 from quant_core.timeutil import EXCHANGE_TZ, to_utc
 from quant_database import Repositories
-from quant_database.records import LedgerState
+from quant_database.records import LedgerState, ModelUsage
 
 # Runs in these modes trade a real (paper or live) account, so their fills are published.
 PUBLISHED_MODES = ("paper", "live")
@@ -29,6 +33,8 @@ TRADING_DAYS_PER_YEAR = 252
 # Below these sample sizes annualised figures are noise, so they are left out.
 MIN_DAYS_FOR_ANNUALISED = 60
 MIN_DAYS_FOR_VOLATILITY = 20
+# "Recent" LLM spend in the report: the last week of calendar days up to the curve's end.
+RECENT_SPEND_DAYS = 7
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,6 +42,65 @@ class DayPoint:
     day: date
     nav: float
     benchmark_close: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class LLMSpend:
+    """LLM usage of a pipeline over some period, and its cost at the configured list prices."""
+
+    calls: int = 0
+    input_tokens: int = 0  # as recorded (OpenAI-compatible counts include cache hits)
+    output_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
+    cost: float | None = None  # USD; None when a used model has no price
+    unpriced: tuple[str, ...] = ()  # "provider/model" without a price
+
+
+def llm_spend(usages: list[ModelUsage], providers: LLMProvidersConfig | None) -> LLMSpend:
+    """Sum usage rows and price them; the cost is None if any used model has no price."""
+    cost = 0.0
+    unpriced: list[str] = []
+    for u in usages:
+        provider = providers.providers.get(u.provider) if providers else None
+        price = provider.prices.get(u.model) if provider else None
+        if provider is None or price is None:
+            if u.input_tokens or u.output_tokens:
+                unpriced.append(f"{u.provider}/{u.model}")
+            continue
+        cost += price.cost(
+            provider.kind,
+            input_tokens=u.input_tokens,
+            output_tokens=u.output_tokens,
+            cache_read_tokens=u.cache_read_input_tokens,
+            cache_write_tokens=u.cache_creation_input_tokens,
+        )
+    return LLMSpend(
+        calls=sum(u.calls for u in usages),
+        input_tokens=sum(u.input_tokens for u in usages),
+        output_tokens=sum(u.output_tokens for u in usages),
+        cache_read_tokens=sum(u.cache_read_input_tokens for u in usages),
+        cache_write_tokens=sum(u.cache_creation_input_tokens for u in usages),
+        cost=None if unpriced else cost,
+        unpriced=tuple(unpriced),
+    )
+
+
+def pipeline_models(store: ConfigStore, config: PipelineConfig) -> tuple[str, ...]:
+    """Distinct model names the pipeline's agents are configured with, in stage order."""
+    seen: list[str] = []
+    for stage in config.stages:
+        if not stage.enabled:
+            continue
+        for ref in stage.agents:
+            name: str | None
+            try:
+                name = resolve_model(store.agent(ref.agent), ref.model).name
+            except (ConfigError, ValueError):
+                name = ref.model.name if ref.model else None
+            if name and name not in seen:
+                seen.append(name)
+    return tuple(seen)
 
 
 @dataclass(slots=True)
@@ -55,6 +120,9 @@ class PipelineCurve:
     open_positions: int = 0
     invested: float = 0.0  # share of the final NAV held in positions
     bars_through: date | None = None  # last session with a benchmark bar
+    models: tuple[str, ...] = ()  # LLM models the pipeline's agents are configured with
+    llm_total: LLMSpend | None = None  # LLM usage since the first paper/live run
+    llm_recent: LLMSpend | None = None  # ... in the last RECENT_SPEND_DAYS days
 
     @property
     def returns(self) -> list[float]:
@@ -140,7 +208,12 @@ async def _closes(repos: Repositories, symbol: str, first: date, last: date) -> 
 
 
 async def build_curve(
-    repos: Repositories, config: PipelineConfig, *, end: date | None = None
+    repos: Repositories,
+    config: PipelineConfig,
+    *,
+    end: date | None = None,
+    models: tuple[str, ...] = (),
+    providers: LLMProvidersConfig | None = None,
 ) -> PipelineCurve | None:
     """The pipeline's curve from its first paper/live run to `end` (default: today);
     None when it never ran in paper or live mode."""
@@ -182,6 +255,7 @@ async def build_curve(
         started=started,
         points=[DayPoint(base_day, float(capital), bench_closes.get(base_day))],
         bars_through=max(bench_closes, default=None),
+        models=models,
     )
     last_close: dict[str, Decimal] = {}
     bench_last: float | None = curve.points[0].benchmark_close
@@ -208,6 +282,17 @@ async def build_curve(
     curve.commissions = float(state.commissions)
     curve.open_positions = len(state.positions)
     curve.invested = float(held / nav) if nav > 0 else 0.0
+
+    until = _day_end(last)
+    usage = repos.llm_calls.usage_by_model
+    curve.llm_total = llm_spend(await usage(config.name, PUBLISHED_MODES, until=until), providers)
+    recent = await usage(
+        config.name,
+        PUBLISHED_MODES,
+        since=until - timedelta(days=RECENT_SPEND_DAYS),
+        until=until,
+    )
+    curve.llm_recent = llm_spend(recent, providers)
     return curve
 
 
@@ -225,9 +310,19 @@ async def build_curves(
         configured = set(store.list("pipelines"))
         ran = await repos.runs.pipelines_run_in(PUBLISHED_MODES)
         configs = [store.pipeline(n) for n in ran if n in configured]
+    try:
+        providers: LLMProvidersConfig | None = store.llm_providers()
+    except ConfigError:
+        providers = None  # costs are left out; the curves do not depend on them
     curves = []
     for config in configs:
-        curve = await build_curve(repos, config, end=end)
+        curve = await build_curve(
+            repos,
+            config,
+            end=end,
+            models=pipeline_models(store, config),
+            providers=providers,
+        )
         if curve is not None:
             curves.append(curve)
     return curves

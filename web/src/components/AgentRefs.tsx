@@ -41,7 +41,21 @@ function NumberBox({ label, value, onChange, error, step }: { label: string; val
   );
 }
 
-export function AgentRefsEditor({ role, value, onChange, path, showWeight = true }: { role: string; value: any; onChange: (v: any) => void; path: Path; showWeight?: boolean }) {
+export function AgentRefsEditor({
+  role,
+  value,
+  onChange,
+  path,
+  showWeight = true,
+  defaultModel,
+}: {
+  role: string;
+  value: any;
+  onChange: (v: any) => void;
+  path: Path;
+  showWeight?: boolean;
+  defaultModel?: { provider?: string; name?: string };
+}) {
   const { data: configs } = useConfigs();
   const { data: meta } = useMeta();
   const errors = useContext(ErrorsContext);
@@ -136,7 +150,7 @@ export function AgentRefsEditor({ role, value, onChange, path, showWeight = true
                     slotProps={{ inputLabel: { shrink: true } }}
                   >
                     <MenuItem value="">
-                      <em>{t('(agent default)')}</em>
+                      <em>{defaultModel?.provider ? t('(pipeline default: {name})', { name: defaultModel.provider }) : t('(agent default)')}</em>
                     </MenuItem>
                     {providers.map((p) => (
                       <MenuItem key={p} value={p}>
@@ -158,6 +172,7 @@ export function AgentRefsEditor({ role, value, onChange, path, showWeight = true
                         {...params}
                         size="small"
                         label={t('Model name')}
+                        placeholder={ref?.model?.name ? undefined : defaultModel?.name}
                         error={!!err(i, 'model')}
                         helperText={err(i, 'model')}
                         slotProps={{ ...params.slotProps, inputLabel: { shrink: true } }}

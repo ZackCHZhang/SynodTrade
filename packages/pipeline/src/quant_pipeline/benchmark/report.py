@@ -11,7 +11,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from quant_pipeline.benchmark.chart import render_svg
-from quant_pipeline.benchmark.compute import Metrics, PipelineCurve, compute_metrics
+from quant_pipeline.benchmark.compute import (
+    RECENT_SPEND_DAYS,
+    LLMSpend,
+    Metrics,
+    PipelineCurve,
+    compute_metrics,
+)
 
 MARKERS = re.compile(r"(<!-- benchmark:start -->)(.*?)(<!-- benchmark:end -->)", re.S)
 
@@ -48,9 +54,20 @@ EN = Text(
     updated="Updated {generated} · data through {through}",
     chart_alt="Cumulative paper-trading return of each pipeline against its benchmark",
     summary="Summary",
-    cols=("Pipeline", "Since", "Return", "Benchmark", "Excess", "Max drawdown", "Sharpe"),
+    cols=(
+        "Pipeline",
+        "Model",
+        "Since",
+        "Return",
+        "Benchmark",
+        "Excess",
+        "Max drawdown",
+        "Sharpe",
+        "LLM cost",
+    ),
     details="Pipelines",
     detail_rows=(
+        "Models",
         "Mode",
         "Sessions",
         "Starting capital",
@@ -65,6 +82,9 @@ EN = Text(
         "Volatility (annualised)",
         "CAGR",
         "Benchmark max drawdown",
+        "LLM calls",
+        "LLM tokens (in / out / cache read)",
+        f"LLM cost (total / last {RECENT_SPEND_DAYS} days)",
     ),
     method="Methodology",
     method_items=(
@@ -77,6 +97,9 @@ EN = Text(
         " base day. Excess = return − benchmark return.",
         "Sharpe and volatility are annualised from daily returns (252 sessions, risk-free rate 0)"
         " and need at least 20 sessions; CAGR needs at least 60. A dash means not enough data.",
+        "LLM cost is the pipeline's recorded token usage (every attempt, including retries) priced"
+        " at the list prices in `configs/llm_providers.yaml`; a dash means a model has no price."
+        " It is an estimate: providers may bill differently (routing, discounts, time of day).",
         "Dry-run and offline runs are never included.",
     ),
     reproduce="Reproduce",
@@ -102,9 +125,10 @@ ZH = Text(
     updated="更新于 {generated} · 数据截至 {through}",
     chart_alt="各流水线模拟盘累计收益与基准对比",
     summary="概览",
-    cols=("流水线", "开始", "收益", "基准", "超额收益", "最大回撤", "夏普比率"),
+    cols=("流水线", "模型", "开始", "收益", "基准", "超额收益", "最大回撤", "夏普比率", "LLM 费用"),
     details="各流水线",
     detail_rows=(
+        "模型",
         "模式",
         "交易日",
         "初始资金",
@@ -119,6 +143,9 @@ ZH = Text(
         "波动率（年化）",
         "年化收益",
         "基准最大回撤",
+        "LLM 调用次数",
+        "LLM token（输入 / 输出 / 缓存命中）",
+        f"LLM 费用（累计 / 最近 {RECENT_SPEND_DAYS} 天）",
     ),
     method="计算方法",
     method_items=(
@@ -130,6 +157,8 @@ ZH = Text(
         "超额收益 = 收益 − 基准收益。",
         "夏普比率和波动率由日收益年化（每年 252 个交易日，无风险利率按 0），至少需要 20 个交易日；"
         "年化收益至少需要 60 个交易日。显示为短横线表示数据还不够。",
+        "LLM 费用 = 流水线记录的 token 用量（含每次重试）× `configs/llm_providers.yaml` 里的标价；"
+        "显示为短横线表示有模型没有配置价格。这是估算，实际账单可能因路由、折扣或时段而不同。",
         "dry-run 和离线运行永远不计入。",
     ),
     reproduce="复现",
@@ -158,26 +187,55 @@ def num(v: float | None, digits: int = 2) -> str:
     return "—" if v is None else f"{v:,.{digits}f}"
 
 
+def usd(v: float | None) -> str:
+    if v is None:
+        return "—"
+    return f"${v:,.2f}" if v >= 0.01 or v == 0 else f"${v:.4f}"
+
+
+def tokens(n: int) -> str:
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.2f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}k"
+    return str(n)
+
+
+def models_label(models: tuple[str, ...]) -> str:
+    """Short model names (without a `vendor/` prefix); more than two are summarised."""
+    if not models:
+        return "—"
+    short = [m.rsplit("/", 1)[-1] for m in models]
+    return ", ".join(short) if len(short) <= 2 else f"{short[0]} +{len(short) - 1}"
+
+
+def spend_cost(spend: LLMSpend | None) -> str:
+    return usd(spend.cost) if spend is not None else "—"
+
+
 def _summary_rows(rows: Rows, *, compact: bool) -> list[str]:
     """One row per pipeline; `compact` (the repository README) leaves out the start date."""
     out = []
     for c, m in rows:
         cells = [
             f"**{c.pipeline}**",
+            models_label(c.models),
             *([] if compact else [c.points[0].day.isoformat()]),
             pct(m.total_return),
             f"{c.benchmark} {pct(m.benchmark_return)}",
             pct(m.excess_return),
             pct(m.max_drawdown),
             num(m.sharpe),
+            spend_cost(c.llm_total),
         ]
         out.append("| " + " | ".join(cells) + " |")
     return out
 
 
-def _table(cols: tuple[str, ...], rows: list[str]) -> list[str]:
+def _table(cols: tuple[str, ...], rows: list[str], *, text_cols: int = 1) -> list[str]:
+    """A Markdown table; the first `text_cols` columns are left-aligned, the rest right."""
     head = "| " + " | ".join(cols) + " |"
-    align = "|" + "|".join(":--" if i == 0 else "--:" for i in range(len(cols))) + "|"
+    align = "|" + "|".join(":--" if i < text_cols else "--:" for i in range(len(cols))) + "|"
     return [head, align, *rows]
 
 
@@ -192,14 +250,16 @@ def page(text: Text, rows: Rows, generated: str, through: str) -> str:
         "",
         f"## {text.summary}",
         "",
-        *_table(text.cols, _summary_rows(rows, compact=False)),
+        *_table(text.cols, _summary_rows(rows, compact=False), text_cols=2),
         "",
         f"## {text.details}",
         "",
     ]
     for c, m in rows:
         nav = c.points[-1].nav
+        total = c.llm_total
         values = (
+            ", ".join(f"`{m}`" for m in c.models) or "—",
             c.mode,
             str(m.days),
             f"{num(c.capital)}",
@@ -214,6 +274,14 @@ def page(text: Text, rows: Rows, generated: str, through: str) -> str:
             pct(m.volatility, signed=False),
             pct(m.cagr),
             pct(m.benchmark_max_drawdown),
+            str(total.calls) if total else "—",
+            (
+                f"{tokens(total.input_tokens)} / {tokens(total.output_tokens)}"
+                f" / {tokens(total.cache_read_tokens)}"
+                if total
+                else "—"
+            ),
+            f"{spend_cost(total)} / {spend_cost(c.llm_recent)}",
         )
         lines += [f"### {c.pipeline}", "", "| | |", "|:--|--:|"]
         lines += [f"| {k} | {v} |" for k, v in zip(text.detail_rows, values, strict=True)]
@@ -233,7 +301,9 @@ def root_section(text: Text, rows: list[tuple[PipelineCurve, Metrics]], generate
             f'<p align="center"><a href="benchmark/{readme}"><img src="benchmark/equity.svg"'
             f' alt="{text.chart_alt}" width="880"></a></p>',
             "",
-            *_table((text.cols[0], *text.cols[2:]), _summary_rows(rows, compact=True)),
+            *_table(
+                (*text.cols[:2], *text.cols[3:]), _summary_rows(rows, compact=True), text_cols=2
+            ),
             "",
             f"<sub>{text.root_note.format(generated=generated)}</sub>",
             "",
@@ -253,6 +323,20 @@ def update_markers(path: Path, section: str) -> bool:
     return True
 
 
+def _spend_json(spend: LLMSpend | None) -> dict[str, object] | None:
+    if spend is None:
+        return None
+    return {
+        "calls": spend.calls,
+        "input_tokens": spend.input_tokens,
+        "output_tokens": spend.output_tokens,
+        "cache_read_tokens": spend.cache_read_tokens,
+        "cache_write_tokens": spend.cache_write_tokens,
+        "cost_usd": None if spend.cost is None else round(spend.cost, 4),
+        "unpriced": list(spend.unpriced),
+    }
+
+
 def data(rows: list[tuple[PipelineCurve, Metrics]], generated: str) -> dict[str, object]:
     return {
         "generated_at": generated,
@@ -264,6 +348,11 @@ def data(rows: list[tuple[PipelineCurve, Metrics]], generated: str) -> dict[str,
                 "benchmark": c.benchmark,
                 "capital": c.capital,
                 "started": c.started.isoformat(),
+                "models": list(c.models),
+                "llm": {
+                    "total": _spend_json(c.llm_total),
+                    f"last_{RECENT_SPEND_DAYS}_days": _spend_json(c.llm_recent),
+                },
                 "metrics": {k: getattr(m, k) for k in m.__slots__},
                 "stats": {
                     "fills": c.fills,

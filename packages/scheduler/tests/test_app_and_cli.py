@@ -23,6 +23,9 @@ from quant_scheduler import (
 )
 from quant_scheduler.cli import app as cli_app
 
+# The model arena's scheduled pipelines (configs/schedules.yaml); arena_gemini is disabled.
+ARENA_JOBS = {f"arena_{m}#0" for m in ("deepseek", "qwen", "glm", "gpt", "claude")}
+
 
 @dataclass
 class Recorder:
@@ -94,7 +97,7 @@ async def test_jobs_are_registered_with_overlap_protection(
     scheduler.start()
     try:
         jobs = {j.id: j for j in scheduler.scheduler.get_jobs()}
-        assert set(jobs) == {"long_term_stocks#0", "etf_allocation#0"}
+        assert set(jobs) == {"long_term_stocks#0", "etf_allocation#0", *ARENA_JOBS}
         job = jobs["long_term_stocks#0"]
         assert (job.max_instances, job.coalesce, job.misfire_grace_time) == (1, True, 900)
         assert job.args == ("long_term_stocks", False)
@@ -122,6 +125,7 @@ async def test_jobs_survive_restarts_and_follow_config_changes(
 
     path = configs / "schedules.yaml"
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data["jobs"] = data["jobs"][:2]  # removed jobs go away too
     data["jobs"][0]["offset_minutes"] = 45
     data["jobs"][1]["enabled"] = False
     path.write_text(yaml.safe_dump(data), encoding="utf-8")
@@ -248,4 +252,4 @@ def test_cli_run_starts_and_stops(
 
     with sqlite3.connect(tmp_path / "run.db") as conn:  # jobs were persisted
         ids = {row[0] for row in conn.execute("SELECT id FROM apscheduler_jobs")}
-    assert ids == {"long_term_stocks#0", "etf_allocation#0"}
+    assert ids == {"long_term_stocks#0", "etf_allocation#0", *ARENA_JOBS}
