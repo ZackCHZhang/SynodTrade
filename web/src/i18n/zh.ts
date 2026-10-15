@@ -581,7 +581,7 @@ export const zh: Record<string, string> = {
   'skipped': '已跳过',
   'Something went wrong on this page': '页面出错了',
   'Source': '来源',
-  'Source code (AGPL-3.0)': '源代码（AGPL-3.0）',
+  'Source code on GitHub': '在 GitHub 上查看源代码',
   'Source options': '来源选项',
   'Sources': '数据来源',
   'Stage durations': '阶段耗时',
