@@ -2,7 +2,7 @@
 name = "quant-webapi"
 version = "0.1.0"
 description = "Web console backend: visual configs/ editing, pipeline launches, live progress, scheduler, database browser"
-license = "AGPL-3.0-or-later"
+license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
