@@ -1,5 +1,6 @@
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
@@ -27,7 +28,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useContext, useMemo, useRef, useState } from 'react';
 import type { Meta } from '../api/client';
 import { useConfigs, useMeta } from '../api/hooks';
-import { AgentRefsEditor } from '../components/AgentRefs';
+import { AgentRefsEditor, MODEL_SUGGESTIONS, useProviderNames } from '../components/AgentRefs';
 import type { FormProps } from '../components/ConfigEditor';
 import { ErrorsContext, FieldEditor, SchemaFields, pathKey } from '../components/SchemaForm';
 import { STAGE_INFO, label, stageDesc, stageLabel, withKey } from '../lib/labels';
@@ -62,6 +63,8 @@ export function PipelineForm({ data, onChange, name }: FormProps) {
   const { data: configs } = useConfigs();
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const providers = useProviderNames();
+  const errors = useContext(ErrorsContext);
   if (!meta) return null;
 
   const pipelineSchema = normalize(meta.schemas.pipeline);
@@ -69,6 +72,12 @@ export function PipelineForm({ data, onChange, name }: FormProps) {
   const set = (path: (string | number)[], v: any) => onChange(setIn(data, path, v));
   const accounts = (configs?.accounts ?? []).map((a) => a.name);
   const isOpen = (i: number) => expanded[i] ?? true;
+  const defaultModel: Record<string, any> | undefined = data.default_model && typeof data.default_model === 'object' ? data.default_model : undefined;
+  const setDefaultModel = (patch: Record<string, any>) => {
+    const model: Record<string, any> = { ...(defaultModel ?? {}), ...patch };
+    for (const k of Object.keys(model)) if (model[k] === undefined) delete model[k];
+    set(['default_model'], Object.keys(model).length ? model : undefined);
+  };
 
   return (
     <Stack spacing={2}>
@@ -110,6 +119,48 @@ export function PipelineForm({ data, onChange, name }: FormProps) {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <FieldEditor name="benchmark" field={pipelineSchema.properties!.benchmark} value={data.benchmark} path={['benchmark']} onChange={(v) => set(['benchmark'], v)} />
             </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                label={withKey('Default LLM provider', 'default_model.provider')}
+                value={defaultModel?.provider ?? ''}
+                onChange={(e) => setDefaultModel({ provider: e.target.value || undefined })}
+                error={!!errors[pathKey(['default_model'])] || !!errors[pathKey(['default_model', 'provider'])]}
+                helperText={errors[pathKey(['default_model', 'provider'])] ?? t('Used by every agent without its own model')}
+                slotProps={{ inputLabel: { shrink: true } }}
+              >
+                <MenuItem value="">
+                  <em>{t('(none)')}</em>
+                </MenuItem>
+                {providers.map((p) => (
+                  <MenuItem key={p} value={p}>
+                    {p}
+                  </MenuItem>
+                ))}
+                {defaultModel?.provider && !providers.includes(defaultModel.provider) && <MenuItem value={defaultModel.provider}>{defaultModel.provider} ({t('undefined')})</MenuItem>}
+              </TextField>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Autocomplete
+                freeSolo
+                options={MODEL_SUGGESTIONS}
+                value={defaultModel?.name ?? ''}
+                onChange={(_, v) => setDefaultModel({ name: v || undefined })}
+                onInputChange={(_, v, reason) => reason === 'input' && setDefaultModel({ name: v || undefined })}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="small"
+                    label={withKey('Default model name', 'default_model.name')}
+                    error={!!errors[pathKey(['default_model', 'name'])]}
+                    helperText={errors[pathKey(['default_model', 'name'])]}
+                    slotProps={{ ...params.slotProps, inputLabel: { shrink: true } }}
+                  />
+                )}
+              />
+            </Grid>
             <Grid size={12}>
               <SchemaFields field={pipelineSchema.properties!.sizing} value={data.sizing} path={['sizing']} onChange={(v) => set(['sizing'], v)} />
             </Grid>
@@ -131,6 +182,7 @@ export function PipelineForm({ data, onChange, name }: FormProps) {
         <div key={`${stage?.type}-${i}`} ref={(el) => { cardRefs.current[i] = el; }} style={{ scrollMarginTop: 80 }}>
           <StageCard
             meta={meta}
+            defaultModel={defaultModel}
             stage={stage ?? {}}
             index={i}
             count={stages.length}
@@ -229,6 +281,7 @@ function StageFlow({ meta, stages, onAdd, onJump }: { meta: Meta; stages: any[];
 
 function StageCard({
   meta,
+  defaultModel,
   stage,
   index,
   count,
@@ -239,6 +292,7 @@ function StageCard({
   onMove,
 }: {
   meta: Meta;
+  defaultModel?: Record<string, any>;
   stage: any;
   index: number;
   count: number;
@@ -330,7 +384,7 @@ function StageCard({
             </Alert>
           )}
           <Stack spacing={2.5}>
-            {role && <AgentRefsEditor role={role} value={stage.agents} path={[...base, 'agents']} showWeight={type === 'decision' || type === 'selection'} onChange={(v) => set('agents', v)} />}
+            {role && <AgentRefsEditor role={role} defaultModel={defaultModel} value={stage.agents} path={[...base, 'agents']} showWeight={type === 'decision' || type === 'selection'} onChange={(v) => set('agents', v)} />}
             {type === 'selection' && <CandidateSources meta={meta} value={stage.sources} path={[...base, 'sources']} onChange={(v) => set('sources', v)} />}
             {type === 'sentiment' && <SentimentSources meta={meta} stage={stage} base={base} set={set} />}
             {type === 'risk' && <RiskRulesSelect value={stage.rules} path={[...base, 'rules']} onChange={(v) => set('rules', v)} />}

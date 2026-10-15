@@ -110,6 +110,19 @@ class OrderRecord(CoreModel):
         return max(Decimal(0), self.intent.quantity - self.filled_qty)
 
 
+@dataclass(frozen=True, slots=True)
+class ModelUsage:
+    """Summed LLM usage of one (provider, model) over a set of runs."""
+
+    provider: str
+    model: str
+    calls: int
+    input_tokens: int
+    output_tokens: int
+    cache_read_input_tokens: int
+    cache_creation_input_tokens: int
+
+
 @dataclass(slots=True)
 class LedgerPosition:
     symbol: str

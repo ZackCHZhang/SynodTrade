@@ -8,6 +8,9 @@
 #   structured_output (openai_compatible only) json_schema | json_object | prompt
 #   max_concurrency / max_attempts / timeout_s   per-provider limits, shared by all agents using it
 #   extra_headers / extra_body                   vendor-specific additions to every request
+#   prices            optional list prices per model, USD per million tokens
+#                     ({input, output, cache_read, cache_write}); only used to report what the
+#                     LLM calls cost (quant benchmark). Models without a price show no cost.
 
 providers:
   anthropic:
@@ -21,6 +24,28 @@ providers:
     api_key_env: DEEPSEEK_API_KEY
     structured_output: json_object   # DeepSeek supports JSON mode, not json_schema
     max_concurrency: 4
+
+  # One key for many vendors; used by the model arena (configs/pipelines/arena_*.yaml).
+  # json_object for every model, so all arena models get the same JSON instructions in the
+  # prompt (some vendors behind OpenRouter do not support json_schema).
+  openrouter:
+    kind: openai_compatible
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+    structured_output: json_object
+    max_concurrency: 6
+    extra_headers:
+      HTTP-Referer: https://github.com/ZackCHZhang/synodtrade
+      X-Title: SynodTrade
+    # OpenRouter list prices (October 2026). OpenRouter routes each request to one of several
+    # upstream providers whose prices differ, so the reported cost is an estimate.
+    prices:
+      deepseek/deepseek-v4.1-flash: { input: 0.15, output: 0.60, cache_read: 0.003 }
+      qwen/qwen3.8-omni-flash: { input: 0.15, output: 0.47, cache_read: 0.016 }
+      z-ai/glm-5.3-flashx: { input: 0.37, output: 1.25, cache_read: 0.09 }
+      openai/gpt-6-luna: { input: 0.10, output: 0.50, cache_read: 0.01 }
+      anthropic/claude-haiku-5.5: { input: 0.10, output: 0.50, cache_read: 0.01 }
+      google/gemini-4-argon: { input: 2.00, output: 10.00, cache_read: 0.10 }
 
   # openai:
   #   kind: openai_compatible

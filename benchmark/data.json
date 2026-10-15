@@ -8,6 +8,13 @@
    "benchmark": "SPY",
    "capital": 10000.0,
    "started": "2026-10-08T13:40:00.141795+00:00",
+   "models": [
+    "deepseek-chat"
+   ],
+   "llm": {
+    "total": null,
+    "last_7_days": null
+   },
    "metrics": {
     "days": 5,
     "total_return": -0.005255756400000089,

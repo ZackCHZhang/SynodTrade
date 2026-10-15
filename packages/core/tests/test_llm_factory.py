@@ -7,6 +7,7 @@ from quant_core.llm import (
     LLMConfigError,
     LLMProviderConfig,
     LLMProvidersConfig,
+    ModelPrice,
     OpenAICompatibleLLMClient,
     ProviderKind,
     StructuredOutputMode,
@@ -126,3 +127,28 @@ async def test_pool_aclose() -> None:
     await pool.aclose()
     assert client._client.is_closed()
     assert pool.get("local") is not client  # recreated on next use
+
+
+def test_model_price_cost_by_provider_kind() -> None:
+    price = ModelPrice(input=2, output=10, cache_read=0.2)
+    # OpenAI-compatible prompt counts include cache hits: 1M prompt of which 0.4M cached.
+    openai = price.cost(
+        ProviderKind.OPENAI_COMPATIBLE,
+        input_tokens=1_000_000,
+        output_tokens=100_000,
+        cache_read_tokens=400_000,
+    )
+    assert openai == pytest.approx(0.6 * 2 + 0.1 * 10 + 0.4 * 0.2)
+    # Anthropic reports cache reads on top of input_tokens.
+    anthropic = price.cost(
+        ProviderKind.ANTHROPIC,
+        input_tokens=600_000,
+        output_tokens=100_000,
+        cache_read_tokens=400_000,
+    )
+    assert anthropic == pytest.approx(openai)
+    # Without cache prices, cached tokens are billed like input.
+    plain = ModelPrice(input=1, output=1)
+    assert plain.cost(
+        ProviderKind.ANTHROPIC, input_tokens=0, output_tokens=0, cache_write_tokens=1_000_000
+    ) == pytest.approx(1)

@@ -456,7 +456,9 @@ def test_pipelines_are_grouped_by_broker_account(store: ConfigStore, repos: Repo
     service = AccountSyncService(store, repos)
     [target] = service.targets()
     assert target.account_id == ACCOUNT
-    assert set(target.account_names) == {"ibkr_main", "ibkr_etf"}
+    # Every account config on the same broker account (incl. the model arena's) is one target.
+    assert set(target.account_names) == set(store.list("accounts"))
+    assert {"ibkr_main", "ibkr_etf", "ibkr_arena_deepseek"} <= set(target.account_names)
     assert set(target.pipeline_names) == set(store.list("pipelines"))
 
     only_etf = service.targets(AccountSyncConfig(accounts=["ibkr_etf"]))
