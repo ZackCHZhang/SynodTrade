@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-14",
+ "generated_at": "2026-10-16",
  "kind": "paper-trading benchmark",
  "pipelines": [
   {
@@ -12,30 +12,50 @@
     "deepseek-chat"
    ],
    "llm": {
-    "total": null,
-    "last_7_days": null
+    "total": {
+     "calls": 1879,
+     "input_tokens": 7135618,
+     "output_tokens": 658528,
+     "cache_read_tokens": 466304,
+     "cache_write_tokens": 0,
+     "cost_usd": null,
+     "unpriced": [
+      "deepseek/deepseek-chat"
+     ]
+    },
+    "last_7_days": {
+     "calls": 1518,
+     "input_tokens": 5747826,
+     "output_tokens": 529007,
+     "cache_read_tokens": 374016,
+     "cache_write_tokens": 0,
+     "cost_usd": null,
+     "unpriced": [
+      "deepseek/deepseek-chat"
+     ]
+    }
    },
    "metrics": {
-    "days": 5,
-    "total_return": -0.005255756400000089,
-    "benchmark_return": -0.01024163042639159,
-    "excess_return": 0.004985874026391501,
+    "days": 7,
+    "total_return": -0.02804792140000012,
+    "benchmark_return": -0.017974318725714755,
+    "excess_return": -0.010073602674285365,
     "cagr": null,
     "volatility": null,
     "sharpe": null,
-    "max_drawdown": -0.011616000026946738,
-    "benchmark_max_drawdown": -0.011957820106092032,
+    "max_drawdown": -0.03426243538526419,
+    "benchmark_max_drawdown": -0.019677100324954733,
     "win_rate": 0.0
    },
    "stats": {
-    "fills": 14,
-    "buys": 12,
-    "sells": 2,
+    "fills": 19,
+    "buys": 14,
+    "sells": 5,
     "winning_sells": 0,
-    "realized_pnl": -12.18,
-    "commissions": 13.64,
+    "realized_pnl": -59.41,
+    "commissions": 18.65,
     "open_positions": 8,
-    "invested": 0.733
+    "invested": 0.7458
    },
    "series": [
     {
@@ -75,10 +95,24 @@
     },
     {
      "date": "2026-10-14",
-     "nav": 9947.44,
-     "return": -0.005256,
-     "benchmark_close": 769.26,
-     "benchmark_return": -0.010242
+     "nav": 9952.63,
+     "return": -0.004737,
+     "benchmark_close": 769.6,
+     "benchmark_return": -0.009804
+    },
+    {
+     "date": "2026-10-15",
+     "nav": 9818.43,
+     "return": -0.018157,
+     "benchmark_close": 771.79,
+     "benchmark_return": -0.006986
+    },
+    {
+     "date": "2026-10-16",
+     "nav": 9719.52,
+     "return": -0.028048,
+     "benchmark_close": 763.25,
+     "benchmark_return": -0.017974
     }
    ]
   }

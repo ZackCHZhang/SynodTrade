@@ -87,9 +87,9 @@ SynodTrade 公开自己的交易表现。每条在 IBKR 模拟账户（paper）�
 
 | 流水线 | 模型 | 收益 | 基准 | 超额收益 | 最大回撤 | 夏普比率 | LLM 费用 |
 |:--|:--|--:|--:|--:|--:|--:|--:|
-| **demo_all_modules** | deepseek-chat | -0.53% | SPY -1.02% | +0.50% | -1.16% | — | — |
+| **demo_all_modules** | deepseek-chat | -2.80% | SPY -1.80% | -1.01% | -3.43% | — | — |
 
-<sub>IBKR 模拟盘 · 更新于 2026-10-14 · [详细数据、计算方法和原始数据](benchmark/README.zh-CN.md)</sub>
+<sub>IBKR 模拟盘 · 更新于 2026-10-16 · [详细数据、计算方法和原始数据](benchmark/README.zh-CN.md)</sub>
 <!-- benchmark:end -->
 
 ## 🚀 快速开始

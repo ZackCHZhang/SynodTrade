@@ -87,9 +87,9 @@ SynodTrade publishes its own track record. Every pipeline that trades an IBKR pa
 
 | Pipeline | Model | Return | Benchmark | Excess | Max drawdown | Sharpe | LLM cost |
 |:--|:--|--:|--:|--:|--:|--:|--:|
-| **demo_all_modules** | deepseek-chat | -0.53% | SPY -1.02% | +0.50% | -1.16% | — | — |
+| **demo_all_modules** | deepseek-chat | -2.80% | SPY -1.80% | -1.01% | -3.43% | — | — |
 
-<sub>Paper trading on IBKR · updated 2026-10-14 · [details, methodology and raw data](benchmark/README.md)</sub>
+<sub>Paper trading on IBKR · updated 2026-10-16 · [details, methodology and raw data](benchmark/README.md)</sub>
 <!-- benchmark:end -->
 
 ## 🚀 Quick start

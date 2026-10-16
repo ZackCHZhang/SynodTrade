@@ -5,7 +5,7 @@
 > [!IMPORTANT]
 > These are **paper-trading** results from IBKR paper accounts, not real money. Fills are real paper fills, but paper trading ignores market impact and can fill orders a live account would not. Past results say nothing about future ones. Not investment advice.
 
-<sub>Updated 2026-10-14 · data through 2026-10-14</sub>
+<sub>Updated 2026-10-16 · data through 2026-10-16</sub>
 
 <p align="center"><img src="equity.svg" alt="Cumulative paper-trading return of each pipeline against its benchmark" width="880"></p>
 
@@ -13,7 +13,7 @@
 
 | Pipeline | Model | Since | Return | Benchmark | Excess | Max drawdown | Sharpe | LLM cost |
 |:--|:--|--:|--:|--:|--:|--:|--:|--:|
-| **demo_all_modules** | deepseek-chat | 2026-10-07 | -0.53% | SPY -1.02% | +0.50% | -1.16% | — | — |
+| **demo_all_modules** | deepseek-chat | 2026-10-07 | -2.80% | SPY -1.80% | -1.01% | -3.43% | — | — |
 
 ## Pipelines
 
@@ -23,21 +23,21 @@
 |:--|--:|
 | Models | `deepseek-chat` |
 | Mode | paper |
-| Sessions | 5 |
+| Sessions | 7 |
 | Starting capital | 10,000.00 |
 | First paper/live run | 2026-10-08 13:40 UTC |
-| Net asset value | 9,947.44 (-0.53%) |
-| Fills (buys / sells) | 14 (12 / 2) |
+| Net asset value | 9,719.52 (-2.80%) |
+| Fills (buys / sells) | 19 (14 / 5) |
 | Sells at a profit | 0.00% |
-| Realised P&L | -12.18 |
-| Commissions | 13.64 |
+| Realised P&L | -59.41 |
+| Commissions | 18.65 |
 | Open positions | 8 |
-| Invested | 73.30% |
+| Invested | 74.58% |
 | Volatility (annualised) | — |
 | CAGR | — |
-| Benchmark max drawdown | -1.20% |
-| LLM calls | — |
-| LLM tokens (in / out / cache read) | — |
+| Benchmark max drawdown | -1.97% |
+| LLM calls | 1879 |
+| LLM tokens (in / out / cache read) | 7.14M / 658.5k / 466.3k |
 | LLM cost (total / last 7 days) | — / — |
 
 ## Methodology

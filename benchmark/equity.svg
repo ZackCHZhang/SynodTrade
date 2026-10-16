@@ -7,27 +7,25 @@
 <line class="line bench" x1="224.4" x2="242.4" y1="38" y2="38"/>
 <text class="t1" x="248.4" y="42">SPY (benchmark)</text>
 <line class="grid" x1="60" x2="678.4" y1="356.0" y2="356.0"/>
-<text class="t2" x="52" y="360.0" text-anchor="end">-1.5%</text>
-<line class="grid" x1="60" x2="678.4" y1="297.6" y2="297.6"/>
-<text class="t2" x="52" y="301.6" text-anchor="end">-1.0%</text>
-<line class="grid" x1="60" x2="678.4" y1="239.2" y2="239.2"/>
-<text class="t2" x="52" y="243.2" text-anchor="end">-0.5%</text>
-<line class="zero" x1="60" x2="678.4" y1="180.8" y2="180.8"/>
-<text class="t2" x="52" y="184.8" text-anchor="end">0%</text>
-<line class="grid" x1="60" x2="678.4" y1="122.4" y2="122.4"/>
-<text class="t2" x="52" y="126.4" text-anchor="end">+0.5%</text>
+<text class="t2" x="52" y="360.0" text-anchor="end">-3.0%</text>
+<line class="grid" x1="60" x2="678.4" y1="283.0" y2="283.0"/>
+<text class="t2" x="52" y="287.0" text-anchor="end">-2.0%</text>
+<line class="grid" x1="60" x2="678.4" y1="210.0" y2="210.0"/>
+<text class="t2" x="52" y="214.0" text-anchor="end">-1.0%</text>
+<line class="zero" x1="60" x2="678.4" y1="137.0" y2="137.0"/>
+<text class="t2" x="52" y="141.0" text-anchor="end">0%</text>
 <line class="grid" x1="60" x2="678.4" y1="64.0" y2="64.0"/>
 <text class="t2" x="52" y="68.0" text-anchor="end">+1.0%</text>
 <text class="t2" x="60.0" y="378" text-anchor="start">Oct 7</text>
-<text class="t2" x="183.7" y="378" text-anchor="middle">Oct 8</text>
-<text class="t2" x="307.4" y="378" text-anchor="middle">Oct 9</text>
-<text class="t2" x="431.0" y="378" text-anchor="middle">Oct 12</text>
-<text class="t2" x="554.7" y="378" text-anchor="middle">Oct 13</text>
-<text class="t2" x="678.4" y="378" text-anchor="end">Oct 14</text>
-<polyline class="line bench" points="60.0,180.8 183.7,230.2 307.4,160.5 431.0,167.6 554.7,168.9 678.4,300.4"/>
-<polyline class="line s1" points="60.0,180.8 183.7,170.1 307.4,215.8 431.0,230.4 554.7,105.6 678.4,242.2"/>
-<circle class="dot s1" cx="678.4" cy="242.2" r="4"/>
-<text class="t1" x="690.4" y="246.2">demo_all_modules <tspan class="t2">-0.53%</tspan></text>
-<circle class="dot bench" cx="678.4" cy="300.4" r="4"/>
-<text class="t1" x="690.4" y="304.4">SPY <tspan class="t2">-1.02%</tspan></text>
+<text class="t2" x="148.3" y="378" text-anchor="middle">Oct 8</text>
+<text class="t2" x="325.0" y="378" text-anchor="middle">Oct 12</text>
+<text class="t2" x="413.4" y="378" text-anchor="middle">Oct 13</text>
+<text class="t2" x="590.1" y="378" text-anchor="middle">Oct 15</text>
+<text class="t2" x="678.4" y="378" text-anchor="end">Oct 16</text>
+<polyline class="line bench" points="60.0,137.0 148.3,167.9 236.7,124.3 325.0,128.7 413.4,129.6 501.7,208.6 590.1,188.0 678.4,268.2"/>
+<polyline class="line s1" points="60.0,137.0 148.3,130.3 236.7,158.9 325.0,168.0 413.4,90.0 501.7,171.6 590.1,269.5 678.4,341.7"/>
+<circle class="dot s1" cx="678.4" cy="341.7" r="4"/>
+<text class="t1" x="690.4" y="345.7">demo_all_modules <tspan class="t2">-2.80%</tspan></text>
+<circle class="dot bench" cx="678.4" cy="268.2" r="4"/>
+<text class="t1" x="690.4" y="272.2">SPY <tspan class="t2">-1.80%</tspan></text>
 </svg>
