@@ -59,10 +59,15 @@ def test_repo_pipelines_fully_valid() -> None:
 
 
 def test_model_arena_pipelines_differ_only_in_the_model() -> None:
-    """The arena compares LLMs, so everything but name, account and model must be identical."""
+    """The arena compares LLMs, so within one arena family (arena_<model>, the multi-agent
+    pipeline, and arena_solo_<model>, one agent per stage) everything but name, account and
+    model must be identical, and both families must cover the same models."""
     store = ConfigStore(REPO_CONFIGS, env=ENV)
-    arena = [store.pipeline(n) for n in store.list("pipelines") if n.startswith("arena_")]
-    assert len(arena) >= 2
+    names = [n for n in store.list("pipelines") if n.startswith("arena_")]
+    families = {
+        "arena_solo_": [n for n in names if n.startswith("arena_solo_")],
+        "arena_": [n for n in names if not n.startswith("arena_solo_")],
+    }
 
     def comparable(name: str) -> dict[str, object]:
         data = store.pipeline(name).model_dump(mode="json")
@@ -73,20 +78,29 @@ def test_model_arena_pipelines_differ_only_in_the_model() -> None:
                 ref.pop("model")  # filled in from default_model
         return data
 
-    reference = comparable(arena[0].name)
-    models, accounts, client_ids = set(), set(), set()
-    for pipeline in arena:
-        assert comparable(pipeline.name) == reference, f"{pipeline.name} differs from the others"
-        assert pipeline.default_model is not None
-        models.add(pipeline.default_model.name)
-        account = store.account(pipeline.account)
-        accounts.add(account.name)
-        client_ids.add(account.client_id)
-        for stage in pipeline.stages:
-            for ref in stage.agents:
-                assert ref.model is not None
-                assert ref.model.name == pipeline.default_model.name
-    assert len(models) == len(accounts) == len(client_ids) == len(arena)
+    accounts, client_ids = set(), set()
+    family_models = []
+    for prefix, family in families.items():
+        assert len(family) >= 2, prefix
+        reference = comparable(family[0])
+        models = set()
+        for name in family:
+            pipeline = store.pipeline(name)
+            assert comparable(name) == reference, f"{name} differs from the others"
+            assert pipeline.default_model is not None
+            models.add(pipeline.default_model.name)
+            account = store.account(pipeline.account)
+            accounts.add(account.name)
+            client_ids.add(account.client_id)
+            for stage in pipeline.stages:
+                for ref in stage.agents:
+                    assert ref.model is not None
+                    assert ref.model.name == pipeline.default_model.name
+        assert len(models) == len(family)
+        family_models.append(models)
+    assert family_models[0] == family_models[1]  # solo and multi-agent arena: same models
+    assert {len(s.agents) for s in store.pipeline(families["arena_solo_"][0]).stages} <= {0, 1}
+    assert len(accounts) == len(client_ids) == len(names)
     # Each account uses client_id .. client_id + 4 (data, trading, news, -, account sync).
     ordered = sorted(client_ids)
     assert all(b - a >= 5 for a, b in pairwise(ordered))

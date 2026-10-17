@@ -80,7 +80,7 @@ core ← database ← {market_data, selection, sentiment, decision, risk, tradin
 
 SynodTrade 公开自己的交易表现。每条在 IBKR 模拟账户（paper）上交易的流水线，都会用它真实的模拟成交生成每日净值曲线，并与基准（默认 SPY）对比，同时列出它用的 LLM 模型和 LLM 调用花了多少钱。运行 `poetry run quant benchmark` 会重新生成 [`benchmark/`](benchmark/README.zh-CN.md) 目录（页面、图表和原始数据）以及下面的概览。
 
-**模型擂台。** `configs/pipelines/arena_*.yaml` 把完全相同的一条流水线（选股、情绪、5 个 agent 投票决策、3 个风控 agent）按每个 LLM 各跑一份，每份在同一个 IBKR 模拟账户里有自己 10 万的虚拟子账本。它们之间只有 `default_model`（以及 IBKR client id）不同，有测试保证这一点，所以基准比较的只是模型本身：通过 [OpenRouter](https://openrouter.ai) 接入的 DeepSeek、Qwen、GLM、GPT 和 Claude，另有 Gemini（旗舰定价，默认关闭）。
+**模型擂台。** `configs/pipelines/arena_*.yaml` 把完全相同的一条流水线（选股、情绪、5 个 agent 投票决策、3 个风控 agent）按每个 LLM 各跑一份，每份在同一个 IBKR 模拟账户里有自己 10 万的虚拟子账本。它们之间只有 `default_model`（以及 IBKR client id）不同，有测试保证这一点，所以基准比较的只是模型本身：通过 [OpenRouter](https://openrouter.ai) 接入的 DeepSeek、Qwen、GLM、GPT 和 Claude，都是低价模型。`arena_solo_*.yaml` 让同样这些模型跑这条流水线的单 agent 版本（每个环节只有一个 agent），用少得多的 LLM 调用看出多 agent 到底带来了多少差别。
 
 <!-- benchmark:start -->
 <p align="center"><a href="benchmark/README.zh-CN.md"><img src="benchmark/equity.svg" alt="各流水线模拟盘累计收益与基准对比" width="880"></a></p>

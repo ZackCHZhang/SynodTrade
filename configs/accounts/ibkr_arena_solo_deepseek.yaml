@@ -1,0 +1,10 @@
+# Single-agent model arena: same IBKR (paper) account as ibkr_main, own API connection for
+# arena_solo_deepseek. Each arena pipeline needs its own client ids (market data = client_id,
+# trading +1, news +2, account sync +4), so all arena pipelines can run at the same time.
+name: ibkr_arena_solo_deepseek
+broker: ibkr
+account_id: ${IBKR_ACCOUNT}
+host: ${IBKR_HOST:-127.0.0.1}
+port: ${IBKR_PORT:-4002}
+client_id: ${IBKR_CLIENT_ID_ARENA_SOLO_DEEPSEEK:-65}
+base_currency: USD

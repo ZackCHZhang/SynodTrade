@@ -146,7 +146,7 @@ def test_scheduler_plan_start_stop(client: TestClient) -> None:
     assert started["running"] is True
     started_ids = {j["id"] for j in started["jobs"]}
     assert {"long_term_stocks#0", "etf_allocation#0", "arena_deepseek#0"} <= started_ids
-    assert "arena_gemini#0" not in started_ids  # disabled
+    assert "arena_solo_claude#0" in started_ids
     assert all(j["next_run"]["utc"] for j in started["jobs"])
     assert client.post("/api/scheduler/stop").json()["running"] is False
     assert client.post("/api/scheduler/bogus").status_code == 404
