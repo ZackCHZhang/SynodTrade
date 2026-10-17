@@ -17,36 +17,60 @@ jobs:
     trigger: cron
     cron: "0 11 * * MON"        # Mondays 11:00 New York (skipped if Monday is a holiday)
 
-  # Model arena: the same pipeline on different LLMs (configs/pipelines/arena_*.yaml).
-  # Staggered by 3 minutes so their IBKR historical-data requests do not hit the pacing limits
-  # at once; within one session the quotes they see differ by a few minutes at most.
+  # Model arena: the same pipeline on different LLMs (configs/pipelines/arena_*.yaml). They all
+  # trade one IBKR paper account, so runs are spread out far enough not to overlap (a full
+  # multi-agent run has taken up to ~20 minutes): an overlapping run would size its buys from an
+  # account snapshot taken before the other run's fills.
+  # Multi-agent arena (arena_<model>): every 30 minutes from 10:00 New York, skipping 11:30.
   - pipeline: arena_deepseek
     trigger: market_relative
     anchor: open
-    offset_minutes: 30
+    offset_minutes: 30          # 10:00
 
   - pipeline: arena_qwen
     trigger: market_relative
     anchor: open
-    offset_minutes: 33
+    offset_minutes: 60          # 10:30
 
   - pipeline: arena_glm
     trigger: market_relative
     anchor: open
-    offset_minutes: 36
+    offset_minutes: 90          # 11:00
 
   - pipeline: arena_gpt
     trigger: market_relative
     anchor: open
-    offset_minutes: 39
+    offset_minutes: 150         # 12:00
 
   - pipeline: arena_claude
     trigger: market_relative
     anchor: open
-    offset_minutes: 42
+    offset_minutes: 180         # 12:30
 
-  - pipeline: arena_gemini      # flagship-priced (about 20x the others per run): off by default
+  # Single-agent arena (arena_solo_<model>): one agent per stage, so far fewer LLM calls and
+  # shorter runs; every 15 minutes in the afternoon. Anchored on the close so they still fall
+  # inside the session on early-close days (13:00).
+  - pipeline: arena_solo_deepseek
     trigger: market_relative
-    anchor: open
-    offset_minutes: 45
-    enabled: false
+    anchor: close
+    offset_minutes: -120        # 14:00 (11:00 on early-close days)
+
+  - pipeline: arena_solo_qwen
+    trigger: market_relative
+    anchor: close
+    offset_minutes: -105        # 14:15
+
+  - pipeline: arena_solo_glm
+    trigger: market_relative
+    anchor: close
+    offset_minutes: -90         # 14:30
+
+  - pipeline: arena_solo_gpt
+    trigger: market_relative
+    anchor: close
+    offset_minutes: -75         # 14:45
+
+  - pipeline: arena_solo_claude
+    trigger: market_relative
+    anchor: close
+    offset_minutes: -60         # 15:00

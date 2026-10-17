@@ -45,7 +45,6 @@ providers:
       z-ai/glm-5.3-flashx: { input: 0.37, output: 1.25, cache_read: 0.09 }
       openai/gpt-6-luna: { input: 0.10, output: 0.50, cache_read: 0.01 }
       anthropic/claude-haiku-5.5: { input: 0.10, output: 0.50, cache_read: 0.01 }
-      google/gemini-4-argon: { input: 2.00, output: 10.00, cache_read: 0.10 }
 
   # openai:
   #   kind: openai_compatible

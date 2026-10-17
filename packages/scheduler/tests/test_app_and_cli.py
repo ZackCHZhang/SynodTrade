@@ -23,8 +23,9 @@ from quant_scheduler import (
 )
 from quant_scheduler.cli import app as cli_app
 
-# The model arena's scheduled pipelines (configs/schedules.yaml); arena_gemini is disabled.
-ARENA_JOBS = {f"arena_{m}#0" for m in ("deepseek", "qwen", "glm", "gpt", "claude")}
+# The model arena's scheduled pipelines (configs/schedules.yaml): multi-agent and single-agent.
+ARENA_MODELS = ("deepseek", "qwen", "glm", "gpt", "claude")
+ARENA_JOBS = {f"arena_{m}#0" for m in ARENA_MODELS} | {f"arena_solo_{m}#0" for m in ARENA_MODELS}
 
 
 @dataclass
