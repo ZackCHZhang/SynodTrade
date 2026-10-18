@@ -142,7 +142,7 @@ def test_load_repo_schedules(store: ConfigStore) -> None:
     schedules = load_schedules(store)
     assert [j.pipeline for j in schedules.jobs][:2] == ["long_term_stocks", "etf_allocation"]
     arena = [j for j in schedules.jobs if j.pipeline.startswith("arena_")]
-    assert len(arena) == 10  # 5 multi-agent, 5 single-agent
+    assert len(arena) == 30  # 5 multi-agent and 5 single-agent pipelines, 3 runs a day each
     assert all(j.enabled for j in arena)
 
 

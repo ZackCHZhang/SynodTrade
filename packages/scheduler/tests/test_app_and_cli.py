@@ -23,9 +23,15 @@ from quant_scheduler import (
 )
 from quant_scheduler.cli import app as cli_app
 
-# The model arena's scheduled pipelines (configs/schedules.yaml): multi-agent and single-agent.
+# The model arena's scheduled pipelines (configs/schedules.yaml): multi-agent and single-agent,
+# three runs per trading day each.
 ARENA_MODELS = ("deepseek", "qwen", "glm", "gpt", "claude")
-ARENA_JOBS = {f"arena_{m}#0" for m in ARENA_MODELS} | {f"arena_solo_{m}#0" for m in ARENA_MODELS}
+ARENA_JOBS = {
+    f"{family}{m}#{n}"
+    for family in ("arena_", "arena_solo_")
+    for m in ARENA_MODELS
+    for n in range(3)
+}
 
 
 @dataclass

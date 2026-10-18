@@ -17,60 +17,135 @@ jobs:
     trigger: cron
     cron: "0 11 * * MON"        # Mondays 11:00 New York (skipped if Monday is a holiday)
 
-  # Model arena: the same pipeline on different LLMs (configs/pipelines/arena_*.yaml). They all
-  # trade one IBKR paper account, so runs are spread out far enough not to overlap (a full
-  # multi-agent run has taken up to ~20 minutes): an overlapping run would size its buys from an
-  # account snapshot taken before the other run's fills.
-  # Multi-agent arena (arena_<model>): every 30 minutes from 10:00 New York, skipping 11:30.
+  # Model arena (configs/pipelines/arena_*.yaml, multi-agent, and arena_solo_*.yaml, one agent
+  # per stage), three runs per trading day. All arena pipelines trade one IBKR paper account,
+  # so each round staggers them 10 minutes apart, a model's multi-agent and single-agent
+  # pipelines back to back. Slot 0 of each round (09:40, 11:45, 13:50) is left for
+  # demo_all_modules. A long multi-agent run can still overlap the next one; with the paper
+  # account's cash far above the arena's budgets that only costs a skipped symbol now and then.
+  # Round 3 is anchored on the close so it stays inside the session on early-close days (13:00).
+  # Round 1
   - pipeline: arena_deepseek
     trigger: market_relative
     anchor: open
-    offset_minutes: 30          # 10:00
-
+    offset_minutes: 20              # 09:50
+  - pipeline: arena_solo_deepseek
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 30              # 10:00
   - pipeline: arena_qwen
     trigger: market_relative
     anchor: open
-    offset_minutes: 60          # 10:30
-
+    offset_minutes: 40              # 10:10
+  - pipeline: arena_solo_qwen
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 50              # 10:20
   - pipeline: arena_glm
     trigger: market_relative
     anchor: open
-    offset_minutes: 90          # 11:00
-
+    offset_minutes: 60              # 10:30
+  - pipeline: arena_solo_glm
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 70              # 10:40
   - pipeline: arena_gpt
     trigger: market_relative
     anchor: open
-    offset_minutes: 150         # 12:00
-
+    offset_minutes: 80              # 10:50
+  - pipeline: arena_solo_gpt
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 90              # 11:00
   - pipeline: arena_claude
     trigger: market_relative
     anchor: open
-    offset_minutes: 180         # 12:30
+    offset_minutes: 100             # 11:10
+  - pipeline: arena_solo_claude
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 110             # 11:20
 
-  # Single-agent arena (arena_solo_<model>): one agent per stage, so far fewer LLM calls and
-  # shorter runs; every 15 minutes in the afternoon. Anchored on the close so they still fall
-  # inside the session on early-close days (13:00).
+  # Round 2
+  - pipeline: arena_deepseek
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 145             # 11:55
+  - pipeline: arena_solo_deepseek
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 155             # 12:05
+  - pipeline: arena_qwen
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 165             # 12:15
+  - pipeline: arena_solo_qwen
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 175             # 12:25
+  - pipeline: arena_glm
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 185             # 12:35
+  - pipeline: arena_solo_glm
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 195             # 12:45
+  - pipeline: arena_gpt
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 205             # 12:55
+  - pipeline: arena_solo_gpt
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 215             # 13:05
+  - pipeline: arena_claude
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 225             # 13:15
+  - pipeline: arena_solo_claude
+    trigger: market_relative
+    anchor: open
+    offset_minutes: 235             # 13:25
+
+  # Round 3
+  - pipeline: arena_deepseek
+    trigger: market_relative
+    anchor: close
+    offset_minutes: -120            # 14:00
   - pipeline: arena_solo_deepseek
     trigger: market_relative
     anchor: close
-    offset_minutes: -120        # 14:00 (11:00 on early-close days)
-
+    offset_minutes: -110            # 14:10
+  - pipeline: arena_qwen
+    trigger: market_relative
+    anchor: close
+    offset_minutes: -100            # 14:20
   - pipeline: arena_solo_qwen
     trigger: market_relative
     anchor: close
-    offset_minutes: -105        # 14:15
-
+    offset_minutes: -90             # 14:30
+  - pipeline: arena_glm
+    trigger: market_relative
+    anchor: close
+    offset_minutes: -80             # 14:40
   - pipeline: arena_solo_glm
     trigger: market_relative
     anchor: close
-    offset_minutes: -90         # 14:30
-
+    offset_minutes: -70             # 14:50
+  - pipeline: arena_gpt
+    trigger: market_relative
+    anchor: close
+    offset_minutes: -60             # 15:00
   - pipeline: arena_solo_gpt
     trigger: market_relative
     anchor: close
-    offset_minutes: -75         # 14:45
-
+    offset_minutes: -50             # 15:10
+  - pipeline: arena_claude
+    trigger: market_relative
+    anchor: close
+    offset_minutes: -40             # 15:20
   - pipeline: arena_solo_claude
     trigger: market_relative
     anchor: close
-    offset_minutes: -60         # 15:00
+    offset_minutes: -30             # 15:30
