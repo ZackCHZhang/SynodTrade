@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
-from quant_core.models import Action, OrderSide, Verdict
-from quant_core.sizing import SizedOrder, SizingConfig
-from quant_risk import (
+from synodtrade_core.models import Action, OrderSide, Verdict
+from synodtrade_core.sizing import SizedOrder, SizingConfig
+from synodtrade_risk import (
     MarketSnapshot,
     PortfolioState,
     RiskRulesConfig,
@@ -128,7 +128,7 @@ def test_no_notional_limit() -> None:
 
 
 def test_nav_based_sizing_and_non_positive_nav() -> None:
-    from quant_core.sizing import BuyBase
+    from synodtrade_core.sizing import BuyBase
 
     nav_sizing = SizingConfig(buy_base=BuyBase.NAV)
     out = evaluate(A.BUY, st=state(cash=D(5000)), sizing=nav_sizing)

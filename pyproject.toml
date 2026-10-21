@@ -13,18 +13,18 @@ requires-python = ">=3.12,<3.13"
 package-mode = false
 
 [tool.poetry.group.packages.dependencies]
-quant-core = { path = "packages/core", develop = true }
-quant-database = { path = "packages/database", develop = true }
-quant-market-data = { path = "packages/market_data", develop = true }
-quant-selection = { path = "packages/selection", develop = true }
-quant-sentiment = { path = "packages/sentiment", develop = true }
-quant-decision = { path = "packages/decision", develop = true }
-quant-risk = { path = "packages/risk", develop = true }
-quant-trading = { path = "packages/trading", develop = true }
-quant-account-sync = { path = "packages/account_sync", develop = true }
-quant-pipeline = { path = "packages/pipeline", develop = true }
-quant-scheduler = { path = "packages/scheduler", develop = true }
-quant-webapi = { path = "packages/webapi", develop = true }
+synodtrade-core = { path = "packages/core", develop = true }
+synodtrade-database = { path = "packages/database", develop = true }
+synodtrade-market-data = { path = "packages/market_data", develop = true }
+synodtrade-selection = { path = "packages/selection", develop = true }
+synodtrade-sentiment = { path = "packages/sentiment", develop = true }
+synodtrade-decision = { path = "packages/decision", develop = true }
+synodtrade-risk = { path = "packages/risk", develop = true }
+synodtrade-trading = { path = "packages/trading", develop = true }
+synodtrade-account-sync = { path = "packages/account_sync", develop = true }
+synodtrade-pipeline = { path = "packages/pipeline", develop = true }
+synodtrade-scheduler = { path = "packages/scheduler", develop = true }
+synodtrade-webapi = { path = "packages/webapi", develop = true }
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.8"
@@ -66,9 +66,9 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = [
-    "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
-    "quant_decision", "quant_risk", "quant_trading", "quant_account_sync", "quant_pipeline",
-    "quant_scheduler", "quant_webapi",
+    "synodtrade_core", "synodtrade_database", "synodtrade_market_data", "synodtrade_selection", "synodtrade_sentiment",
+    "synodtrade_decision", "synodtrade_risk", "synodtrade_trading", "synodtrade_account_sync", "synodtrade_pipeline",
+    "synodtrade_scheduler", "synodtrade_webapi",
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]
@@ -114,9 +114,9 @@ markers = [
 [tool.coverage.run]
 branch = true
 source = [
-    "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
-    "quant_decision", "quant_risk", "quant_trading", "quant_account_sync", "quant_pipeline",
-    "quant_scheduler", "quant_webapi",
+    "synodtrade_core", "synodtrade_database", "synodtrade_market_data", "synodtrade_selection", "synodtrade_sentiment",
+    "synodtrade_decision", "synodtrade_risk", "synodtrade_trading", "synodtrade_account_sync", "synodtrade_pipeline",
+    "synodtrade_scheduler", "synodtrade_webapi",
 ]
 
 [tool.coverage.report]
@@ -131,20 +131,20 @@ exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
 # Business packages in the middle layer must not import each other.
 [tool.importlinter]
 root_packages = [
-    "quant_core", "quant_database", "quant_market_data", "quant_selection", "quant_sentiment",
-    "quant_decision", "quant_risk", "quant_trading", "quant_account_sync", "quant_pipeline",
-    "quant_scheduler", "quant_webapi",
+    "synodtrade_core", "synodtrade_database", "synodtrade_market_data", "synodtrade_selection", "synodtrade_sentiment",
+    "synodtrade_decision", "synodtrade_risk", "synodtrade_trading", "synodtrade_account_sync", "synodtrade_pipeline",
+    "synodtrade_scheduler", "synodtrade_webapi",
 ]
 
 [[tool.importlinter.contracts]]
 name = "Package dependency DAG"
 type = "layers"
 layers = [
-    "quant_webapi",
-    "quant_scheduler",
-    "quant_pipeline",
-    "quant_account_sync",
-    "quant_market_data | quant_selection | quant_sentiment | quant_decision | quant_risk | quant_trading",
-    "quant_database",
-    "quant_core",
+    "synodtrade_webapi",
+    "synodtrade_scheduler",
+    "synodtrade_pipeline",
+    "synodtrade_account_sync",
+    "synodtrade_market_data | synodtrade_selection | synodtrade_sentiment | synodtrade_decision | synodtrade_risk | synodtrade_trading",
+    "synodtrade_database",
+    "synodtrade_core",
 ]

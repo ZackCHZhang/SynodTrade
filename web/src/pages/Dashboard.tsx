@@ -91,7 +91,7 @@ export function Dashboard() {
   const { data: configs } = useConfigs();
   const [runFor, setRunFor] = useState<string | null>(null);
   const o = overview.data;
-  if (overview.error) return <Alert severity="error">{t('Cannot reach the API: {error}. Start quant-web serve first.', { error: String((overview.error as Error).message) })}</Alert>;
+  if (overview.error) return <Alert severity="error">{t('Cannot reach the API: {error}. Start synodtrade-web serve first.', { error: String((overview.error as Error).message) })}</Alert>;
   const byStatus = o?.runs_by_status ?? {};
   const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
   const ledgers = Object.fromEntries((portfolio.data?.pipelines ?? []).map((p) => [p.name, p]));

@@ -8,7 +8,7 @@
 # its own 100k virtual sub-ledger on the same IBKR paper account.
 
 name: arena_solo_qwen
-mode: paper                 # dry_run | paper | live (live also needs QUANT_ALLOW_LIVE=1)
+mode: paper                 # dry_run | paper | live (live also needs SYNODTRADE_ALLOW_LIVE=1)
 account: ibkr_arena_solo_qwen
 universe: [AAPL, MSFT, NVDA, AMZN, GOOGL, META, JPM, V, COST, LLY]  # fallback only (scanner below)
 benchmark: SPY

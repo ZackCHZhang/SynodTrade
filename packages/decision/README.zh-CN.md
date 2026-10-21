@@ -1,8 +1,8 @@
-# quant-decision
+# synodtrade-decision
 
 [English](README.md) | **简体中文**
 
-决策：构造每个标的的决策上下文、决策 agent、多 agent 决策聚合。技术指标由 `quant_core.indicators` 计算（与风控、选股共用），本包只是重新导出。依赖 `quant-core`、`quant-database`。
+决策：构造每个标的的决策上下文、决策 agent、多 agent 决策聚合。技术指标由 `synodtrade_core.indicators` 计算（与风控、选股共用），本包只是重新导出。依赖 `synodtrade-core`、`synodtrade-database`。
 
 ## 流程（`decision` 阶段）
 
@@ -63,7 +63,7 @@
   history_limit: 5            # 0–50，默认 5
 ```
 
-仓库自带 21 个决策 agent 配置（`configs/agents/` 中 `role: decision` 的文件，例如 `value_investor`、`trend_follower`、`pullback_buyer`、`mean_reversion_swing`、`breakout_trader`）。它们都使用同一个实现 `DecisionAgent`（entry point `quant.agents` 中的 `decision`）和同一个模板 `configs/agents/prompts/decision_v1.j2`，区别只在人格和 `params.instructions`。模型在流水线的 agent 引用中指定。
+仓库自带 21 个决策 agent 配置（`configs/agents/` 中 `role: decision` 的文件，例如 `value_investor`、`trend_follower`、`pullback_buyer`、`mean_reversion_swing`、`breakout_trader`）。它们都使用同一个实现 `DecisionAgent`（entry point `synodtrade.agents` 中的 `decision`）和同一个模板 `configs/agents/prompts/decision_v1.j2`，区别只在人格和 `params.instructions`。模型在流水线的 agent 引用中指定。
 
 阶段工厂 `build_decision_stage(config, services)` 需要的服务：`repos`、`config_store`、`llm`（`LLMClientPool`）、`pipeline`（`PipelineConfig`，用其中的 `budget.max_capital` 计算子账本）。
 

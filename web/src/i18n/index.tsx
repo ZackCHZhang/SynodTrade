@@ -13,7 +13,7 @@ export const LANGS: { code: Lang; label: string }[] = [
 ];
 
 const DICTS: Record<Lang, Record<string, string> | null> = { en: null, zh };
-const STORAGE_KEY = 'quant-lang';
+const STORAGE_KEY = 'synodtrade-lang';
 
 function readLang(): Lang {
   try {

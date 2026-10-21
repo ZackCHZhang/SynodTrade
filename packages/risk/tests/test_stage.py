@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from quant_core.config import AccountConfig, ConfigStore, PipelineConfig, StageConfig
-from quant_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
-from quant_core.models import (
+from synodtrade_core.config import AccountConfig, ConfigStore, PipelineConfig, StageConfig
+from synodtrade_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
+from synodtrade_core.models import (
     AccountSnapshot,
     Action,
     AggregatedDecision,
@@ -27,11 +27,17 @@ from quant_core.models import (
     Timeframe,
     Verdict,
 )
-from quant_core.registry import AGENTS, STAGES
-from quant_core.services import Services
-from quant_core.timeutil import utcnow
-from quant_database import KILL_SWITCH, Repositories
-from quant_risk import AlwaysOpenClock, RiskAgent, RiskStage, RiskStageOptions, build_risk_stage
+from synodtrade_core.registry import AGENTS, STAGES
+from synodtrade_core.services import Services
+from synodtrade_core.timeutil import utcnow
+from synodtrade_database import KILL_SWITCH, Repositories
+from synodtrade_risk import (
+    AlwaysOpenClock,
+    RiskAgent,
+    RiskStage,
+    RiskStageOptions,
+    build_risk_stage,
+)
 
 D = Decimal
 A = Action

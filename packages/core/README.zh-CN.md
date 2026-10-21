@@ -1,30 +1,30 @@
-# quant-core
+# synodtrade-core
 
 [English](README.md) | **简体中文**
 
 共享基础：数据模型、五档仓位计算、技术指标、接口协议、LLM 客户端、配置加载、注册表、服务容器、日志、实盘保护。
-依赖图的根，不依赖任何其他 `quant-*` 包。
+依赖图的根，不依赖任何其他 `synodtrade-*` 包。
 
 ## 公开接口
 
 | 模块 | 内容 |
 |---|---|
-| `quant_core.models` | `Action`（五档，含 `weight` / `direction` / `nearest()` / `is_reduction_of()`）、`Verdict`、`RunMode`、`OrderSide`、`OrderType`、`OrderStatus`、`Timeframe`；行情与账户：`Instrument`、`Bar`、`Quote`、`Position`、`AccountSnapshot`；分析结果：`Candidate`、`SelectionPick`、`SelectionResult`、`StockSelection`、`SentimentItem`、`SentimentResult`、`Decision`、`Vote`、`AggregatedDecision`、`RuleHit`、`RiskVerdict`；订单：`OrderIntent`、`OrderResult`、`Fill`；`PipelineContext`、`StageError` |
-| `quant_core.sizing` | `size_order()`、`buy_base_amount()`、`spendable_cash()`、`floor_to_lot()`、`SizingConfig`、`BuyBase` |
-| `quant_core.indicators` | `compute_indicators(bars) -> TechnicalSnapshot`：决策、风控、选股共用的技术指标（见下文） |
-| `quant_core.interfaces` | 协议：`Stage`、`SentimentSource`、`CandidateSource`、`BarsRefresher` |
-| `quant_core.agent` | `Agent[T]` 基类、`AgentResult` |
-| `quant_core.agent_factory` | `instantiate_agents()`、`AgentSlot`：按流水线里的 agent 引用（`count`、`weight`、`model`）创建实例 |
-| `quant_core.services` | `Services`：阶段工厂函数使用的服务容器（`get` / `optional` / `with_`） |
-| `quant_core.llm` | `LLMClient` 协议、`BaseLLMClient`、`AnthropicLLMClient`、`OpenAICompatibleLLMClient`、`FakeLLMClient`、`LLMClientPool` / `create_llm_client()`、`complete_structured()`、`LLMCallRecorder` 协议（`InMemoryLLMCallRecorder`、`NullLLMCallRecorder`） |
-| `quant_core.config` | `ConfigStore`、`PipelineConfig`、`StageConfig.options()`、`AgentConfig`、`AgentRef`、`AccountConfig`、`BudgetConfig`、`LLMModelConfig`、`resolve_model()`、`config_hash()`、`interpolate_env()`、`CANONICAL_STAGE_ORDER` |
-| `quant_core.registry` | `Registry`，以及全局 `STAGES` / `AGENTS` / `SENTIMENT_SOURCES` / `CANDIDATE_SOURCES`（通过 entry points `quant.stages` / `quant.agents` / `quant.sentiment_sources` / `quant.candidate_sources` 自动发现） |
-| `quant_core.logging` | `configure_logging()`、`get_logger()`、`bind_run()`；日志中的密钥字段会被替换成 `***` |
-| `quant_core.safety` | `ensure_mode_allowed()`：`mode: live` 且 `QUANT_ALLOW_LIVE=1` 才放行 |
-| `quant_core.timeutil` | `utcnow()`、`to_utc()`、`UtcDatetime`、`EXCHANGE_TZ`（纽约）、`DISPLAY_TZ`（柏林） |
-| `quant_core.envfile` | `load_env_file()`：读取 `.env`，不覆盖已经存在的环境变量；`QUANT_NO_DOTENV=1` 时不读取 |
+| `synodtrade_core.models` | `Action`（五档，含 `weight` / `direction` / `nearest()` / `is_reduction_of()`）、`Verdict`、`RunMode`、`OrderSide`、`OrderType`、`OrderStatus`、`Timeframe`；行情与账户：`Instrument`、`Bar`、`Quote`、`Position`、`AccountSnapshot`；分析结果：`Candidate`、`SelectionPick`、`SelectionResult`、`StockSelection`、`SentimentItem`、`SentimentResult`、`Decision`、`Vote`、`AggregatedDecision`、`RuleHit`、`RiskVerdict`；订单：`OrderIntent`、`OrderResult`、`Fill`；`PipelineContext`、`StageError` |
+| `synodtrade_core.sizing` | `size_order()`、`buy_base_amount()`、`spendable_cash()`、`floor_to_lot()`、`SizingConfig`、`BuyBase` |
+| `synodtrade_core.indicators` | `compute_indicators(bars) -> TechnicalSnapshot`：决策、风控、选股共用的技术指标（见下文） |
+| `synodtrade_core.interfaces` | 协议：`Stage`、`SentimentSource`、`CandidateSource`、`BarsRefresher` |
+| `synodtrade_core.agent` | `Agent[T]` 基类、`AgentResult` |
+| `synodtrade_core.agent_factory` | `instantiate_agents()`、`AgentSlot`：按流水线里的 agent 引用（`count`、`weight`、`model`）创建实例 |
+| `synodtrade_core.services` | `Services`：阶段工厂函数使用的服务容器（`get` / `optional` / `with_`） |
+| `synodtrade_core.llm` | `LLMClient` 协议、`BaseLLMClient`、`AnthropicLLMClient`、`OpenAICompatibleLLMClient`、`FakeLLMClient`、`LLMClientPool` / `create_llm_client()`、`complete_structured()`、`LLMCallRecorder` 协议（`InMemoryLLMCallRecorder`、`NullLLMCallRecorder`） |
+| `synodtrade_core.config` | `ConfigStore`、`PipelineConfig`、`StageConfig.options()`、`AgentConfig`、`AgentRef`、`AccountConfig`、`BudgetConfig`、`LLMModelConfig`、`resolve_model()`、`config_hash()`、`interpolate_env()`、`CANONICAL_STAGE_ORDER` |
+| `synodtrade_core.registry` | `Registry`，以及全局 `STAGES` / `AGENTS` / `SENTIMENT_SOURCES` / `CANDIDATE_SOURCES`（通过 entry points `synodtrade.stages` / `synodtrade.agents` / `synodtrade.sentiment_sources` / `synodtrade.candidate_sources` 自动发现） |
+| `synodtrade_core.logging` | `configure_logging()`、`get_logger()`、`bind_run()`；日志中的密钥字段会被替换成 `***` |
+| `synodtrade_core.safety` | `ensure_mode_allowed()`：`mode: live` 且 `SYNODTRADE_ALLOW_LIVE=1` 才放行 |
+| `synodtrade_core.timeutil` | `utcnow()`、`to_utc()`、`UtcDatetime`、`EXCHANGE_TZ`（纽约）、`DISPLAY_TZ`（柏林） |
+| `synodtrade_core.envfile` | `load_env_file()`：读取 `.env`，不覆盖已经存在的环境变量；`SYNODTRADE_NO_DOTENV=1` 时不读取 |
 
-## 技术指标（`quant_core.indicators`）
+## 技术指标（`synodtrade_core.indicators`）
 
 全部由代码计算，LLM 不做任何计算。输入是按时间正序的日线，历史不够时对应字段为 `None`：
 
@@ -44,7 +44,7 @@
 两种客户端都在构造时传入 `api_key` 和 `base_url`：
 
 ```python
-from quant_core.llm import AnthropicLLMClient, OpenAICompatibleLLMClient, StructuredOutputMode
+from synodtrade_core.llm import AnthropicLLMClient, OpenAICompatibleLLMClient, StructuredOutputMode
 
 claude = AnthropicLLMClient(api_key=key, name="anthropic")
 deepseek = OpenAICompatibleLLMClient(
@@ -107,7 +107,7 @@ pool.set("deepseek", FakeLLMClient(...))  # 测试或 dry-run 时替换成假客
   - 启用交易时，前面必须有启用的风控阶段，且风控阶段不能设 `on_error: skip`
   - universe 不能有重复；没有选股阶段时至少要有 1 只股票
   - `mode` 默认为 `dry_run`
-- 风控规则和调度的 schema 分别在 `quant-risk` 和 `quant-scheduler` 中
+- 风控规则和调度的 schema 分别在 `synodtrade-risk` 和 `synodtrade-scheduler` 中
 
 字符串里可用 `${VAR}`、`${VAR:-默认值}` 引用环境变量，`$$` 表示字面的 `$`。缺少的环境变量会一次性全部列出。
 

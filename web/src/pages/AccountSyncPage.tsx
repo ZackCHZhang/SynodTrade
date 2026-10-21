@@ -393,7 +393,7 @@ export function AccountSyncPage() {
                 icon={<ScheduleIcon />}
                 value={!d ? '—' : !d.running ? t('Not running') : d.config?.enabled ? t('Every {n|minute|minutes}', { n: d.config.interval_minutes }) : t('Off')}
                 color={d?.running && d.config?.enabled ? 'success.main' : undefined}
-                hint={!d?.running ? t('Runs automatically when started with quant-web serve (--no-account-sync turns it off)') : d.syncing ? t('Syncing…') : undefined}
+                hint={!d?.running ? t('Runs automatically when started with synodtrade-web serve (--no-account-sync turns it off)') : d.syncing ? t('Syncing…') : undefined}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 4 }}>

@@ -1,5 +1,5 @@
 [project]
-name = "quant-core"
+name = "synodtrade-core"
 version = "0.1.0"
 description = "Shared foundation: data models, protocols, LLM client, config loading, logging, registries"
 license = "Apache-2.0"
@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [tool.poetry]
-packages = [{ include = "quant_core", from = "src" }]
+packages = [{ include = "synodtrade_core", from = "src" }]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

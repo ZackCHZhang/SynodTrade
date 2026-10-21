@@ -418,7 +418,7 @@ export function FieldEditor({
   if (!field) {
     return (
       <Typography variant="body2" color="warning.main" sx={{ py: 1 }}>
-        {t("{name}: the server's config schema has no such field. The web page is newer than the backend; restart quant-web serve.", { name: String(name) })}
+        {t("{name}: the server's config schema has no such field. The web page is newer than the backend; restart synodtrade-web serve.", { name: String(name) })}
       </Typography>
     );
   }

@@ -87,7 +87,7 @@ export function SchedulerPage() {
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {t('Runs inside this web server process and keeps jobs in memory; scheduling stops when the server stops. In production you can use a standalone')}{' '}
-                <code>quant-scheduler run</code> {t('(or docker compose) instead. Never run both, or pipelines wake up twice.')}
+                <code>synodtrade-scheduler run</code> {t('(or docker compose) instead. Never run both, or pipelines wake up twice.')}
               </Typography>
               {running && status.data?.started_at && (
                 <Typography variant="body2" sx={{ mb: 2 }}>

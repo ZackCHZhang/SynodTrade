@@ -2,8 +2,8 @@ from uuid import uuid4
 
 import pytest
 
-from quant_core.models import Action, Decision
-from quant_decision import AggregationMethod, AggregationOptions, aggregate, effective_action
+from synodtrade_core.models import Action, Decision
+from synodtrade_decision import AggregationMethod, AggregationOptions, aggregate, effective_action
 
 RUN = uuid4()
 A = Action

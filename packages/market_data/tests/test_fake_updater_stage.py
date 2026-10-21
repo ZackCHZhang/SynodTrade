@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from quant_core.config import AccountConfig, StageConfig
-from quant_core.models import (
+from synodtrade_core.config import AccountConfig, StageConfig
+from synodtrade_core.models import (
     AccountSnapshot,
     PipelineContext,
     Position,
@@ -14,10 +14,10 @@ from quant_core.models import (
     RunMode,
     Timeframe,
 )
-from quant_core.registry import STAGES
-from quant_core.services import Services
-from quant_database import Repositories
-from quant_market_data import (
+from synodtrade_core.registry import STAGES
+from synodtrade_core.services import Services
+from synodtrade_database import Repositories
+from synodtrade_market_data import (
     AccountData,
     DataUpdateError,
     DataUpdater,
@@ -174,7 +174,7 @@ async def test_one_failing_symbol_does_not_stop_the_rest(repos: Repositories) ->
 
 async def test_refresh_bars_for_selection(repos: Repositories) -> None:
     """Bars only (no quotes/account), for any symbols; implements core's BarsRefresher."""
-    from quant_core.interfaces import BarsRefresher
+    from synodtrade_core.interfaces import BarsRefresher
 
     fake = provider(fail_symbols=["MSFT"])
     updater = DataUpdater(fake, repos)

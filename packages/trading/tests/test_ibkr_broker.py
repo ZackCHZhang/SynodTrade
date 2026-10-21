@@ -11,8 +11,8 @@ from ib_async import Fill as IBFill
 from ib_async import OrderStatus as IBOrderStatus
 from structlog.testing import capture_logs
 
-from quant_core.config import AccountConfig
-from quant_core.models import (
+from synodtrade_core.config import AccountConfig
+from synodtrade_core.models import (
     Action,
     Instrument,
     OrderIntent,
@@ -21,9 +21,9 @@ from quant_core.models import (
     OrderType,
     RunMode,
 )
-from quant_core.safety import LiveTradingNotAllowedError
-from quant_trading import BrokerError, IBKRBroker, is_paper_account
-from quant_trading.ibkr import convert_fills, result_from_trade, to_status
+from synodtrade_core.safety import LiveTradingNotAllowedError
+from synodtrade_trading import BrokerError, IBKRBroker, is_paper_account
+from synodtrade_trading.ibkr import convert_fills, result_from_trade, to_status
 
 D = Decimal
 T = datetime(2026, 10, 1, 14, 0, tzinfo=UTC)
@@ -164,7 +164,9 @@ def test_construction_guards() -> None:
     with pytest.raises(LiveTradingNotAllowedError):
         IBKRBroker(mode=RunMode.LIVE, account_id="U1", env={})
     stub: Any = StubIB(["U1"])
-    live = IBKRBroker(mode=RunMode.LIVE, account_id="U1", env={"QUANT_ALLOW_LIVE": "1"}, ib=stub)
+    live = IBKRBroker(
+        mode=RunMode.LIVE, account_id="U1", env={"SYNODTRADE_ALLOW_LIVE": "1"}, ib=stub
+    )
     assert live.mode is RunMode.LIVE
 
 
@@ -180,7 +182,7 @@ async def test_connect_refuses_mode_account_mismatch(
     mode: RunMode, account: str, managed: list[str], message: str
 ) -> None:
     ib = StubIB(managed)
-    b = broker(ib, mode, account, env={"QUANT_ALLOW_LIVE": "1"})
+    b = broker(ib, mode, account, env={"SYNODTRADE_ALLOW_LIVE": "1"})
     with pytest.raises(BrokerError, match=message):
         await b.connect()
     assert not ib.connected  # disconnected again

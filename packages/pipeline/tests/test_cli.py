@@ -7,8 +7,8 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from quant_database import Database
-from quant_pipeline.cli import app, parse_as_of
+from synodtrade_database import Database
+from synodtrade_pipeline.cli import app, parse_as_of
 
 cli = CliRunner()
 
@@ -92,10 +92,10 @@ def test_run_subset_and_failure_exit_code(
 
 
 def test_run_needs_a_database(configs: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("QUANT_DATABASE_URL", raising=False)
+    monkeypatch.delenv("SYNODTRADE_DATABASE_URL", raising=False)
     result = cli.invoke(app, ["run", "-p", "long_term_stocks", "--configs", str(configs)])
     assert result.exit_code != 0
-    assert "QUANT_DATABASE_URL" in result.output
+    assert "SYNODTRADE_DATABASE_URL" in result.output
 
 
 def test_validate(configs: Path, monkeypatch: pytest.MonkeyPatch) -> None:

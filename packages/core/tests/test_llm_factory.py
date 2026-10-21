@@ -1,6 +1,6 @@
 import pytest
 
-from quant_core.llm import (
+from synodtrade_core.llm import (
     AnthropicLLMClient,
     FakeLLMClient,
     LLMClientPool,

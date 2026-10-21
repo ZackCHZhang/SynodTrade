@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from quant_account_sync import (
+from synodtrade_account_sync import (
     AccountSyncConfig,
     AccountSyncService,
     BrokerExecution,
@@ -19,8 +19,8 @@ from quant_account_sync import (
     PeriodicSync,
     load_sync_config,
 )
-from quant_core.config import ConfigStore
-from quant_core.models import (
+from synodtrade_core.config import ConfigStore
+from synodtrade_core.models import (
     AccountSnapshot,
     Action,
     OrderIntent,
@@ -31,7 +31,7 @@ from quant_core.models import (
     Position,
     RunMode,
 )
-from quant_database import (
+from synodtrade_database import (
     AccountSync,
     OrderRecord,
     PipelineRun,

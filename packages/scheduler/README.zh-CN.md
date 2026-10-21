@@ -1,18 +1,18 @@
-# quant-scheduler
+# synodtrade-scheduler
 
 [English](README.md) | **简体中文**
 
-调度器：只负责"什么时候唤醒哪条流水线"，不包含业务逻辑。依赖 `quant-pipeline`（以及其下的所有包）。
+调度器：只负责"什么时候唤醒哪条流水线"，不包含业务逻辑。依赖 `synodtrade-pipeline`（以及其下的所有包）。
 
 ## 命令行
 
 ```bash
-quant-scheduler run                 # 启动调度器，直到收到 Ctrl+C 或 SIGTERM
-quant-scheduler plan --days 7       # 列出接下来 N 天（1–366，默认 7）的运行时间（纽约时间 + 柏林时间），不需要凭据
-quant-scheduler check               # 对每条已排程的流水线做一次健康检查
+synodtrade-scheduler run                 # 启动调度器，直到收到 Ctrl+C 或 SIGTERM
+synodtrade-scheduler plan --days 7       # 列出接下来 N 天（1–366，默认 7）的运行时间（纽约时间 + 柏林时间），不需要凭据
+synodtrade-scheduler check               # 对每条已排程的流水线做一次健康检查
 ```
 
-数据库：`--db-url` 或 `QUANT_DATABASE_URL`。配置目录：`--configs`，默认 `./configs`。`run` 还接受 `--log-level`。和 `quant` 一样，默认读取 `./.env`（`quant-scheduler --env-file ... run`）。
+数据库：`--db-url` 或 `SYNODTRADE_DATABASE_URL`。配置目录：`--configs`，默认 `./configs`。`run` 还接受 `--log-level`。和 `synodtrade` 一样，默认读取 `./.env`（`synodtrade-scheduler --env-file ... run`）。
 
 ## 调度配置 `configs/schedules.yaml`
 
@@ -59,14 +59,14 @@ jobs:
 - **告警**：默认写日志。设置了 `TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID` 时同时发 Telegram，默认只发 warning 及以上级别；发送失败只记日志，不会中断运行。邮件等其他渠道：实现 `Notifier` 协议（`async notify(level, title, message)`），再加到 `default_notifier` 中即可。
   - 会告警的情况：健康检查失败、配置无效、运行崩溃、运行失败（附带各阶段错误）、上一次运行仍在进行。
 
-Web 控制台（`quant-web`）也可以在自己的进程里启停一个调度器（任务只保存在内存中）。不要同时运行它和独立的 `quant-scheduler run`。
+Web 控制台（`synodtrade-web`）也可以在自己的进程里启停一个调度器（任务只保存在内存中）。不要同时运行它和独立的 `synodtrade-scheduler run`。
 
 ## 部署（docker-compose）
 
 仓库根目录的 `docker-compose.yml` 包含三个服务：
 - `postgres`：TimescaleDB 镜像（`timescale/timescaledb:latest-pg16`），只监听本机端口。
 - `ib-gateway`：`ghcr.io/gnzsnz/ib-gateway`，用 IBC 自动登录；在 compose 网络内部，paper 端口是 4004，live 端口是 4003。
-- `scheduler`：用仓库的 `Dockerfile` 构建，先执行 `quant-db upgrade`，再运行 `quant-scheduler run`。configs 目录以只读方式挂载，修改配置不需要重建镜像，重启 scheduler 即可生效。
+- `scheduler`：用仓库的 `Dockerfile` 构建，先执行 `synodtrade-db upgrade`，再运行 `synodtrade-scheduler run`。configs 目录以只读方式挂载，修改配置不需要重建镜像，重启 scheduler 即可生效。
 
 ```bash
 cp .env.example .env    # 填写 TWS_USERID / TWS_PASSWORD / IBKR_ACCOUNT / API keys / POSTGRES_PASSWORD

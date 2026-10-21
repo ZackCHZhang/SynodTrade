@@ -1,4 +1,4 @@
-"""Shared fixtures for quant_trading tests (SQLite, simulated brokers; no network)."""
+"""Shared fixtures for synodtrade_trading tests (SQLite, simulated brokers; no network)."""
 
 from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import UTC, datetime, timedelta
@@ -8,8 +8,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from quant_core.models import Bar, Quote, RunMode, Timeframe
-from quant_database import Database, PipelineRun, Repositories
+from synodtrade_core.models import Bar, Quote, RunMode, Timeframe
+from synodtrade_database import Database, PipelineRun, Repositories
 
 NOW = datetime(2026, 10, 1, 14, 0, tzinfo=UTC)  # a Thursday, not today's wall-clock date
 D = Decimal

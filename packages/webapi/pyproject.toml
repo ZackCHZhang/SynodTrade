@@ -1,16 +1,16 @@
 [project]
-name = "quant-webapi"
+name = "synodtrade-webapi"
 version = "0.1.0"
 description = "Web console backend: visual configs/ editing, pipeline launches, live progress, scheduler, database browser"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "quant-core",
-    "quant-database",
-    "quant-account-sync",
-    "quant-pipeline",
-    "quant-scheduler",
+    "synodtrade-core",
+    "synodtrade-database",
+    "synodtrade-account-sync",
+    "synodtrade-pipeline",
+    "synodtrade-scheduler",
     "fastapi>=0.115",
     "uvicorn>=0.32",
     "pyyaml>=6.0",
@@ -18,17 +18,17 @@ dependencies = [
 ]
 
 [project.scripts]
-quant-web = "quant_webapi.cli:app"
+synodtrade-web = "synodtrade_webapi.cli:app"
 
 [tool.poetry]
-packages = [{ include = "quant_webapi", from = "src" }]
+packages = [{ include = "synodtrade_webapi", from = "src" }]
 
 [tool.poetry.dependencies]
-quant-core = { path = "../core", develop = true }
-quant-database = { path = "../database", develop = true }
-quant-account-sync = { path = "../account_sync", develop = true }
-quant-pipeline = { path = "../pipeline", develop = true }
-quant-scheduler = { path = "../scheduler", develop = true }
+synodtrade-core = { path = "../core", develop = true }
+synodtrade-database = { path = "../database", develop = true }
+synodtrade-account-sync = { path = "../account_sync", develop = true }
+synodtrade-pipeline = { path = "../pipeline", develop = true }
+synodtrade-scheduler = { path = "../scheduler", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -2,23 +2,23 @@
 
 [English](README.md) | **简体中文**
 
-React 19 + TypeScript + MUI 9 + Vite。后端是 `packages/webapi`（`quant-web`）。界面支持英文（默认）和简体中文，点顶栏的语言按钮切换（选择会记在浏览器里）。
+React 19 + TypeScript + MUI 9 + Vite。后端是 `packages/webapi`（`synodtrade-web`）。界面支持英文（默认）和简体中文，点顶栏的语言按钮切换（选择会记在浏览器里）。
 
 ## 使用
 
 ```bash
 # 仓库根目录
 python tasks.py web            # npm install + 构建到 web/dist（需要 Node.js ≥ 20）
-poetry run quant-web serve     # 打开 http://127.0.0.1:8765
+poetry run synodtrade-web serve     # 打开 http://127.0.0.1:8765
 ```
 
 ## 开发
 
 ```bash
-poetry run quant-web serve     # API，端口 8765
+poetry run synodtrade-web serve     # API，端口 8765
 cd web
 npm install
-npm run dev                    # http://localhost:5173，/api 代理到 8765（QUANT_WEB_API 可改）
+npm run dev                    # http://localhost:5173，/api 代理到 8765（SYNODTRADE_WEB_API 可改）
 npm run typecheck              # tsc -b
 npm run i18n:check             # 检查每个界面文字都有中文翻译
 npm run build                  # tsc -b && vite build，输出到 web/dist

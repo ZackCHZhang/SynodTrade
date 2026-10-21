@@ -3,8 +3,8 @@ from decimal import Decimal
 
 import pytest
 
-from quant_core.models import AccountSnapshot, Bar, Instrument, Position, Quote, Timeframe
-from quant_database import Repositories
+from synodtrade_core.models import AccountSnapshot, Bar, Instrument, Position, Quote, Timeframe
+from synodtrade_database import Repositories
 
 D = Decimal
 DAY0 = datetime(2026, 9, 1, 4, 0, tzinfo=UTC)  # a daily bar "starts" at NY midnight

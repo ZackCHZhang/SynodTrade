@@ -1,4 +1,4 @@
-"""Shared fixtures for quant_sentiment tests (SQLite, fake sources, fake LLM; no network)."""
+"""Shared fixtures for synodtrade_sentiment tests (SQLite, fake sources, fake LLM; no network)."""
 
 import shutil
 from collections.abc import AsyncIterator, Callable
@@ -9,9 +9,9 @@ from uuid import UUID, uuid4
 import pytest
 import yaml
 
-from quant_core.config import ConfigStore
-from quant_core.models import RunMode, SentimentItem
-from quant_database import Database, PipelineRun, Repositories
+from synodtrade_core.config import ConfigStore
+from synodtrade_core.models import RunMode, SentimentItem
+from synodtrade_database import Database, PipelineRun, Repositories
 
 REPO_CONFIGS = Path(__file__).resolve().parents[3] / "configs"
 NOW = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)

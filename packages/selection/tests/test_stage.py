@@ -9,9 +9,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from quant_core.config import ConfigStore, PipelineConfig, StageConfig
-from quant_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
-from quant_core.models import (
+from synodtrade_core.config import ConfigStore, PipelineConfig, StageConfig
+from synodtrade_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
+from synodtrade_core.models import (
     Action,
     Bar,
     Fill,
@@ -26,9 +26,9 @@ from quant_core.models import (
     SentimentResult,
     Timeframe,
 )
-from quant_core.services import Services
-from quant_database import Repositories
-from quant_selection import (
+from synodtrade_core.services import Services
+from synodtrade_database import Repositories
+from synodtrade_selection import (
     CandidateSourceError,
     FakeCandidateSource,
     SelectionError,

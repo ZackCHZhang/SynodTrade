@@ -167,7 +167,7 @@ export function PipelineForm({ data, onChange, name }: FormProps) {
           </Grid>
           {data.mode === 'live' && (
             <Alert severity="error" sx={{ mt: 2 }}>
-              {t('live mode uses real money; it only runs if the server sets QUANT_ALLOW_LIVE=1.')}
+              {t('live mode uses real money; it only runs if the server sets SYNODTRADE_ALLOW_LIVE=1.')}
             </Alert>
           )}
         </CardContent>

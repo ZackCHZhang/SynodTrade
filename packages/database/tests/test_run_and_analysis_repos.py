@@ -5,8 +5,8 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import BaseModel
 
-from quant_core.llm import FakeLLMClient, LLMMessage, LLMRequest, complete_structured
-from quant_core.models import (
+from synodtrade_core.llm import FakeLLMClient, LLMMessage, LLMRequest, complete_structured
+from synodtrade_core.models import (
     Action,
     AggregatedDecision,
     Decision,
@@ -17,7 +17,7 @@ from quant_core.models import (
     Verdict,
     Vote,
 )
-from quant_database import AgentInstance, Repositories, RunStatus
+from synodtrade_database import AgentInstance, Repositories, RunStatus
 
 MakeRun = Callable[..., Awaitable[UUID]]
 T0 = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)
@@ -113,7 +113,7 @@ async def test_llm_calls_are_recorded_through_structured_completion(
 async def test_llm_call_without_usage(repos: Repositories) -> None:
     fake = FakeLLMClient([RuntimeError("never raised")])
     del fake  # transport failures are recorded without usage:
-    from quant_core.llm import LLMCallRecord
+    from synodtrade_core.llm import LLMCallRecord
 
     record = LLMCallRecord(provider="p", model="m", attempt=1, request={}, error="HTTP 401")
     await repos.llm_calls.record(record)

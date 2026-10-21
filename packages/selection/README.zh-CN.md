@@ -1,8 +1,8 @@
-# quant-selection
+# synodtrade-selection
 
 [English](README.md) | **简体中文**
 
-选股模块：从候选池里挑出本次运行要跟踪的股票。选股结果会**替换本次运行的 universe**，后面的行情、舆情、决策、风控、交易阶段都只处理选出的股票（加上已有持仓）。依赖 `quant-core`、`quant-database`。
+选股模块：从候选池里挑出本次运行要跟踪的股票。选股结果会**替换本次运行的 universe**，后面的行情、舆情、决策、风控、交易阶段都只处理选出的股票（加上已有持仓）。依赖 `synodtrade-core`、`synodtrade-database`。
 
 ## 流程
 
@@ -61,9 +61,9 @@ stages:
 
 仓库自带 22 个选股 agent 配置（`configs/agents/*_screen*.yaml` 等，`role: selection`），共用模板 `prompts/selection_v1.j2`。
 
-自定义选股 agent 的方法：在 `configs/agents/` 下新建一个 `role: selection` 的 YAML，写上人设和 `params.instructions`，模板用 `prompts/selection_v1.j2`。如果要换一套完全不同的逻辑，可以继承 `SelectionAgent`，通过 entry point `quant.agents` 注册后，在 agent 配置里用 `impl:` 指定。
+自定义选股 agent 的方法：在 `configs/agents/` 下新建一个 `role: selection` 的 YAML，写上人设和 `params.instructions`，模板用 `prompts/selection_v1.j2`。如果要换一套完全不同的逻辑，可以继承 `SelectionAgent`，通过 entry point `synodtrade.agents` 注册后，在 agent 配置里用 `impl:` 指定。
 
-自定义候选来源的方法：实现 core 的 `CandidateSource`（包含 `name` 和 `async fetch(as_of) -> list[Candidate]`），然后通过 entry point `quant.candidate_sources` 注册。
+自定义候选来源的方法：实现 core 的 `CandidateSource`（包含 `name` 和 `async fetch(as_of) -> list[Candidate]`），然后通过 entry point `synodtrade.candidate_sources` 注册。
 
 ## IBKR 扫描器
 

@@ -2,8 +2,8 @@
 
 from importlib.metadata import version
 
-import quant_webapi
+import synodtrade_webapi
 
 
 def test_version_matches_metadata() -> None:
-    assert quant_webapi.__version__ == version("quant-webapi")
+    assert synodtrade_webapi.__version__ == version("synodtrade-webapi")

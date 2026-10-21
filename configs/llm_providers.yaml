@@ -10,7 +10,7 @@
 #   extra_headers / extra_body                   vendor-specific additions to every request
 #   prices            optional list prices per model, USD per million tokens
 #                     ({input, output, cache_read, cache_write}); only used to report what the
-#                     LLM calls cost (quant benchmark). Models without a price show no cost.
+#                     LLM calls cost (synodtrade benchmark). Models without a price show no cost.
 
 providers:
   anthropic:

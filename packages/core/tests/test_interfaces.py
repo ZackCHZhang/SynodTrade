@@ -1,8 +1,8 @@
 from collections.abc import Sequence
 from datetime import datetime
 
-from quant_core.interfaces import SentimentSource, Stage
-from quant_core.models import PipelineContext, SentimentItem
+from synodtrade_core.interfaces import SentimentSource, Stage
+from synodtrade_core.models import PipelineContext, SentimentItem
 
 
 class NoopStage:

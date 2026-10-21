@@ -107,7 +107,7 @@ export function RunDialog({ open, onClose, pipeline: fixed }: { open: boolean; o
               </RadioGroup>
             </div>
           )}
-          {effectiveMode === 'live' && <Alert severity="error">{t('Live mode! It only runs if the server sets QUANT_ALLOW_LIVE=1, and orders use real money.')}</Alert>}
+          {effectiveMode === 'live' && <Alert severity="error">{t('Live mode! It only runs if the server sets SYNODTRADE_ALLOW_LIVE=1, and orders use real money.')}</Alert>}
           {effectiveMode === 'paper' && <Alert severity="info">{t('Real (simulated) orders will be sent to the paper account; TWS / IB Gateway must be online.')}</Alert>}
 
           <div>

@@ -1,8 +1,8 @@
-# quant-sentiment
+# synodtrade-sentiment
 
 **English** | [简体中文](README.zh-CN.md)
 
-Sentiment: collects posts and news headlines from Reddit, Stocktwits and IBKR news, has several sentiment agents analyse them, and stores the results. Depends on `quant-core` and `quant-database`.
+Sentiment: collects posts and news headlines from Reddit, Stocktwits and IBKR news, has several sentiment agents analyse them, and stores the results. Depends on `synodtrade-core` and `synodtrade-database`.
 
 ## Flow (`sentiment` stage)
 
@@ -43,7 +43,7 @@ Without `sources`, the default is `[reddit, stocktwits]`.
 
 **Adding a source**:
 1. Write a class with `name` and `async fetch(symbols, since) -> list[SentimentItem]`, plus an optional `aclose()`.
-2. Register a factory `factory(options: dict) -> source` under the `quant.sentiment_sources` entry point in `pyproject.toml`.
+2. Register a factory `factory(options: dict) -> source` under the `synodtrade.sentiment_sources` entry point in `pyproject.toml`.
 3. Add its name to `sources` in the pipeline config.
 
 The main flow needs no change.

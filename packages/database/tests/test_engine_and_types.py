@@ -5,8 +5,8 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import StatementError
 
-from quant_database import DATABASE_URL_ENV, Database
-from quant_database.models import AccountSnapshotRow, InstrumentRow
+from synodtrade_database import DATABASE_URL_ENV, Database
+from synodtrade_database.models import AccountSnapshotRow, InstrumentRow
 
 TS = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)
 

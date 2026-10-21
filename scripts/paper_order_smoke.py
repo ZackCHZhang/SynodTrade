@@ -15,14 +15,14 @@ import asyncio
 from pathlib import Path
 from uuid import uuid4
 
-from quant_core.config import ConfigStore, StageConfig
-from quant_core.envfile import load_env_file
-from quant_core.logging import configure_logging
-from quant_core.models import Action, PipelineContext, RiskVerdict, RunMode, Verdict
-from quant_core.services import Services
-from quant_core.timeutil import utcnow
-from quant_database import Database, PipelineRun, Repositories, RunStatus
-from quant_trading import IBKRBroker, build_trading_stage
+from synodtrade_core.config import ConfigStore, StageConfig
+from synodtrade_core.envfile import load_env_file
+from synodtrade_core.logging import configure_logging
+from synodtrade_core.models import Action, PipelineContext, RiskVerdict, RunMode, Verdict
+from synodtrade_core.services import Services
+from synodtrade_core.timeutil import utcnow
+from synodtrade_database import Database, PipelineRun, Repositories, RunStatus
+from synodtrade_trading import IBKRBroker, build_trading_stage
 
 
 async def main(symbol: str, pipeline_name: str, db_url: str) -> int:

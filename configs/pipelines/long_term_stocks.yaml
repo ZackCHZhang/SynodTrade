@@ -1,6 +1,6 @@
 # Slow single-stock strategy, run once per trading day.
 name: long_term_stocks
-mode: paper            # dry_run | paper | live  (live also needs QUANT_ALLOW_LIVE=1)
+mode: paper            # dry_run | paper | live  (live also needs SYNODTRADE_ALLOW_LIVE=1)
 account: ibkr_main
 universe: [AAPL, MSFT, GOOGL, NVDA]
 benchmark: SPY         # market regime, beta and relative strength (bars kept by data_update)

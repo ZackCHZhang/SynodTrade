@@ -1,8 +1,8 @@
-# quant-market-data
+# synodtrade-market-data
 
 [English](README.md) | **简体中文**
 
-行情和账户数据更新：从 IBKR 拉取历史 K 线、实时报价、账户资金和持仓，写入数据库。依赖 `quant-core`、`quant-database`。
+行情和账户数据更新：从 IBKR 拉取历史 K 线、实时报价、账户资金和持仓，写入数据库。依赖 `synodtrade-core`、`synodtrade-database`。
 
 ## 公开接口
 
@@ -12,7 +12,7 @@
 - `DataUpdater`：
   - `update(...)`：增量更新 K 线、报价和账户，返回 `UpdateReport`（写入数量和各标的的错误）。
   - `update_bars(...)`：只更新任意标的的 K 线；它实现了 core 的 `BarsRefresher` 协议，选股阶段用它拉取候选股的日线。
-- `DataUpdateStage`：流水线阶段 `data_update`。通过 entry point `quant.stages` 注册，工厂函数是 `build_data_update_stage(config, services)`，需要的服务有：
+- `DataUpdateStage`：流水线阶段 `data_update`。通过 entry point `synodtrade.stages` 注册，工厂函数是 `build_data_update_stage(config, services)`，需要的服务有：
   - `repos`：`Repositories`
   - `market_data`：`MarketDataProvider`
   - `account`：`AccountConfig`（可选，用于记录账户快照）
@@ -55,7 +55,7 @@ python tasks.py test-market_data
 连接真实 paper 网关的测试需要手动开启：
 
 ```bash
-set QUANT_TEST_IBKR=1        # Linux/macOS: export
+set SYNODTRADE_TEST_IBKR=1        # Linux/macOS: export
 set IBKR_PORT=4002
 python tasks.py integration
 ```

@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from quant_core.models import (
+from synodtrade_core.models import (
     Action,
     AggregatedDecision,
     Fill,
@@ -18,7 +18,7 @@ from quant_core.models import (
     SentimentResult,
     Verdict,
 )
-from quant_database import Repositories
+from synodtrade_database import Repositories
 
 MakeRun = Callable[..., Awaitable[UUID]]
 T0 = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)

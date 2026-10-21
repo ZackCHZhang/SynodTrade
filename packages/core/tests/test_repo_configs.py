@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from quant_core.config import ConfigStore, resolve_model
-from quant_core.models import RunMode
+from synodtrade_core.config import ConfigStore, resolve_model
+from synodtrade_core.models import RunMode
 
 REPO_CONFIGS = Path(__file__).resolve().parents[3] / "configs"
 ENV = {"IBKR_ACCOUNT": "DU0000000"}

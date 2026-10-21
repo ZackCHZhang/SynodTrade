@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from quant_database import Repositories
+from synodtrade_database import Repositories
 
 T0 = datetime(2026, 10, 1, 14, 0, tzinfo=UTC)
 P = "demo"

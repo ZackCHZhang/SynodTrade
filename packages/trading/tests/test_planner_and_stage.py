@@ -8,8 +8,8 @@ from uuid import UUID
 
 import pytest
 
-from quant_core.config import AccountConfig, ConfigStore, PipelineConfig, StageConfig
-from quant_core.models import (
+from synodtrade_core.config import AccountConfig, ConfigStore, PipelineConfig, StageConfig
+from synodtrade_core.models import (
     AccountSnapshot,
     Action,
     AggregatedDecision,
@@ -25,14 +25,14 @@ from quant_core.models import (
     RunMode,
     Verdict,
 )
-from quant_core.models import (
+from synodtrade_core.models import (
     Instrument as Inst,
 )
-from quant_core.registry import STAGES
-from quant_core.safety import LiveTradingNotAllowedError
-from quant_core.services import Services
-from quant_database import KILL_SWITCH, Repositories
-from quant_trading import (
+from synodtrade_core.registry import STAGES
+from synodtrade_core.safety import LiveTradingNotAllowedError
+from synodtrade_core.services import Services
+from synodtrade_database import KILL_SWITCH, Repositories
+from synodtrade_trading import (
     BrokerError,
     DryRunBroker,
     IBKRBroker,
@@ -366,7 +366,7 @@ async def test_broker_mode_must_match_run_mode(repos: Repositories, new_run: New
 async def test_live_run_needs_env_flag(
     repos: Repositories, new_run: NewRun, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.delenv("QUANT_ALLOW_LIVE", raising=False)
+    monkeypatch.delenv("SYNODTRADE_ALLOW_LIVE", raising=False)
     run_id = await new_run(mode=RunMode.LIVE)
     with pytest.raises(LiveTradingNotAllowedError):
         await build(repos, SimulatedBroker()).run(

@@ -2,7 +2,7 @@ from typing import Protocol, runtime_checkable
 
 import pytest
 
-from quant_core.services import MissingServiceError, Services
+from synodtrade_core.services import MissingServiceError, Services
 
 
 @runtime_checkable

@@ -2,23 +2,23 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-React 19 + TypeScript + MUI 9 + Vite. The backend is `packages/webapi` (`quant-web`). The UI is available in English (default) and Simplified Chinese; switch with the language button in the top bar (the choice is remembered in the browser).
+React 19 + TypeScript + MUI 9 + Vite. The backend is `packages/webapi` (`synodtrade-web`). The UI is available in English (default) and Simplified Chinese; switch with the language button in the top bar (the choice is remembered in the browser).
 
 ## Usage
 
 ```bash
 # repository root
 python tasks.py web            # npm install + build into web/dist (needs Node.js >= 20)
-poetry run quant-web serve     # open http://127.0.0.1:8765
+poetry run synodtrade-web serve     # open http://127.0.0.1:8765
 ```
 
 ## Development
 
 ```bash
-poetry run quant-web serve     # API on port 8765
+poetry run synodtrade-web serve     # API on port 8765
 cd web
 npm install
-npm run dev                    # http://localhost:5173, /api proxied to 8765 (change with QUANT_WEB_API)
+npm run dev                    # http://localhost:5173, /api proxied to 8765 (change with SYNODTRADE_WEB_API)
 npm run typecheck              # tsc -b
 npm run i18n:check             # every UI string has a Chinese translation
 npm run build                  # tsc -b && vite build, output in web/dist

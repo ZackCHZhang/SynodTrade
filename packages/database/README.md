@@ -1,17 +1,17 @@
-# quant-database
+# synodtrade-database
 
 **English** | [简体中文](README.zh-CN.md)
 
-Database layer: ORM models, repositories and Alembic migrations. Production uses PostgreSQL 16 (docker-compose uses the TimescaleDB image); unit tests use SQLite. Depends on `quant-core`.
+Database layer: ORM models, repositories and Alembic migrations. Production uses PostgreSQL 16 (docker-compose uses the TimescaleDB image); unit tests use SQLite. Depends on `synodtrade-core`.
 
 ## Public API
 
-Business packages **read and write the database only through repositories**, which take and return `quant_core` models; they never touch the ORM or SQL.
+Business packages **read and write the database only through repositories**, which take and return `synodtrade_core` models; they never touch the ORM or SQL.
 
 ```python
-from quant_database import Database, Repositories
+from synodtrade_database import Database, Repositories
 
-db = Database.from_env()  # QUANT_DATABASE_URL
+db = Database.from_env()  # SYNODTRADE_DATABASE_URL
 repos = Repositories.create(db)
 bars = await repos.bars.get_latest_bars("AAPL", 60, as_of=ctx.as_of)
 ```
@@ -48,21 +48,21 @@ bars = await repos.bars.get_latest_bars("AAPL", 60, as_of=ctx.as_of)
 - **Time**: `UtcDateTime` rejects naive datetimes, stores UTC and always returns UTC-aware values.
 - **Raw LLM input / output** is kept in `llm_calls`, including every retry and failure. Selection, sentiment, decision and risk records link to it via `llm_call_ids`.
 - **A post that mentions several symbols** is stored once per symbol; the unique key is `(source, external_id, symbol)`.
-- **Kill switch**: the `kill_switch` flag in `system_flags` (constant `KILL_SWITCH`). Both the risk and trading stages read it; while it is on, no orders are sent. Toggle it with `quant kill-switch on|off|status` or from the web console.
+- **Kill switch**: the `kill_switch` flag in `system_flags` (constant `KILL_SWITCH`). Both the risk and trading stages read it; while it is on, no orders are sent. Toggle it with `synodtrade kill-switch on|off|status` or from the web console.
 - There is exactly one piece of dialect-specific SQL: `upsert_insert` (ON CONFLICT) in `repositories/base.py`, for SQLite and PostgreSQL.
 
 ## Migrations
 
-Migrations ship with the package under `src/quant_database/migrations/` (`0001_initial_schema`, `0002_stock_selection`).
+Migrations ship with the package under `src/synodtrade_database/migrations/` (`0001_initial_schema`, `0002_stock_selection`).
 
 ```bash
 docker compose up -d postgres
-quant-db upgrade                          # uses $QUANT_DATABASE_URL, upgrades to head by default
-quant-db upgrade --url postgresql+asyncpg://...
-quant-db downgrade                        # one revision back by default (--revision to choose)
-quant-db revision -m "add x"              # autogenerate a migration after changing models.py
-quant-db current
-# if the quant-db command is missing: python -m quant_database.cli upgrade
+synodtrade-db upgrade                          # uses $SYNODTRADE_DATABASE_URL, upgrades to head by default
+synodtrade-db upgrade --url postgresql+asyncpg://...
+synodtrade-db downgrade                        # one revision back by default (--revision to choose)
+synodtrade-db revision -m "add x"              # autogenerate a migration after changing models.py
+synodtrade-db current
+# if the synodtrade-db command is missing: python -m synodtrade_database.cli upgrade
 ```
 
 Tests guarantee that the schema built by the migrations **matches the ORM models exactly** and that a full downgrade and upgrade works.
@@ -76,6 +76,6 @@ python tasks.py test-database             # SQLite
 The same repository tests run on PostgreSQL. Prepare a database that may be wiped:
 
 ```bash
-export QUANT_TEST_DATABASE_URL=postgresql+asyncpg://quant:pw@localhost:5432/quant_test   # Windows: set
+export SYNODTRADE_TEST_DATABASE_URL=postgresql+asyncpg://quant:pw@localhost:5432/synodtrade_test   # Windows: set
 python tasks.py integration
 ```

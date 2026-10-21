@@ -21,7 +21,7 @@ const TABLES = [
   ['pages/DataPage.tsx', 'TABLE_LABEL', 'all'],
   ['pages/DataPage.tsx', 'OPS', 'second'],
 ];
-// Config kind labels come from the backend (packages/webapi/src/quant_webapi/catalog.py).
+// Config kind labels come from the backend (packages/webapi/src/synodtrade_webapi/catalog.py).
 const BACKEND = ['Pipelines', 'Agent', 'Prompt templates', 'Accounts', 'Risk rules', 'LLM providers', 'Schedules', 'Account sync'];
 
 const STR = /'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"/g;

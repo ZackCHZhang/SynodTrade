@@ -5,7 +5,7 @@ from uuid import UUID
 
 import pytest
 
-from quant_core.models import (
+from synodtrade_core.models import (
     Action,
     Fill,
     OrderIntent,
@@ -14,7 +14,7 @@ from quant_core.models import (
     OrderStatus,
     OrderType,
 )
-from quant_database import KILL_SWITCH, Repositories
+from synodtrade_database import KILL_SWITCH, Repositories
 
 D = Decimal
 MakeRun = Callable[..., Awaitable[UUID]]

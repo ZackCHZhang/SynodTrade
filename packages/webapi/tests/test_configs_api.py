@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from quant_webapi.configs import BACKUP_DIR, ConfigFiles
+from synodtrade_webapi.configs import BACKUP_DIR, ConfigFiles
 
 PIPELINE = "long_term_stocks"
 

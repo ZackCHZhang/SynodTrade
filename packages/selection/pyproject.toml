@@ -1,32 +1,32 @@
 [project]
-name = "quant-selection"
+name = "synodtrade-selection"
 version = "0.1.0"
 description = "Stock selection: candidate sources (static list / IBKR scanner) + quantitative screen + multi-agent picking and aggregation"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "quant-core",
-    "quant-database",
+    "synodtrade-core",
+    "synodtrade-database",
     "ib_async>=2.0",
 ]
 
-[project.entry-points."quant.stages"]
-selection = "quant_selection.stage:build_selection_stage"
+[project.entry-points."synodtrade.stages"]
+selection = "synodtrade_selection.stage:build_selection_stage"
 
-[project.entry-points."quant.agents"]
-selection = "quant_selection.agent:SelectionAgent"
+[project.entry-points."synodtrade.agents"]
+selection = "synodtrade_selection.agent:SelectionAgent"
 
-[project.entry-points."quant.candidate_sources"]
-static = "quant_selection.sources:build_static_source"
-ibkr_scanner = "quant_selection.scanner:build_ibkr_scanner_source"
+[project.entry-points."synodtrade.candidate_sources"]
+static = "synodtrade_selection.sources:build_static_source"
+ibkr_scanner = "synodtrade_selection.scanner:build_ibkr_scanner_source"
 
 [tool.poetry]
-packages = [{ include = "quant_selection", from = "src" }]
+packages = [{ include = "synodtrade_selection", from = "src" }]
 
 [tool.poetry.dependencies]
-quant-core = { path = "../core", develop = true }
-quant-database = { path = "../database", develop = true }
+synodtrade-core = { path = "../core", develop = true }
+synodtrade-database = { path = "../database", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

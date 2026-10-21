@@ -1,30 +1,30 @@
 [project]
-name = "quant-account-sync"
+name = "synodtrade-account-sync"
 version = "0.1.0"
 description = "Account sync: order fill status, late fills, account and position snapshots, ledger reconciliation (first pipeline step + scheduled)"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "quant-core",
-    "quant-database",
-    "quant-market-data",
-    "quant-trading",
+    "synodtrade-core",
+    "synodtrade-database",
+    "synodtrade-market-data",
+    "synodtrade-trading",
     "ib_async>=2.0",
     "typer>=0.12",
 ]
 
 [project.scripts]
-quant-sync = "quant_account_sync.cli:app"
+synodtrade-sync = "synodtrade_account_sync.cli:app"
 
 [tool.poetry]
-packages = [{ include = "quant_account_sync", from = "src" }]
+packages = [{ include = "synodtrade_account_sync", from = "src" }]
 
 [tool.poetry.dependencies]
-quant-core = { path = "../core", develop = true }
-quant-database = { path = "../database", develop = true }
-quant-market-data = { path = "../market_data", develop = true }
-quant-trading = { path = "../trading", develop = true }
+synodtrade-core = { path = "../core", develop = true }
+synodtrade-database = { path = "../database", develop = true }
+synodtrade-market-data = { path = "../market_data", develop = true }
+synodtrade-trading = { path = "../trading", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -2,9 +2,9 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from quant_core.models import Timeframe
-from quant_market_data.pacing import PacingLimiter
-from quant_market_data.ranges import missing_ranges, plan_requests
+from synodtrade_core.models import Timeframe
+from synodtrade_market_data.pacing import PacingLimiter
+from synodtrade_market_data.ranges import missing_ranges, plan_requests
 
 
 class FakeClock:

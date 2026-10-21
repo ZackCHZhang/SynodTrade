@@ -6,9 +6,9 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from quant_core.config import ConfigStore, PipelineConfig, StageConfig
-from quant_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
-from quant_core.models import (
+from synodtrade_core.config import ConfigStore, PipelineConfig, StageConfig
+from synodtrade_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
+from synodtrade_core.models import (
     Action,
     AggregatedDecision,
     Bar,
@@ -21,9 +21,9 @@ from quant_core.models import (
     SentimentResult,
     StockSelection,
 )
-from quant_core.services import Services
-from quant_database import PipelineRun, Repositories
-from quant_decision import build_decision_stage
+from synodtrade_core.services import Services
+from synodtrade_database import PipelineRun, Repositories
+from synodtrade_decision import build_decision_stage
 
 D = Decimal
 NOW = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)

@@ -51,7 +51,7 @@ def fmt() -> None:
 
 
 def typecheck() -> None:
-    run("mypy", *(arg for pkg in PACKAGES for arg in ("-p", f"quant_{pkg}")))
+    run("mypy", *(arg for pkg in PACKAGES for arg in ("-p", f"synodtrade_{pkg}")))
     # Each package's tests/ has its own conftest.py, so they are checked one package at a time.
     for pkg in PACKAGES:
         run("mypy", f"packages/{pkg}/tests")
@@ -105,7 +105,12 @@ def main(argv: list[str]) -> None:
     name = argv[0]
     if name.startswith("test-") and name[5:] in PACKAGES:
         pkg = name[5:]
-        run("pytest", f"packages/{pkg}/tests", f"--cov=quant_{pkg}", "--cov-report=term-missing")
+        run(
+            "pytest",
+            f"packages/{pkg}/tests",
+            f"--cov=synodtrade_{pkg}",
+            "--cov-report=term-missing",
+        )
         return
     task = TASKS.get(name)
     if task is None:

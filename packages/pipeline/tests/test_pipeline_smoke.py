@@ -2,25 +2,25 @@
 
 from importlib.metadata import version
 
-import quant_core
-import quant_database
-import quant_decision
-import quant_market_data
-import quant_pipeline
-import quant_risk
-import quant_sentiment
-import quant_trading
+import synodtrade_core
+import synodtrade_database
+import synodtrade_decision
+import synodtrade_market_data
+import synodtrade_pipeline
+import synodtrade_risk
+import synodtrade_sentiment
+import synodtrade_trading
 
 
 def test_version_matches_metadata() -> None:
-    assert quant_pipeline.__version__ == version("quant-pipeline")
+    assert synodtrade_pipeline.__version__ == version("synodtrade-pipeline")
 
 
 def test_dependencies_importable() -> None:
-    assert quant_core.__version__ == version("quant-core")
-    assert quant_database.__version__ == version("quant-database")
-    assert quant_market_data.__version__ == version("quant-market-data")
-    assert quant_sentiment.__version__ == version("quant-sentiment")
-    assert quant_decision.__version__ == version("quant-decision")
-    assert quant_risk.__version__ == version("quant-risk")
-    assert quant_trading.__version__ == version("quant-trading")
+    assert synodtrade_core.__version__ == version("synodtrade-core")
+    assert synodtrade_database.__version__ == version("synodtrade-database")
+    assert synodtrade_market_data.__version__ == version("synodtrade-market-data")
+    assert synodtrade_sentiment.__version__ == version("synodtrade-sentiment")
+    assert synodtrade_decision.__version__ == version("synodtrade-decision")
+    assert synodtrade_risk.__version__ == version("synodtrade-risk")
+    assert synodtrade_trading.__version__ == version("synodtrade-trading")

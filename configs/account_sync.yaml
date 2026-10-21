@@ -2,9 +2,9 @@
 # account and positions) into the database.
 #   - First step of every live paper/live run: syncs the account that pipeline uses
 #   - While the web console runs, all accounts sync every interval_minutes (editable on the "Account sync" page)
-#   - Manually: "Sync now" in the web console, or `quant-sync once` on the command line
+#   - Manually: "Sync now" in the web console, or `synodtrade-sync once` on the command line
 
-enabled: true                    # scheduled automatic sync (web console / quant-sync loop)
+enabled: true                    # scheduled automatic sync (web console / synodtrade-sync loop)
 interval_minutes: 20             # automatic sync interval (minutes)
 before_pipeline: true            # sync before every paper/live run
 required_before_pipeline: false  # true: a failed pre-run sync fails the whole run (default: log it and continue)

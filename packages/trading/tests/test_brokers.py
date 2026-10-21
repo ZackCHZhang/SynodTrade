@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from quant_core.models import (
+from synodtrade_core.models import (
     Action,
     Instrument,
     OrderIntent,
@@ -12,7 +12,7 @@ from quant_core.models import (
     OrderType,
     RunMode,
 )
-from quant_trading import BrokerError, DryRunBroker, SimulatedBroker, client_order_id
+from synodtrade_trading import BrokerError, DryRunBroker, SimulatedBroker, client_order_id
 
 D = Decimal
 AAPL = Instrument(symbol="AAPL", con_id=265598)

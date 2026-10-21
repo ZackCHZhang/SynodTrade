@@ -8,8 +8,8 @@ import pytest
 from ib_async import ContractDetails, Forex, ScanData, Stock
 from pydantic import ValidationError
 
-from quant_core.registry import AGENTS, CANDIDATE_SOURCES, STAGES
-from quant_selection import (
+from synodtrade_core.registry import AGENTS, CANDIDATE_SOURCES, STAGES
+from synodtrade_selection import (
     CandidateSourceConfig,
     CandidateSourceError,
     FakeCandidateSource,
@@ -20,8 +20,8 @@ from quant_selection import (
     StaticCandidateSource,
     build_selection_stage,
 )
-from quant_selection.scanner import build_ibkr_scanner_source
-from quant_selection.sources import build_static_source
+from synodtrade_selection.scanner import build_ibkr_scanner_source
+from synodtrade_selection.sources import build_static_source
 
 NOW = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)
 

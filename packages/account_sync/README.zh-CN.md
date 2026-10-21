@@ -1,4 +1,4 @@
-# quant-account-sync
+# synodtrade-account-sync
 
 [English](README.md) | **简体中文**
 
@@ -16,13 +16,13 @@
 ## 什么时候同步
 
 - **流水线第一步**：paper / live 模式的实时运行（没有 `--as-of`），在任何阶段之前先同步这条流水线的账户（同账户的其他流水线一起同步），运行详情里显示为第 1 步"账户同步"。`--offline`、`--dry-run` 和指定 `--as-of` 的回放不同步。
-- **定时**：Web 控制台进程里每 `interval_minutes`（默认 20 分钟）同步一次所有账户；在"账户同步"页面可以修改、关闭、手动立即同步。没有 Web 控制台时可以用 `quant-sync loop`。
-- **手动**：`quant-sync once`，或 Web 页面上的"立即同步"。
+- **定时**：Web 控制台进程里每 `interval_minutes`（默认 20 分钟）同步一次所有账户；在"账户同步"页面可以修改、关闭、手动立即同步。没有 Web 控制台时可以用 `synodtrade-sync loop`。
+- **手动**：`synodtrade-sync once`，或 Web 页面上的"立即同步"。
 
 ## 配置 `configs/account_sync.yaml`
 
 ```yaml
-enabled: true                  # 定时同步（Web 控制台 / quant-sync loop）
+enabled: true                  # 定时同步（Web 控制台 / synodtrade-sync loop）
 interval_minutes: 20
 before_pipeline: true          # 每次 paper/live 运行前先同步
 required_before_pipeline: false  # true：同步失败时整个运行失败（默认只记录，继续运行）
@@ -37,8 +37,8 @@ accounts: []                   # 只同步这些账户配置；空 = 所有流�
 ## 命令行
 
 ```bash
-quant-sync once  --db-url sqlite+aiosqlite:///./paper_test.db   # 同步一次，打印变化
-quant-sync loop  --db-url ...                                    # 按 interval_minutes 持续同步
+synodtrade-sync once  --db-url sqlite+aiosqlite:///./paper_test.db   # 同步一次，打印变化
+synodtrade-sync loop  --db-url ...                                    # 按 interval_minutes 持续同步
 ```
 
 注意：IBKR 默认只保留当天的成交记录（TWS 可以在 Global Configuration > API > Settings 里改成最多 7 天）。同步间隔越短，越不会漏掉成交明细。

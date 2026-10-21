@@ -1,4 +1,4 @@
-"""Fixtures for quant_webapi: a copy of the repo configs, temporary SQLite databases and an
+"""Fixtures for synodtrade_webapi: a copy of the repo configs, temporary SQLite databases and an
 in-process client (no network; the app runs in TestClient's event loop)."""
 
 import shutil
@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from quant_webapi.app import WebSettings, create_app
+from synodtrade_webapi.app import WebSettings, create_app
 
 REPO_CONFIGS = Path(__file__).resolve().parents[3] / "configs"
 ENV = {"IBKR_ACCOUNT": "DU1234567", "ANTHROPIC_API_KEY": "test-key", "DEEPSEEK_API_KEY": "k"}

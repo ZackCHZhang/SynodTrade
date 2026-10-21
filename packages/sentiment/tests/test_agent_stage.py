@@ -7,19 +7,19 @@ from uuid import UUID
 
 import pytest
 
-from quant_core.config import ConfigStore, StageConfig
-from quant_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
-from quant_core.models import PipelineContext, RunMode, SentimentItem
-from quant_core.registry import AGENTS, SENTIMENT_SOURCES, STAGES
-from quant_core.services import Services
-from quant_database import Repositories
-from quant_sentiment import (
+from synodtrade_core.config import ConfigStore, StageConfig
+from synodtrade_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
+from synodtrade_core.models import PipelineContext, RunMode, SentimentItem
+from synodtrade_core.registry import AGENTS, SENTIMENT_SOURCES, STAGES
+from synodtrade_core.services import Services
+from synodtrade_database import Repositories
+from synodtrade_sentiment import (
     SentimentAgent,
     SentimentError,
     SentimentStage,
     build_sentiment_stage,
 )
-from quant_sentiment.sources import FakeSentimentSource, build_reddit_source
+from synodtrade_sentiment.sources import FakeSentimentSource, build_reddit_source
 
 NOW = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)
 CLAUDE = {"provider": "anthropic", "name": "claude-opus-5"}
@@ -209,8 +209,8 @@ def test_entry_points() -> None:
 def test_repo_pipeline_sentiment_options_are_valid() -> None:
     from pathlib import Path
 
-    from quant_sentiment import SentimentOptions
-    from quant_sentiment.sources import IBKRNewsOptions, RedditOptions
+    from synodtrade_sentiment import SentimentOptions
+    from synodtrade_sentiment.sources import IBKRNewsOptions, RedditOptions
 
     repo = ConfigStore(Path(__file__).resolve().parents[3] / "configs", env={"IBKR_ACCOUNT": "x"})
     stage = repo.pipeline("long_term_stocks").stage("sentiment")

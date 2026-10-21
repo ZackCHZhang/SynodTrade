@@ -18,4 +18,4 @@ COPY configs ./configs
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Bring the schema up to date, then run the scheduler until stopped (SIGTERM is handled).
-CMD ["sh", "-c", "quant-db upgrade && exec quant-scheduler run --configs /app/configs"]
+CMD ["sh", "-c", "synodtrade-db upgrade && exec synodtrade-scheduler run --configs /app/configs"]

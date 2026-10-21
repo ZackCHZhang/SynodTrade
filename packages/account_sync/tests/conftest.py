@@ -1,4 +1,4 @@
-"""Shared fixtures for quant_account_sync tests: SQLite and the repo's configs (no network)."""
+"""Shared fixtures for synodtrade_account_sync tests: SQLite and the repo's configs (no network)."""
 
 import shutil
 from collections.abc import AsyncIterator
@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from quant_core.config import ConfigStore
-from quant_database import Database, Repositories
+from synodtrade_core.config import ConfigStore
+from synodtrade_database import Database, Repositories
 
 REPO_CONFIGS = Path(__file__).resolve().parents[3] / "configs"
 ENV = {"IBKR_ACCOUNT": "DU1234567", "ANTHROPIC_API_KEY": "k", "DEEPSEEK_API_KEY": "k"}

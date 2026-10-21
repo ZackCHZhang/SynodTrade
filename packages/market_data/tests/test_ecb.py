@@ -6,8 +6,8 @@ from decimal import Decimal
 import httpx
 import pytest
 
-from quant_market_data.ecb import EcbFxRates, parse_ecb_daily
-from quant_market_data.provider import MarketDataError
+from synodtrade_market_data.ecb import EcbFxRates, parse_ecb_daily
+from synodtrade_market_data.provider import MarketDataError
 
 D = Decimal
 

@@ -4,21 +4,21 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from quant_core.fundamentals import (
+from synodtrade_core.fundamentals import (
     fundamental_lines,
     fundamental_metrics,
     fundamental_summary,
     fundamentals_inputs,
     piotroski,
 )
-from quant_core.indicators import (
+from synodtrade_core.indicators import (
     atr,
     compute_indicators,
     correlation,
     max_gap,
     relative_to,
 )
-from quant_core.models import (
+from synodtrade_core.models import (
     Action,
     AggregatedDecision,
     Bar,
@@ -31,7 +31,7 @@ from quant_core.models import (
     Timeframe,
     WatchlistEntry,
 )
-from quant_core.research import (
+from synodtrade_core.research import (
     describe_outcome,
     earnings_reaction,
     history_entries,

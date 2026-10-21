@@ -23,4 +23,4 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
 @pytest.fixture(autouse=True)
 def _no_dotenv(monkeypatch: pytest.MonkeyPatch) -> None:
     """A developer's real .env (API keys) must never reach the tests."""
-    monkeypatch.setenv("QUANT_NO_DOTENV", "1")
+    monkeypatch.setenv("SYNODTRADE_NO_DOTENV", "1")

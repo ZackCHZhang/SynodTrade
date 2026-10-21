@@ -1,4 +1,4 @@
-// Thin fetch wrapper + typed endpoints of the quant-web API (packages/webapi).
+// Thin fetch wrapper + typed endpoints of the synodtrade-web API (packages/webapi).
 
 export class ApiError extends Error {
   status: number;

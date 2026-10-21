@@ -18,10 +18,10 @@ from ib_async import (
 from ib_async import Fill as IBFill
 from ib_async import OrderStatus as IBOrderStatus
 
-from quant_account_sync import CLIENT_ID_OFFSET, AccountSyncError, IBKRAccountReader
-from quant_account_sync.ibkr import order_from_trade
-from quant_core.config import AccountConfig
-from quant_core.models import OrderStatus
+from synodtrade_account_sync import CLIENT_ID_OFFSET, AccountSyncError, IBKRAccountReader
+from synodtrade_account_sync.ibkr import order_from_trade
+from synodtrade_core.config import AccountConfig
+from synodtrade_core.models import OrderStatus
 
 D = Decimal
 T = datetime(2026, 10, 12, 14, 0, tzinfo=UTC)

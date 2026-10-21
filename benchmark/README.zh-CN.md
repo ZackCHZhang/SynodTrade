@@ -54,5 +54,5 @@
 用下面的命令从交易数据库生成。每条流水线的每日数据在 [`data.json`](data.json)。
 
 ```bash
-poetry run quant benchmark
+poetry run synodtrade benchmark
 ```

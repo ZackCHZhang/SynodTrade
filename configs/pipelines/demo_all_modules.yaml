@@ -2,17 +2,17 @@
 # It selects stocks first (3 picks from the universe + IBKR scanner); later stages only handle the picks and existing holdings.
 #
 #   Offline trial run (no gateway, no API keys, no network):
-#     quant run -p demo_all_modules --offline --offline-llm bullish --as-of 2026-09-30T14:00:00Z
+#     synodtrade run -p demo_all_modules --offline --offline-llm bullish --as-of 2026-09-30T14:00:00Z
 #   Real data + real LLM, orders are recorded but not placed:
-#     quant run -p demo_all_modules --dry-run
+#     synodtrade run -p demo_all_modules --dry-run
 #   Real data + real LLM + orders placed on the TWS paper account:
-#     quant run -p demo_all_modules --paper
+#     synodtrade run -p demo_all_modules --paper
 #
 # Default mode: dry_run; only --paper places orders on the paper account, never on real money.
 # Model: DeepSeek (deepseek in configs/llm_providers.yaml; put the key in DEEPSEEK_API_KEY in .env).
 
 name: demo_all_modules
-mode: paper                 # dry_run | paper | live (live also needs QUANT_ALLOW_LIVE=1)
+mode: paper                 # dry_run | paper | live (live also needs SYNODTRADE_ALLOW_LIVE=1)
 account: ibkr_main            # configs/accounts/ibkr_main.yaml
 # With a selection stage, universe is the candidate pool; it is switched off here (include_universe: false),
 # so all candidates come from the market-wide scanner and this list is only a fallback

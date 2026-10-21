@@ -7,9 +7,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from quant_core.config import ConfigStore, LLMModelConfig, PipelineConfig, StageConfig
-from quant_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
-from quant_core.models import (
+from synodtrade_core.config import ConfigStore, LLMModelConfig, PipelineConfig, StageConfig
+from synodtrade_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
+from synodtrade_core.models import (
     Action,
     AggregatedDecision,
     Bar,
@@ -23,10 +23,10 @@ from quant_core.models import (
     RunMode,
     SentimentResult,
 )
-from quant_core.registry import AGENTS, STAGES
-from quant_core.services import Services
-from quant_database import LedgerPosition, LedgerState, Repositories
-from quant_decision import (
+from synodtrade_core.registry import AGENTS, STAGES
+from synodtrade_core.services import Services
+from synodtrade_database import LedgerPosition, LedgerState, Repositories
+from synodtrade_decision import (
     DecisionAgent,
     DecisionStage,
     SymbolContext,
@@ -340,7 +340,7 @@ def test_entry_points() -> None:
 def test_repo_pipeline_decision_options() -> None:
     from pathlib import Path
 
-    from quant_decision import AggregationMethod, DecisionOptions
+    from synodtrade_decision import AggregationMethod, DecisionOptions
 
     repo = ConfigStore(Path(__file__).resolve().parents[3] / "configs", env={"IBKR_ACCOUNT": "x"})
     stage = repo.pipeline("long_term_stocks").stage("decision")

@@ -1,8 +1,8 @@
-# quant-sentiment
+# synodtrade-sentiment
 
 [English](README.md) | **简体中文**
 
-舆情：从 Reddit、Stocktwits 和 IBKR 新闻采集帖子与新闻标题，交给多个舆情 agent 分析，结果写入数据库。依赖 `quant-core`、`quant-database`。
+舆情：从 Reddit、Stocktwits 和 IBKR 新闻采集帖子与新闻标题，交给多个舆情 agent 分析，结果写入数据库。依赖 `synodtrade-core`、`synodtrade-database`。
 
 ## 流程（`sentiment` 阶段）
 
@@ -43,7 +43,7 @@
 
 **新增数据源**：
 1. 写一个类，提供 `name` 和 `async fetch(symbols, since) -> list[SentimentItem]`，以及可选的 `aclose()`。
-2. 在 `pyproject.toml` 的 `quant.sentiment_sources` entry point 中注册工厂函数 `factory(options: dict) -> source`。
+2. 在 `pyproject.toml` 的 `synodtrade.sentiment_sources` entry point 中注册工厂函数 `factory(options: dict) -> source`。
 3. 在流水线配置的 `sources` 中写上它的名字。
 
 主流程不需要改动。

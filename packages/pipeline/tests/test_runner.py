@@ -12,18 +12,18 @@ import pytest
 import yaml
 from sqlalchemy import func, select
 
-from quant_account_sync import (
+from synodtrade_account_sync import (
     AccountSyncConfig,
     AccountSyncService,
     BrokerExecution,
     BrokerSnapshot,
 )
-from quant_core.config import ConfigError, ConfigStore
-from quant_core.logging import configure_logging
-from quant_core.models import Action, OrderIntent, OrderSide, OrderStatus, OrderType, RunMode
-from quant_core.safety import LiveTradingNotAllowedError
-from quant_database import Database, PipelineRun, Repositories, RunStatus
-from quant_database.models import (
+from synodtrade_core.config import ConfigError, ConfigStore
+from synodtrade_core.logging import configure_logging
+from synodtrade_core.models import Action, OrderIntent, OrderSide, OrderStatus, OrderType, RunMode
+from synodtrade_core.safety import LiveTradingNotAllowedError
+from synodtrade_database import Database, PipelineRun, Repositories, RunStatus
+from synodtrade_database.models import (
     AgentInstanceRow,
     AggregatedDecisionRow,
     Base,
@@ -37,12 +37,12 @@ from quant_database.models import (
     SentimentResultRow,
     StockSelectionRow,
 )
-from quant_market_data import FakeMarketDataProvider
-from quant_pipeline import PipelineBusyError, PipelineRunner, RunOptions, select_stages
-from quant_pipeline.offline import offline_market_data, schema_reply
-from quant_pipeline.runner import wants_fundamentals
-from quant_sentiment.sources import FakeSentimentSource
-from quant_trading import SimulatedBroker
+from synodtrade_market_data import FakeMarketDataProvider
+from synodtrade_pipeline import PipelineBusyError, PipelineRunner, RunOptions, select_stages
+from synodtrade_pipeline.offline import offline_market_data, schema_reply
+from synodtrade_pipeline.runner import wants_fundamentals
+from synodtrade_sentiment.sources import FakeSentimentSource
+from synodtrade_trading import SimulatedBroker
 
 AS_OF = datetime(2026, 10, 1, 14, 0, tzinfo=UTC)
 ENV = {"IBKR_ACCOUNT": "DU1234567", "ANTHROPIC_API_KEY": "test-key"}
@@ -233,7 +233,7 @@ async def test_selection_uses_the_shared_market_data_provider(
 ) -> None:
     """Outside offline mode the selection stage refreshes candidate bars through the same
     market data provider as data_update, and its candidate sources can be overridden."""
-    from quant_selection import FakeCandidateSource
+    from synodtrade_selection import FakeCandidateSource
 
     symbols = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "JPM", "V", "COST", "LLY"]
     provider = offline_market_data([*symbols, "AMD"], AS_OF)

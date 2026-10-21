@@ -7,7 +7,7 @@ type Entry = [label: string, help?: string];
 const L: Record<string, Entry> = {
   // pipeline
   name: ['Name'],
-  mode: ['Run mode', 'dry_run only records; paper places orders on the paper account; live trades real money (also needs QUANT_ALLOW_LIVE=1)'],
+  mode: ['Run mode', 'dry_run only records; paper places orders on the paper account; live trades real money (also needs SYNODTRADE_ALLOW_LIVE=1)'],
   account: ['Account'],
   universe: ['Universe', 'Part of the candidate pool when there is a selection stage'],
   benchmark: ['Market benchmark', 'e.g. SPY: data_update refreshes its daily bars; later stages show market regime, beta and relative strength. Leave empty to disable'],

@@ -1,27 +1,27 @@
 [project]
-name = "quant-market-data"
+name = "synodtrade-market-data"
 version = "0.1.0"
 description = "Market/account data updates (IBKR historical bars, live snapshots, account and positions)"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "quant-core",
-    "quant-database",
+    "synodtrade-core",
+    "synodtrade-database",
     "ib_async>=2.0",
     "tenacity>=9.0",
     "httpx>=0.27",
 ]
 
-[project.entry-points."quant.stages"]
-data_update = "quant_market_data.stage:build_data_update_stage"
+[project.entry-points."synodtrade.stages"]
+data_update = "synodtrade_market_data.stage:build_data_update_stage"
 
 [tool.poetry]
-packages = [{ include = "quant_market_data", from = "src" }]
+packages = [{ include = "synodtrade_market_data", from = "src" }]
 
 [tool.poetry.dependencies]
-quant-core = { path = "../core", develop = true }
-quant-database = { path = "../database", develop = true }
+synodtrade-core = { path = "../core", develop = true }
+synodtrade-database = { path = "../database", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

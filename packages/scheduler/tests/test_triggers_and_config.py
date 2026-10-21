@@ -6,8 +6,8 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from quant_core.config import ConfigError, ConfigStore
-from quant_scheduler import (
+from synodtrade_core.config import ConfigError, ConfigStore
+from synodtrade_scheduler import (
     JobConfig,
     MarketRelativeTrigger,
     SchedulesConfig,
