@@ -5,11 +5,11 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from quant_core.agent import Agent
-from quant_core.agent_factory import instantiate_agents
-from quant_core.config import AgentRef, AgentRole, ConfigError, ConfigStore
-from quant_core.llm import FakeLLMClient, InMemoryLLMCallRecorder, LLMClientPool
-from quant_core.registry import AGENTS
+from synodtrade_core.agent import Agent
+from synodtrade_core.agent_factory import instantiate_agents
+from synodtrade_core.config import AgentRef, AgentRole, ConfigError, ConfigStore
+from synodtrade_core.llm import FakeLLMClient, InMemoryLLMCallRecorder, LLMClientPool
+from synodtrade_core.registry import AGENTS
 
 
 class Out(BaseModel):

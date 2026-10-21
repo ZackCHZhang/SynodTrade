@@ -8,9 +8,9 @@ from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from sqlalchemy import create_engine, inspect
 
-from quant_database import migrate
-from quant_database.cli import main
-from quant_database.models import Base
+from synodtrade_database import migrate
+from synodtrade_database.cli import main
+from synodtrade_database.models import Base
 
 
 def _sync_url(path: Path) -> str:

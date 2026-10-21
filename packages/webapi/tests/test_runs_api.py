@@ -7,12 +7,12 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from quant_account_sync import AccountSyncService, BrokerSnapshot
-from quant_core.config import ConfigStore
-from quant_database import Database, Repositories
-from quant_market_data import FakeMarketDataProvider
-from quant_webapi.app import WebSettings, create_app
-from quant_webapi.data import jsonable, mask_url
+from synodtrade_account_sync import AccountSyncService, BrokerSnapshot
+from synodtrade_core.config import ConfigStore
+from synodtrade_database import Database, Repositories
+from synodtrade_market_data import FakeMarketDataProvider
+from synodtrade_webapi.app import WebSettings, create_app
+from synodtrade_webapi.data import jsonable, mask_url
 
 AS_OF = "2026-09-30T14:00:00Z"
 ENV = {"IBKR_ACCOUNT": "DU1234567", "ANTHROPIC_API_KEY": "test-key", "DEEPSEEK_API_KEY": "k"}

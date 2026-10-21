@@ -1,6 +1,6 @@
 """Against a real IB Gateway / TWS (paper). Opt-in:
 
-set QUANT_TEST_IBKR=1
+set SYNODTRADE_TEST_IBKR=1
 set IBKR_PORT=4002            (and IBKR_HOST, IBKR_ACCOUNT as needed)
 python tasks.py integration
 """
@@ -10,13 +10,15 @@ from datetime import timedelta
 
 import pytest
 
-from quant_core.models import Timeframe
-from quant_core.timeutil import utcnow
-from quant_market_data import IBKRMarketDataProvider
+from synodtrade_core.models import Timeframe
+from synodtrade_core.timeutil import utcnow
+from synodtrade_market_data import IBKRMarketDataProvider
 
 pytestmark = [
     pytest.mark.integration,
-    pytest.mark.skipif(os.environ.get("QUANT_TEST_IBKR") != "1", reason="QUANT_TEST_IBKR!=1"),
+    pytest.mark.skipif(
+        os.environ.get("SYNODTRADE_TEST_IBKR") != "1", reason="SYNODTRADE_TEST_IBKR!=1"
+    ),
 ]
 
 

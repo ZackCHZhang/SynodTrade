@@ -1,8 +1,8 @@
-# quant-selection
+# synodtrade-selection
 
 **English** | [简体中文](README.zh-CN.md)
 
-Stock selection: picks the stocks this run follows from a candidate pool. The selection **replaces the run's universe**; the later data, sentiment, decision, risk and trading stages only handle the selected stocks (plus existing holdings). Depends on `quant-core` and `quant-database`.
+Stock selection: picks the stocks this run follows from a candidate pool. The selection **replaces the run's universe**; the later data, sentiment, decision, risk and trading stages only handle the selected stocks (plus existing holdings). Depends on `synodtrade-core` and `synodtrade-database`.
 
 ## Flow
 
@@ -61,9 +61,9 @@ Other `ibkr_scanner` options: `instrument` (default STK), `location` (default `S
 
 The repository ships 22 selection agent configs (`role: selection` in `configs/agents/`), all using the template `prompts/selection_v1.j2`.
 
-To add a selection agent: create a `role: selection` YAML in `configs/agents/` with a persona and `params.instructions`, using the template `prompts/selection_v1.j2`. For entirely different logic, subclass `SelectionAgent`, register it through the entry point `quant.agents` and select it with `impl:` in the agent config.
+To add a selection agent: create a `role: selection` YAML in `configs/agents/` with a persona and `params.instructions`, using the template `prompts/selection_v1.j2`. For entirely different logic, subclass `SelectionAgent`, register it through the entry point `synodtrade.agents` and select it with `impl:` in the agent config.
 
-To add a candidate source: implement core's `CandidateSource` (`name` and `async fetch(as_of) -> list[Candidate]`) and register it through the entry point `quant.candidate_sources`.
+To add a candidate source: implement core's `CandidateSource` (`name` and `async fetch(as_of) -> list[Candidate]`) and register it through the entry point `synodtrade.candidate_sources`.
 
 ## IBKR scanner
 

@@ -1,25 +1,25 @@
 [project]
-name = "quant-trading"
+name = "synodtrade-trading"
 version = "0.1.0"
 description = "Trade execution: positions → orders, idempotency, brokers (IBKR / DryRun), order tracking"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "quant-core",
-    "quant-database",
+    "synodtrade-core",
+    "synodtrade-database",
     "ib_async>=2.0",
 ]
 
-[project.entry-points."quant.stages"]
-trading = "quant_trading.stage:build_trading_stage"
+[project.entry-points."synodtrade.stages"]
+trading = "synodtrade_trading.stage:build_trading_stage"
 
 [tool.poetry]
-packages = [{ include = "quant_trading", from = "src" }]
+packages = [{ include = "synodtrade_trading", from = "src" }]
 
 [tool.poetry.dependencies]
-quant-core = { path = "../core", develop = true }
-quant-database = { path = "../database", develop = true }
+synodtrade-core = { path = "../core", develop = true }
+synodtrade-database = { path = "../database", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

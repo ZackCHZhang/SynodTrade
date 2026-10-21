@@ -1,8 +1,8 @@
-# quant-market-data
+# synodtrade-market-data
 
 **English** | [简体中文](README.zh-CN.md)
 
-Market and account data updates: fetches historical bars, live quotes, account funds and positions from IBKR and writes them to the database. Depends on `quant-core` and `quant-database`.
+Market and account data updates: fetches historical bars, live quotes, account funds and positions from IBKR and writes them to the database. Depends on `synodtrade-core` and `synodtrade-database`.
 
 ## Public API
 
@@ -12,7 +12,7 @@ Market and account data updates: fetches historical bars, live quotes, account f
 - `DataUpdater`:
   - `update(...)`: incremental update of bars, quotes and account; returns an `UpdateReport` (rows written and per-symbol errors).
   - `update_bars(...)`: bars only, for any symbols; this implements core's `BarsRefresher` protocol, which the selection stage uses to fetch candidates' daily bars.
-- `DataUpdateStage`: the `data_update` pipeline stage, registered through the entry point `quant.stages` with the factory `build_data_update_stage(config, services)`. Services:
+- `DataUpdateStage`: the `data_update` pipeline stage, registered through the entry point `synodtrade.stages` with the factory `build_data_update_stage(config, services)`. Services:
   - `repos`: `Repositories`
   - `market_data`: `MarketDataProvider`
   - `account`: `AccountConfig` (optional, to record account snapshots)
@@ -55,7 +55,7 @@ python tasks.py test-market_data
 Tests against a real paper gateway must be enabled explicitly:
 
 ```bash
-export QUANT_TEST_IBKR=1     # Windows: set
+export SYNODTRADE_TEST_IBKR=1     # Windows: set
 export IBKR_PORT=4002
 python tasks.py integration
 ```

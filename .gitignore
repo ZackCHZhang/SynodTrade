@@ -29,7 +29,7 @@ Thumbs.db
 
 # runtime
 logs/
-# JSON summaries saved from `quant run` output in the repo root
+# JSON summaries saved from `synodtrade run` output in the repo root
 /*_run.json
 /paper_*.json
 configs/.web_backups/

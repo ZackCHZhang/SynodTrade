@@ -1,8 +1,8 @@
-# quant-risk
+# synodtrade-risk
 
 [English](README.md) | **简体中文**
 
-风控分两层：确定性硬规则 + 风控 agent（LLM，只能降低风险）。依赖 `quant-core`、`quant-database`。
+风控分两层：确定性硬规则 + 风控 agent（LLM，只能降低风险）。依赖 `synodtrade-core`、`synodtrade-database`。
 
 ## 流程（`risk` 阶段）
 
@@ -66,7 +66,7 @@
 - 看到的内容：
   - 最初的决策和规则调整后的动作；
   - 拟下订单（方向、数量、金额）和组合状态（现金、敞口、今日 / 本周收益等）；
-  - 6 个市场指标（由 `quant_core.indicators` 计算）：最新收盘价、1 日收益、20 日收益、20 日波动率、距 52 周高点、RSI 14；
+  - 6 个市场指标（由 `synodtrade_core.indicators` 计算）：最新收盘价、1 日收益、20 日收益、20 日波动率、距 52 周高点、RSI 14；
   - 各决策 agent 的动作、置信度和理由，舆情摘要，规则命中情况。
 - **"只能降低风险"由代码强制执行**：每次调用都用一个绑定了本次拟定动作的输出模型来校验（`bounded_output`）。模型给出的动作如果比拟定的更激进或方向相反，就算校验失败：先把错误信息反馈给模型重试，仍不合格则按失败策略处理。之后 `RiskVerdict` 模型还会再校验一次。
 - 失败策略 `on_agent_failure`：默认 `reject`，LLM 不可用时拒绝交易（fail-safe）；也可以设为 `approve`，放行硬规则已通过的动作。

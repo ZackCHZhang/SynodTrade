@@ -6,9 +6,9 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from quant_core.indicators import compute_indicators
-from quant_core.models import Bar, Candidate, SelectionPick, SelectionResult
-from quant_selection import (
+from synodtrade_core.indicators import compute_indicators
+from synodtrade_core.models import Bar, Candidate, SelectionPick, SelectionResult
+from synodtrade_selection import (
     CandidateProfile,
     PickOutput,
     ScreenOptions,

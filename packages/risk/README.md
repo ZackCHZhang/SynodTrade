@@ -1,8 +1,8 @@
-# quant-risk
+# synodtrade-risk
 
 **English** | [简体中文](README.zh-CN.md)
 
-Risk control has two layers: deterministic hard rules and risk agents (LLM, which can only reduce risk). Depends on `quant-core` and `quant-database`.
+Risk control has two layers: deterministic hard rules and risk agents (LLM, which can only reduce risk). Depends on `synodtrade-core` and `synodtrade-database`.
 
 ## Flow (`risk` stage)
 
@@ -66,7 +66,7 @@ The hard rules have **no** volatility-based sizing, transaction-cost check, sect
 - What they see:
   - the original decision and the action after the rules;
   - the proposed order (side, quantity, value) and portfolio state (cash, exposure, today's / this week's return...);
-  - 6 market indicators (computed by `quant_core.indicators`): last close, 1-day return, 20-day return, 20-day volatility, distance from the 52-week high, RSI 14;
+  - 6 market indicators (computed by `synodtrade_core.indicators`): last close, 1-day return, 20-day return, 20-day volatility, distance from the 52-week high, RSI 14;
   - each decision agent's action, confidence and reasoning, sentiment summaries and the rule hits.
 - **"Reduce only" is enforced in code**: every call is validated against an output model bound to the proposed action (`bounded_output`). An action more aggressive than proposed, or in the opposite direction, fails validation: the error is fed back for a retry, and if it still fails the failure policy applies. `RiskVerdict` validates once more afterwards.
 - Failure policy `on_agent_failure`: `reject` by default (no trade when the LLM is unavailable — fail-safe); `approve` lets through whatever the hard rules passed.

@@ -4,12 +4,12 @@
 # sentiment, a 5-agent decision vote and 3 risk agents) run once per LLM. They differ ONLY in
 # `name`, `account` (own IBKR client ids, so they can run at once) and `default_model`;
 # tests/test_repo_configs checks that. Each trades its own 100k virtual sub-ledger on the same
-# IBKR paper account, and `quant benchmark` compares them (return, drawdown, LLM cost).
+# IBKR paper account, and `synodtrade benchmark` compares them (return, drawdown, LLM cost).
 #
 # Add a model: copy this file, change those three values, add an account and a schedule job.
 
 name: arena_deepseek
-mode: paper                 # dry_run | paper | live (live also needs QUANT_ALLOW_LIVE=1)
+mode: paper                 # dry_run | paper | live (live also needs SYNODTRADE_ALLOW_LIVE=1)
 account: ibkr_arena_deepseek
 universe: [AAPL, MSFT, NVDA, AMZN, GOOGL, META, JPM, V, COST, LLY]  # fallback only (scanner below)
 benchmark: SPY

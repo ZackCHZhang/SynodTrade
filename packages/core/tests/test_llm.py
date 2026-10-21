@@ -7,7 +7,7 @@ import pytest
 from pydantic import BaseModel, Field
 from tenacity import wait_none
 
-from quant_core.llm import (
+from synodtrade_core.llm import (
     BaseLLMClient,
     FakeLLMClient,
     InMemoryLLMCallRecorder,

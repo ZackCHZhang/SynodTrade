@@ -107,7 +107,7 @@ const NAV: { section?: string; items: { to: string; label: string; icon: React.R
 
 function readMode(): 'light' | 'dark' {
   try {
-    const v = localStorage.getItem('quant-theme');
+    const v = localStorage.getItem('synodtrade-theme');
     if (v === 'light' || v === 'dark') return v;
   } catch {
     /* storage unavailable */
@@ -238,7 +238,7 @@ function Layout() {
                   const next = mode === 'dark' ? 'light' : 'dark';
                   setMode(next);
                   try {
-                    localStorage.setItem('quant-theme', next);
+                    localStorage.setItem('synodtrade-theme', next);
                   } catch {
                     /* ignore */
                   }
@@ -284,7 +284,7 @@ function RouteError() {
         {message}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {t('If the code was just updated, the page and the backend may be out of sync: restart quant-web serve and reload the page.')}
+        {t('If the code was just updated, the page and the backend may be out of sync: restart synodtrade-web serve and reload the page.')}
       </Typography>
       <Button variant="outlined" onClick={() => window.location.assign('/')}>
         {t('Back to overview')}

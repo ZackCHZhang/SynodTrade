@@ -1,30 +1,30 @@
-# quant-core
+# synodtrade-core
 
 **English** | [简体中文](README.zh-CN.md)
 
 Shared foundation: data models, five-tier position sizing, technical indicators, interface protocols, LLM clients, config loading, registries, service container, logging and the live-trading guard.
-It is the root of the dependency graph and depends on no other `quant-*` package.
+It is the root of the dependency graph and depends on no other `synodtrade-*` package.
 
 ## Public API
 
 | Module | Contents |
 |---|---|
-| `quant_core.models` | `Action` (five tiers, with `weight` / `direction` / `nearest()` / `is_reduction_of()`), `Verdict`, `RunMode`, `OrderSide`, `OrderType`, `OrderStatus`, `Timeframe`; market and account: `Instrument`, `Bar`, `Quote`, `Position`, `AccountSnapshot`; analysis results: `Candidate`, `SelectionPick`, `SelectionResult`, `StockSelection`, `SentimentItem`, `SentimentResult`, `Decision`, `Vote`, `AggregatedDecision`, `RuleHit`, `RiskVerdict`; orders: `OrderIntent`, `OrderResult`, `Fill`; `PipelineContext`, `StageError` |
-| `quant_core.sizing` | `size_order()`, `buy_base_amount()`, `spendable_cash()`, `floor_to_lot()`, `SizingConfig`, `BuyBase` |
-| `quant_core.indicators` | `compute_indicators(bars) -> TechnicalSnapshot`: the technical indicators shared by decision, risk and selection (see below) |
-| `quant_core.interfaces` | Protocols: `Stage`, `SentimentSource`, `CandidateSource`, `BarsRefresher` |
-| `quant_core.agent` | `Agent[T]` base class, `AgentResult` |
-| `quant_core.agent_factory` | `instantiate_agents()`, `AgentSlot`: create instances from the pipeline's agent references (`count`, `weight`, `model`) |
-| `quant_core.services` | `Services`: the service container passed to stage factories (`get` / `optional` / `with_`) |
-| `quant_core.llm` | `LLMClient` protocol, `BaseLLMClient`, `AnthropicLLMClient`, `OpenAICompatibleLLMClient`, `FakeLLMClient`, `LLMClientPool` / `create_llm_client()`, `complete_structured()`, `LLMCallRecorder` protocol (`InMemoryLLMCallRecorder`, `NullLLMCallRecorder`) |
-| `quant_core.config` | `ConfigStore`, `PipelineConfig`, `StageConfig.options()`, `AgentConfig`, `AgentRef`, `AccountConfig`, `BudgetConfig`, `LLMModelConfig`, `resolve_model()`, `config_hash()`, `interpolate_env()`, `CANONICAL_STAGE_ORDER` |
-| `quant_core.registry` | `Registry` and the global `STAGES` / `AGENTS` / `SENTIMENT_SOURCES` / `CANDIDATE_SOURCES` (discovered via the entry points `quant.stages` / `quant.agents` / `quant.sentiment_sources` / `quant.candidate_sources`) |
-| `quant_core.logging` | `configure_logging()`, `get_logger()`, `bind_run()`; secret-looking fields are replaced by `***` in logs |
-| `quant_core.safety` | `ensure_mode_allowed()`: `mode: live` passes only with `QUANT_ALLOW_LIVE=1` |
-| `quant_core.timeutil` | `utcnow()`, `to_utc()`, `UtcDatetime`, `EXCHANGE_TZ` (New York), `DISPLAY_TZ` (Berlin) |
-| `quant_core.envfile` | `load_env_file()`: loads `.env` without overriding variables that are already set; skipped when `QUANT_NO_DOTENV=1` |
+| `synodtrade_core.models` | `Action` (five tiers, with `weight` / `direction` / `nearest()` / `is_reduction_of()`), `Verdict`, `RunMode`, `OrderSide`, `OrderType`, `OrderStatus`, `Timeframe`; market and account: `Instrument`, `Bar`, `Quote`, `Position`, `AccountSnapshot`; analysis results: `Candidate`, `SelectionPick`, `SelectionResult`, `StockSelection`, `SentimentItem`, `SentimentResult`, `Decision`, `Vote`, `AggregatedDecision`, `RuleHit`, `RiskVerdict`; orders: `OrderIntent`, `OrderResult`, `Fill`; `PipelineContext`, `StageError` |
+| `synodtrade_core.sizing` | `size_order()`, `buy_base_amount()`, `spendable_cash()`, `floor_to_lot()`, `SizingConfig`, `BuyBase` |
+| `synodtrade_core.indicators` | `compute_indicators(bars) -> TechnicalSnapshot`: the technical indicators shared by decision, risk and selection (see below) |
+| `synodtrade_core.interfaces` | Protocols: `Stage`, `SentimentSource`, `CandidateSource`, `BarsRefresher` |
+| `synodtrade_core.agent` | `Agent[T]` base class, `AgentResult` |
+| `synodtrade_core.agent_factory` | `instantiate_agents()`, `AgentSlot`: create instances from the pipeline's agent references (`count`, `weight`, `model`) |
+| `synodtrade_core.services` | `Services`: the service container passed to stage factories (`get` / `optional` / `with_`) |
+| `synodtrade_core.llm` | `LLMClient` protocol, `BaseLLMClient`, `AnthropicLLMClient`, `OpenAICompatibleLLMClient`, `FakeLLMClient`, `LLMClientPool` / `create_llm_client()`, `complete_structured()`, `LLMCallRecorder` protocol (`InMemoryLLMCallRecorder`, `NullLLMCallRecorder`) |
+| `synodtrade_core.config` | `ConfigStore`, `PipelineConfig`, `StageConfig.options()`, `AgentConfig`, `AgentRef`, `AccountConfig`, `BudgetConfig`, `LLMModelConfig`, `resolve_model()`, `config_hash()`, `interpolate_env()`, `CANONICAL_STAGE_ORDER` |
+| `synodtrade_core.registry` | `Registry` and the global `STAGES` / `AGENTS` / `SENTIMENT_SOURCES` / `CANDIDATE_SOURCES` (discovered via the entry points `synodtrade.stages` / `synodtrade.agents` / `synodtrade.sentiment_sources` / `synodtrade.candidate_sources`) |
+| `synodtrade_core.logging` | `configure_logging()`, `get_logger()`, `bind_run()`; secret-looking fields are replaced by `***` in logs |
+| `synodtrade_core.safety` | `ensure_mode_allowed()`: `mode: live` passes only with `SYNODTRADE_ALLOW_LIVE=1` |
+| `synodtrade_core.timeutil` | `utcnow()`, `to_utc()`, `UtcDatetime`, `EXCHANGE_TZ` (New York), `DISPLAY_TZ` (Berlin) |
+| `synodtrade_core.envfile` | `load_env_file()`: loads `.env` without overriding variables that are already set; skipped when `SYNODTRADE_NO_DOTENV=1` |
 
-## Technical indicators (`quant_core.indicators`)
+## Technical indicators (`synodtrade_core.indicators`)
 
 All computed in code; the LLM never does arithmetic. Input is daily bars, oldest first; a field is `None` when there is not enough history:
 
@@ -44,7 +44,7 @@ There is currently **no** ATR, z-score, ADX, OBV, VWAP or gap statistic.
 Both clients take `api_key` and `base_url` in their constructor:
 
 ```python
-from quant_core.llm import AnthropicLLMClient, OpenAICompatibleLLMClient, StructuredOutputMode
+from synodtrade_core.llm import AnthropicLLMClient, OpenAICompatibleLLMClient, StructuredOutputMode
 
 claude = AnthropicLLMClient(api_key=key, name="anthropic")
 deepseek = OpenAICompatibleLLMClient(
@@ -107,7 +107,7 @@ Schemas of the files under `configs/`:
   - an enabled trading stage needs an enabled risk stage before it, and that risk stage may not use `on_error: skip`
   - no duplicate symbols in the universe; at least one symbol unless there is a selection stage
   - `mode` defaults to `dry_run`
-- The schemas of risk rules and schedules live in `quant-risk` and `quant-scheduler`
+- The schemas of risk rules and schedules live in `synodtrade-risk` and `synodtrade-scheduler`
 
 Strings may reference environment variables as `${VAR}` or `${VAR:-default}`; `$$` is a literal `$`. All missing variables are reported at once.
 

@@ -6,11 +6,11 @@ from typing import Any
 import httpx
 import pytest
 
-from quant_core.config import PipelineConfig, StageConfig
-from quant_core.models import Fundamentals, PipelineContext, RunMode, Timeframe
-from quant_core.services import Services
-from quant_database import Repositories
-from quant_market_data import (
+from synodtrade_core.config import PipelineConfig, StageConfig
+from synodtrade_core.models import Fundamentals, PipelineContext, RunMode, Timeframe
+from synodtrade_core.services import Services
+from synodtrade_database import Repositories
+from synodtrade_market_data import (
     FakeFundamentalsRefresher,
     FakeMarketDataProvider,
     FundamentalsUpdater,
@@ -20,14 +20,14 @@ from quant_market_data import (
     compute_fundamentals,
     generate_daily_bars,
 )
-from quant_market_data.fundamentals import (
+from synodtrade_market_data.fundamentals import (
     insider_activity,
     load_facts,
     parse_form4,
     quarter,
     ttm,
 )
-from quant_market_data.sec_edgar import SecEdgarOptions, sec_ticker
+from synodtrade_market_data.sec_edgar import SecEdgarOptions, sec_ticker
 
 NOW = datetime(2026, 10, 5, 14, 0, tzinfo=UTC)
 FY_START = date(2025, 1, 1)  # calendar fiscal years for readability

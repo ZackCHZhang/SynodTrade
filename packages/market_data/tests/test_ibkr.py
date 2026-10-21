@@ -9,11 +9,11 @@ import pytest
 from ib_async import AccountValue, BarData, Contract, Position, Stock, Ticker
 from tenacity import wait_none
 
-from quant_core.config import AccountConfig
-from quant_core.models import Instrument, Timeframe
-from quant_market_data import IBKRMarketDataProvider, MarketDataError, PacingLimiter
-from quant_market_data.ecb import EcbFxRates
-from quant_market_data.ibkr import bar_from_ib, bar_timestamp, price, quote_from_ticker
+from synodtrade_core.config import AccountConfig
+from synodtrade_core.models import Instrument, Timeframe
+from synodtrade_market_data import IBKRMarketDataProvider, MarketDataError, PacingLimiter
+from synodtrade_market_data.ecb import EcbFxRates
+from synodtrade_market_data.ibkr import bar_from_ib, bar_timestamp, price, quote_from_ticker
 
 D = Decimal
 NOW = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)

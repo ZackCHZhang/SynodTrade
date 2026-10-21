@@ -1,4 +1,4 @@
-# quant-webapi
+# synodtrade-webapi
 
 **English** | [简体中文](README.zh-CN.md)
 
@@ -9,12 +9,12 @@ It sits at the top of the dependency graph (`scheduler ← webapi`) and may use 
 
 ```bash
 python tasks.py web                       # first time: install frontend dependencies and build web/dist
-poetry run quant-web serve                # http://127.0.0.1:8765
-poetry run quant-web serve --db-url sqlite+aiosqlite:///./paper_test.db --port 8000
+poetry run synodtrade-web serve                # http://127.0.0.1:8765
+poetry run synodtrade-web serve --db-url sqlite+aiosqlite:///./paper_test.db --port 8000
 ```
 
-- Options: `--host` (default `127.0.0.1`), `--port` (default 8765), `--configs` (default `./configs`), `--db-url`, `--static` (the built frontend, default `web/dist`), `--init-db` (create tables), `--log-level`. `.env` is loaded (`quant-web --env-file ... serve`).
-- Database: `--db-url` or `QUANT_DATABASE_URL`; without either, the local `./quant_offline.db` (tables created automatically).
+- Options: `--host` (default `127.0.0.1`), `--port` (default 8765), `--configs` (default `./configs`), `--db-url`, `--static` (the built frontend, default `web/dist`), `--init-db` (create tables), `--log-level`. `.env` is loaded (`synodtrade-web --env-file ... serve`).
+- Database: `--db-url` or `SYNODTRADE_DATABASE_URL`; without either, the local `./synodtrade_offline.db` (tables created automatically).
 - Listens on `127.0.0.1` only by default. The console has no login yet can start runs that place orders on a paper (and, if allowed, live) account — **do not expose it**.
 
 ## Features
@@ -23,9 +23,9 @@ poetry run quant-web serve --db-url sqlite+aiosqlite:///./paper_test.db --port 8
 | --- | --- |
 | Config editing | Read and write pipelines, agents, prompt templates, accounts, risk rules, LLM providers and schedules under `configs/`. Validation uses exactly the runtime Pydantic models (including every stage's options and the candidate-source and sentiment-source options) and checks references (accounts, agent roles, LLM providers, risk rules, prompt templates exist); it also lists which pipelines reference an agent / account / risk-rule set. |
 | Safe writes | Validate before saving (syntax errors are always refused, semantic errors can be forced); etags detect concurrent edits (409); backups go to `configs/.web_backups/` before overwrite or delete; the file's line endings (CRLF / LF) are kept. |
-| Runs | Start pipelines inside the server process (dry_run / paper / as configured; optionally offline, a subset of stages, as_of). Offline runs write to a separate sandbox database `./quant_offline.db`, so fake market data never overwrites real data. Runs can be cancelled: connections are closed and the run is marked failed. |
+| Runs | Start pipelines inside the server process (dry_run / paper / as configured; optionally offline, a subset of stages, as_of). Offline runs write to a separate sandbox database `./synodtrade_offline.db`, so fake market data never overwrites real data. Runs can be cancelled: connections are closed and the run is marked failed. |
 | Live progress | A structlog processor pushes log events carrying a `run_id` (including `pipeline.stage_start` / `stage_done`) to the browser (SSE). Runs started from the CLI or a separate scheduler show only their database results. |
-| Scheduler | Preview the next N days of runs (New York / Berlin time); start / stop a scheduler inside the server process (jobs kept in memory); health checks (database, IB Gateway). Do not also run a separate `quant-scheduler run`. |
+| Scheduler | Preview the next N days of runs (New York / Berlin time); start / stop a scheduler inside the server process (jobs kept in memory); health checks (database, IB Gateway). Do not also run a separate `synodtrade-scheduler run`. |
 | Data | Read-only browsing of every table (paging, sorting, filters, full row view); each run's selection, sentiment, decisions, risk, orders, agent instances and full LLM requests / responses; bar charts; each pipeline's virtual sub-ledger and the IBKR account snapshots; the global kill switch. |
 
 ## API overview

@@ -1,27 +1,27 @@
 [project]
-name = "quant-decision"
+name = "synodtrade-decision"
 version = "0.1.0"
 description = "Decision agents, technical indicators, multi-agent decision aggregation"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "quant-core",
-    "quant-database",
+    "synodtrade-core",
+    "synodtrade-database",
 ]
 
-[project.entry-points."quant.stages"]
-decision = "quant_decision.stage:build_decision_stage"
+[project.entry-points."synodtrade.stages"]
+decision = "synodtrade_decision.stage:build_decision_stage"
 
-[project.entry-points."quant.agents"]
-decision = "quant_decision.agent:DecisionAgent"
+[project.entry-points."synodtrade.agents"]
+decision = "synodtrade_decision.agent:DecisionAgent"
 
 [tool.poetry]
-packages = [{ include = "quant_decision", from = "src" }]
+packages = [{ include = "synodtrade_decision", from = "src" }]
 
 [tool.poetry.dependencies]
-quant-core = { path = "../core", develop = true }
-quant-database = { path = "../database", develop = true }
+synodtrade-core = { path = "../core", develop = true }
+synodtrade-database = { path = "../database", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

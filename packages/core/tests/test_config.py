@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from quant_core.config import (
+from synodtrade_core.config import (
     CANONICAL_STAGE_ORDER,
     STAGE_AGENT_ROLE,
     AgentRole,
@@ -21,7 +21,7 @@ from quant_core.config import (
     interpolate_env,
     load_model,
 )
-from quant_core.models import RunMode
+from synodtrade_core.models import RunMode
 
 ENV = {"IBKR_ACCOUNT": "DU123"}
 WriteYaml = Callable[[Path, Any], Path]

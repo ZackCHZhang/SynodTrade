@@ -1,35 +1,35 @@
 [project]
-name = "quant-sentiment"
+name = "synodtrade-sentiment"
 version = "0.1.0"
 description = "Sentiment: source collection (Reddit/Stocktwits) + multi-agent analysis"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "quant-core",
-    "quant-database",
+    "synodtrade-core",
+    "synodtrade-database",
     "asyncpraw>=7.8",
     "httpx>=0.27",
     "ib_async>=2.0",
 ]
 
-[project.entry-points."quant.stages"]
-sentiment = "quant_sentiment.stage:build_sentiment_stage"
+[project.entry-points."synodtrade.stages"]
+sentiment = "synodtrade_sentiment.stage:build_sentiment_stage"
 
-[project.entry-points."quant.agents"]
-sentiment = "quant_sentiment.agent:SentimentAgent"
+[project.entry-points."synodtrade.agents"]
+sentiment = "synodtrade_sentiment.agent:SentimentAgent"
 
-[project.entry-points."quant.sentiment_sources"]
-reddit = "quant_sentiment.sources.reddit:build_reddit_source"
-stocktwits = "quant_sentiment.sources.stocktwits:build_stocktwits_source"
-ibkr_news = "quant_sentiment.sources.ibkr_news:build_ibkr_news_source"
+[project.entry-points."synodtrade.sentiment_sources"]
+reddit = "synodtrade_sentiment.sources.reddit:build_reddit_source"
+stocktwits = "synodtrade_sentiment.sources.stocktwits:build_stocktwits_source"
+ibkr_news = "synodtrade_sentiment.sources.ibkr_news:build_ibkr_news_source"
 
 [tool.poetry]
-packages = [{ include = "quant_sentiment", from = "src" }]
+packages = [{ include = "synodtrade_sentiment", from = "src" }]
 
 [tool.poetry.dependencies]
-quant-core = { path = "../core", develop = true }
-quant-database = { path = "../database", develop = true }
+synodtrade-core = { path = "../core", develop = true }
+synodtrade-database = { path = "../database", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

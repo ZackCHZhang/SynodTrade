@@ -14,7 +14,7 @@
 一组组 LLM agent 负责选股、读舆情、对交易投票、互相把关风险，<br>
 而资金、硬性风控和下单始终由确定性代码掌控。
 
-[![CI](https://github.com/ZackCHZhang/ROOT/actions/workflows/ci.yml/badge.svg)](https://github.com/ZackCHZhang/ROOT/actions/workflows/ci.yml)
+[![CI](https://github.com/ZackCHZhang/synodtrade/actions/workflows/ci.yml/badge.svg)](https://github.com/ZackCHZhang/synodtrade/actions/workflows/ci.yml)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)
 ![mypy strict](https://img.shields.io/badge/mypy-strict-2a6db2)
 ![Ruff](https://img.shields.io/badge/lint-ruff-D7FF64?logo=ruff&logoColor=black)
@@ -31,7 +31,7 @@
 ---
 
 > [!WARNING]
-> 本项目是研究用软件，不构成任何投资建议。**默认只以 paper / dry-run 模式运行**：实盘需要流水线配置 `mode: live`，**并且**环境变量 `QUANT_ALLOW_LIVE=1`。使用风险自负。
+> 本项目是研究用软件，不构成任何投资建议。**默认只以 paper / dry-run 模式运行**：实盘需要流水线配置 `mode: live`，**并且**环境变量 `SYNODTRADE_ALLOW_LIVE=1`。使用风险自负。
 
 ## ✨ 特性
 
@@ -74,11 +74,11 @@ flowchart LR
 core ← database ← {market_data, selection, sentiment, decision, risk, trading} ← account_sync ← pipeline ← scheduler ← webapi
 ```
 
-业务包之间从不互相 import，而是通过 `quant_core.interfaces` 中的协议协作，由 pipeline 注入实现（CI 中由 [import-linter](https://github.com/seddonym/import-linter) 检查）。
+业务包之间从不互相 import，而是通过 `synodtrade_core.interfaces` 中的协议协作，由 pipeline 注入实现（CI 中由 [import-linter](https://github.com/seddonym/import-linter) 检查）。
 
 ## 📊 模拟盘基准
 
-SynodTrade 公开自己的交易表现。每条在 IBKR 模拟账户（paper）上交易的流水线，都会用它真实的模拟成交生成每日净值曲线，并与基准（默认 SPY）对比，同时列出它用的 LLM 模型和 LLM 调用花了多少钱。运行 `poetry run quant benchmark` 会重新生成 [`benchmark/`](benchmark/README.zh-CN.md) 目录（页面、图表和原始数据）以及下面的概览。
+SynodTrade 公开自己的交易表现。每条在 IBKR 模拟账户（paper）上交易的流水线，都会用它真实的模拟成交生成每日净值曲线，并与基准（默认 SPY）对比，同时列出它用的 LLM 模型和 LLM 调用花了多少钱。运行 `poetry run synodtrade benchmark` 会重新生成 [`benchmark/`](benchmark/README.zh-CN.md) 目录（页面、图表和原始数据）以及下面的概览。
 
 **模型擂台。** `configs/pipelines/arena_*.yaml` 把完全相同的一条流水线（选股、情绪、5 个 agent 投票决策、3 个风控 agent）按每个 LLM 各跑一份，每份在同一个 IBKR 模拟账户里有自己 10 万的虚拟子账本。它们之间只有 `default_model`（以及 IBKR client id）不同，有测试保证这一点，所以基准比较的只是模型本身：通过 [OpenRouter](https://openrouter.ai) 接入的 DeepSeek、Qwen、GLM、GPT 和 Claude，都是低价模型。`arena_solo_*.yaml` 让同样这些模型跑这条流水线的单 agent 版本（每个环节只有一个 agent），用少得多的 LLM 调用看出多 agent 到底带来了多少差别。
 
@@ -97,20 +97,20 @@ SynodTrade 公开自己的交易表现。每条在 IBKR 模拟账户（paper）�
 需要 **Python 3.12**、**Poetry 2.x**；Web 控制台另需 Node.js ≥ 20。
 
 ```bash
-git clone https://github.com/ZackCHZhang/ROOT.git synodtrade && cd synodtrade
+git clone https://github.com/ZackCHZhang/synodtrade.git synodtrade && cd synodtrade
 python tasks.py install                                   # 根目录一个共享 .venv，所有包 editable 安装
 
-poetry run quant validate                                 # 校验 configs/ 下的全部配置
-poetry run quant run -p long_term_stocks --offline        # 完整跑一遍：无需网关、API key 和网络
+poetry run synodtrade validate                                 # 校验 configs/ 下的全部配置
+poetry run synodtrade run -p long_term_stocks --offline        # 完整跑一遍：无需网关、API key 和网络
 ```
 
 ### 真正运行（先用 paper）
 
-1. `cp .env.example .env`，填写 IBKR 账户、LLM API key 和数据库地址。命令行默认读取当前目录的 `.env`（`--env-file` 可改，`QUANT_NO_DOTENV=1` 可关闭）。
-2. 启动 Postgres 和 IB Gateway（`docker compose up -d postgres`，或者见下文一次启动全部），然后执行 `poetry run quant-db upgrade` 建表。
-3. 先用 `poetry run quant run -p long_term_stocks --dry-run` 演练（真实数据和 LLM，只记录订单不下单）。
-4. 按配置里的 `mode` 运行（自带的流水线都是 `mode: paper`）。订单是否成交由账户同步负责：每次运行的第 1 步、Web 控制台运行期间每 20 分钟一次，或手动执行 `quant-sync once`。
-5. 定时运行：先用 `quant-scheduler plan` 查看排程，再 `quant-scheduler run`；也可以用 `docker compose up -d` 一次启动 Postgres、IB Gateway 和调度器。
+1. `cp .env.example .env`，填写 IBKR 账户、LLM API key 和数据库地址。命令行默认读取当前目录的 `.env`（`--env-file` 可改，`SYNODTRADE_NO_DOTENV=1` 可关闭）。
+2. 启动 Postgres 和 IB Gateway（`docker compose up -d postgres`，或者见下文一次启动全部），然后执行 `poetry run synodtrade-db upgrade` 建表。
+3. 先用 `poetry run synodtrade run -p long_term_stocks --dry-run` 演练（真实数据和 LLM，只记录订单不下单）。
+4. 按配置里的 `mode` 运行（自带的流水线都是 `mode: paper`）。订单是否成交由账户同步负责：每次运行的第 1 步、Web 控制台运行期间每 20 分钟一次，或手动执行 `synodtrade-sync once`。
+5. 定时运行：先用 `synodtrade-scheduler plan` 查看排程，再 `synodtrade-scheduler run`；也可以用 `docker compose up -d` 一次启动 Postgres、IB Gateway 和调度器。
 
 > [!NOTE]
 > `ib_async` 连接的是 **TWS / IB Gateway 的 socket API**（paper 端口 4002 / 7497），不是 Client Portal Web API（端口 5000）。
@@ -119,7 +119,7 @@ poetry run quant run -p long_term_stocks --offline        # 完整跑一遍：�
 
 ```bash
 python tasks.py web                 # 安装前端依赖并构建 web/dist
-poetry run quant-web serve          # http://127.0.0.1:8765
+poetry run synodtrade-web serve          # http://127.0.0.1:8765
 ```
 
 - **总览**：熔断开关、调度器状态、正在运行的任务、最近运行和每条流水线的净值。
@@ -178,7 +178,7 @@ default_model: { provider: openrouter, name: deepseek/deepseek-v4.1-flash, max_t
 | [`risk`](packages/risk/README.zh-CN.md) | 硬规则引擎与风控 agent |
 | [`trading`](packages/trading/README.zh-CN.md) | 订单构建、券商（IBKR / DryRun / Simulated）、订单跟踪 |
 | [`account_sync`](packages/account_sync/README.zh-CN.md) | 成交、迟到的成交、快照与账本核对 |
-| [`pipeline`](packages/pipeline/README.zh-CN.md) | 从 YAML 构建并运行流水线；`quant` 命令行 |
+| [`pipeline`](packages/pipeline/README.zh-CN.md) | 从 YAML 构建并运行流水线；`synodtrade` 命令行 |
 | [`scheduler`](packages/scheduler/README.zh-CN.md) | 按交易所日历调度、健康检查、告警 |
 | [`webapi`](packages/webapi/README.zh-CN.md) + [`web`](web/README.zh-CN.md) | FastAPI 后端与 React 控制台 |
 
@@ -195,7 +195,7 @@ python tasks.py integration  # 需要真实 IBKR / LLM / Postgres 的测试
 
 ```
 configs/     运行时 YAML 配置（不打包）
-packages/    每个目录一个 Poetry 包：quant-<名称>，源码在 src/quant_<名称>/
+packages/    每个目录一个 Poetry 包：synodtrade-<名称>，源码在 src/synodtrade_<名称>/
 web/         Web 控制台前端（React + MUI + Vite）
 scripts/     手动运行的 IBKR 检查脚本（ibkr_check.py 只读；paper_order_smoke.py 向 paper 账户下一笔单）
 tests/       跨包集成测试（默认不运行）
@@ -204,7 +204,7 @@ tasks.py     跨平台任务入口
 
 ## 🚧 当前限制
 
-- **还没有回测引擎。** 所有读取都支持 `as_of`，`quant run --as-of` 可以回放单个时间点，但没有逐日回放和绩效报告。
+- **还没有回测引擎。** 所有读取都支持 `as_of`，`synodtrade run --as-of` 可以回放单个时间点，但没有逐日回放和绩效报告。
 - **Agent 只知道代码给它看的数据。** 部分 agent 的说明里提到了系统没有提供的数据（例如利率等宏观数据），模型只能根据已有信息推断。
 - **只支持 IBKR。** 券商层是一个协议，但目前只有 IBKR 的实现（另有 dry-run 和模拟券商）。
 
@@ -224,8 +224,6 @@ SynodTrade 采用 **[Apache License 2.0](LICENSE)** 开源。简单来说：
 - 分发时要保留版权和许可声明（以及 [`NOTICE`](NOTICE) 文件），并标明你改动过的文件。
 - 许可证包含每位贡献者的专利授权。
 - 本软件**不提供任何担保**，它下的每一笔交易都由你自己负责。
-
-2026 年 10 月之前发布的版本采用 AGPL-3.0-or-later；按那些条款获得的副本继续适用原条款。
 
 Interactive Brokers、IBKR、TWS 和 IB Gateway 是 Interactive Brokers LLC 的商标。本项目是独立项目，与 Interactive Brokers 没有任何关联，也未获其认可或赞助。
 

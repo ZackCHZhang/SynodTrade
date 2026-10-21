@@ -5,11 +5,11 @@ from uuid import uuid4
 
 import pytest
 
-from quant_core import registry as registry_module
-from quant_core.logging import REDACTED, bind_run, configure_logging, get_logger
-from quant_core.models import RunMode
-from quant_core.registry import AGENTS, SENTIMENT_SOURCES, STAGES, Registry, RegistryError
-from quant_core.safety import (
+from synodtrade_core import registry as registry_module
+from synodtrade_core.logging import REDACTED, bind_run, configure_logging, get_logger
+from synodtrade_core.models import RunMode
+from synodtrade_core.registry import AGENTS, SENTIMENT_SOURCES, STAGES, Registry, RegistryError
+from synodtrade_core.safety import (
     ALLOW_LIVE_ENV,
     LiveTradingNotAllowedError,
     ensure_mode_allowed,
@@ -69,12 +69,12 @@ def test_entry_points_are_loaded_lazily(monkeypatch: pytest.MonkeyPatch) -> None
         return [_FakeEntryPoint("plugin", 42), _FakeEntryPoint("local", 99)]
 
     monkeypatch.setattr(registry_module, "entry_points", fake_entry_points)
-    reg: Registry[int] = Registry("stage", "quant.test")
+    reg: Registry[int] = Registry("stage", "synodtrade.test")
     reg.register("local", 1)
     assert reg.get("local") == 1  # explicit registration wins, no lookup needed
     assert seen == []
     assert reg.get("plugin") == 42
-    assert seen == ["quant.test"]
+    assert seen == ["synodtrade.test"]
     assert reg.names() == ["local", "plugin"]
     assert reg.get("local") == 1
 
@@ -86,9 +86,9 @@ def test_no_entry_point_group() -> None:
 
 
 def test_global_registries() -> None:
-    assert STAGES.entry_point_group == "quant.stages"
-    assert AGENTS.entry_point_group == "quant.agents"
-    assert SENTIMENT_SOURCES.entry_point_group == "quant.sentiment_sources"
+    assert STAGES.entry_point_group == "synodtrade.stages"
+    assert AGENTS.entry_point_group == "synodtrade.agents"
+    assert SENTIMENT_SOURCES.entry_point_group == "synodtrade.sentiment_sources"
 
 
 # ------------------------------------------------------------------ logging

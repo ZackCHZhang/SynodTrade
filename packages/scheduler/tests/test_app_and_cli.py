@@ -8,12 +8,12 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-import quant_scheduler.app as app_module
-from quant_core.config import ConfigStore
-from quant_core.models import RunMode, StageError
-from quant_database import Database, RunStatus
-from quant_pipeline import PipelineBusyError, RunOptions, RunReport
-from quant_scheduler import (
+import synodtrade_scheduler.app as app_module
+from synodtrade_core.config import ConfigStore
+from synodtrade_core.models import RunMode, StageError
+from synodtrade_database import Database, RunStatus
+from synodtrade_pipeline import PipelineBusyError, RunOptions, RunReport
+from synodtrade_scheduler import (
     HealthChecker,
     Level,
     SchedulerApp,
@@ -21,7 +21,7 @@ from quant_scheduler import (
     run_scheduled_job,
     sync_jobstore_url,
 )
-from quant_scheduler.cli import app as cli_app
+from synodtrade_scheduler.cli import app as cli_app
 
 # The model arena's scheduled pipelines (configs/schedules.yaml): multi-agent and single-agent,
 # three runs per trading day each.
@@ -232,7 +232,7 @@ def test_cli_check_reports_unreachable_gateway(
 
 def test_cli_invalid_config_and_missing_db(configs: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("IBKR_ACCOUNT", raising=False)
-    monkeypatch.delenv("QUANT_DATABASE_URL", raising=False)
+    monkeypatch.delenv("SYNODTRADE_DATABASE_URL", raising=False)
     result = CliRunner().invoke(cli_app, ["check", "--configs", str(configs)])
     assert result.exit_code == 1
     assert "invalid configuration" in result.output

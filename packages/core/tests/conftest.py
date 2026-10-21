@@ -1,4 +1,4 @@
-"""Shared fixtures for quant_core tests."""
+"""Shared fixtures for synodtrade_core tests."""
 
 import copy
 from collections.abc import Callable

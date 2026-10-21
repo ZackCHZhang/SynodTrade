@@ -1,11 +1,11 @@
-"""Shared fixtures for quant_market_data tests (SQLite, fake provider; no network)."""
+"""Shared fixtures for synodtrade_market_data tests (SQLite, fake provider; no network)."""
 
 from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pytest
 
-from quant_database import Database, Repositories
+from synodtrade_database import Database, Repositories
 
 
 @pytest.fixture

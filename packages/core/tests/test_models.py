@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from quant_core.models import (
+from synodtrade_core.models import (
     Action,
     Bar,
     Instrument,
@@ -22,7 +22,7 @@ from quant_core.models import (
     Timeframe,
     Verdict,
 )
-from quant_core.timeutil import DISPLAY_TZ, EXCHANGE_TZ, to_utc, utcnow
+from synodtrade_core.timeutil import DISPLAY_TZ, EXCHANGE_TZ, to_utc, utcnow
 
 D = Decimal
 TS = datetime(2026, 9, 24, 13, 30, tzinfo=UTC)

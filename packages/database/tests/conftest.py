@@ -1,7 +1,7 @@
-"""Shared fixtures for quant_database tests.
+"""Shared fixtures for synodtrade_database tests.
 
-Every repository test runs against SQLite (a temp file). Set QUANT_TEST_DATABASE_URL to a
-throwaway PostgreSQL database (e.g. postgresql+asyncpg://quant:pw@localhost:5432/quant_test)
+Every repository test runs against SQLite (a temp file). Set SYNODTRADE_TEST_DATABASE_URL to a
+throwaway PostgreSQL database (e.g. postgresql+asyncpg://quant:pw@localhost:5432/synodtrade_test)
 and run `python tasks.py integration` to run the same tests against PostgreSQL as well.
 """
 
@@ -13,10 +13,10 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from quant_core.models import RunMode
-from quant_database import Database, PipelineRun, Repositories
+from synodtrade_core.models import RunMode
+from synodtrade_database import Database, PipelineRun, Repositories
 
-TEST_PG_ENV = "QUANT_TEST_DATABASE_URL"
+TEST_PG_ENV = "SYNODTRADE_TEST_DATABASE_URL"
 T0 = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)
 
 

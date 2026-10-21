@@ -1,28 +1,28 @@
 [project]
-name = "quant-risk"
+name = "synodtrade-risk"
 version = "0.1.0"
 description = "Risk: deterministic hard-rule engine + risk agents (can only reduce risk)"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "quant-core",
-    "quant-database",
+    "synodtrade-core",
+    "synodtrade-database",
     "exchange-calendars>=4.5",
 ]
 
-[project.entry-points."quant.stages"]
-risk = "quant_risk.stage:build_risk_stage"
+[project.entry-points."synodtrade.stages"]
+risk = "synodtrade_risk.stage:build_risk_stage"
 
-[project.entry-points."quant.agents"]
-risk = "quant_risk.agent:RiskAgent"
+[project.entry-points."synodtrade.agents"]
+risk = "synodtrade_risk.agent:RiskAgent"
 
 [tool.poetry]
-packages = [{ include = "quant_risk", from = "src" }]
+packages = [{ include = "synodtrade_risk", from = "src" }]
 
 [tool.poetry.dependencies]
-quant-core = { path = "../core", develop = true }
-quant-database = { path = "../database", develop = true }
+synodtrade-core = { path = "../core", develop = true }
+synodtrade-database = { path = "../database", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

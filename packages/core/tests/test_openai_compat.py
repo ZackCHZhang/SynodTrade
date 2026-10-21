@@ -10,7 +10,7 @@ from openai.types.chat import ChatCompletion
 from pydantic import BaseModel
 from tenacity import wait_none
 
-from quant_core.llm import (
+from synodtrade_core.llm import (
     FakeLLMClient,
     LLMError,
     LLMMessage,

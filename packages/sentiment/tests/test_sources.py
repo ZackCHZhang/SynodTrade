@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 import pytest
 
-from quant_sentiment.sources import (
+from synodtrade_sentiment.sources import (
     FakeSentimentSource,
     RedditOptions,
     RedditSource,
@@ -17,7 +17,7 @@ from quant_sentiment.sources import (
     StocktwitsSource,
     build_stocktwits_source,
 )
-from quant_sentiment.sources.reddit import time_filter
+from synodtrade_sentiment.sources.reddit import time_filter
 
 NOW = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)
 SINCE = NOW - timedelta(hours=24)

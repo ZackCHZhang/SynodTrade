@@ -2,8 +2,8 @@ from decimal import Decimal
 
 import pytest
 
-from quant_core.models import ACTION_TO_WEIGHT, Action, OrderSide
-from quant_core.sizing import (
+from synodtrade_core.models import ACTION_TO_WEIGHT, Action, OrderSide
+from synodtrade_core.sizing import (
     BuyBase,
     SizingConfig,
     buy_base_amount,

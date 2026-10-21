@@ -1,4 +1,4 @@
-"""Shared fixtures for quant_pipeline tests: the repo's real configs, SQLite, fakes only."""
+"""Shared fixtures for synodtrade_pipeline tests: the repo's real configs, SQLite, fakes only."""
 
 import shutil
 from collections.abc import AsyncIterator, Callable
@@ -9,14 +9,14 @@ from typing import Any
 
 import pytest
 
-from quant_core.config import ConfigStore
-from quant_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
-from quant_core.models import SentimentItem
-from quant_database import Database
-from quant_pipeline import offline_market_data, schema_reply
-from quant_risk import AlwaysOpenClock
-from quant_sentiment.sources import FakeSentimentSource
-from quant_trading import SimulatedBroker
+from synodtrade_core.config import ConfigStore
+from synodtrade_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
+from synodtrade_core.models import SentimentItem
+from synodtrade_database import Database
+from synodtrade_pipeline import offline_market_data, schema_reply
+from synodtrade_risk import AlwaysOpenClock
+from synodtrade_sentiment.sources import FakeSentimentSource
+from synodtrade_trading import SimulatedBroker
 
 REPO_CONFIGS = Path(__file__).resolve().parents[3] / "configs"
 AS_OF = datetime(2026, 10, 1, 14, 0, tzinfo=UTC)  # Thursday 10:00 New York

@@ -14,7 +14,7 @@ A multi-agent LLM trading system for Interactive Brokers, built for safety, audi
 Teams of LLM agents pick stocks, read the crowd, vote on trades and check each other's risk,<br>
 while deterministic code holds the money, enforces the hard limits and places the orders.
 
-[![CI](https://github.com/ZackCHZhang/ROOT/actions/workflows/ci.yml/badge.svg)](https://github.com/ZackCHZhang/ROOT/actions/workflows/ci.yml)
+[![CI](https://github.com/ZackCHZhang/synodtrade/actions/workflows/ci.yml/badge.svg)](https://github.com/ZackCHZhang/synodtrade/actions/workflows/ci.yml)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)
 ![mypy strict](https://img.shields.io/badge/mypy-strict-2a6db2)
 ![Ruff](https://img.shields.io/badge/lint-ruff-D7FF64?logo=ruff&logoColor=black)
@@ -31,7 +31,7 @@ while deterministic code holds the money, enforces the hard limits and places th
 ---
 
 > [!WARNING]
-> This is research software, not financial advice. It runs in **paper / dry-run mode by default**: live trading needs both `mode: live` in the pipeline **and** `QUANT_ALLOW_LIVE=1` in the environment. Use it at your own risk.
+> This is research software, not financial advice. It runs in **paper / dry-run mode by default**: live trading needs both `mode: live` in the pipeline **and** `SYNODTRADE_ALLOW_LIVE=1` in the environment. Use it at your own risk.
 
 ## ✨ Features
 
@@ -74,11 +74,11 @@ Under the hood it is a Python monorepo of small Poetry packages with a strictly 
 core ← database ← {market_data, selection, sentiment, decision, risk, trading} ← account_sync ← pipeline ← scheduler ← webapi
 ```
 
-Business packages never import each other. They cooperate through protocols in `quant_core.interfaces`, and the pipeline injects the implementations ([import-linter](https://github.com/seddonym/import-linter) checks this in CI).
+Business packages never import each other. They cooperate through protocols in `synodtrade_core.interfaces`, and the pipeline injects the implementations ([import-linter](https://github.com/seddonym/import-linter) checks this in CI).
 
 ## 📊 Paper benchmark
 
-SynodTrade publishes its own track record. Every pipeline that trades an IBKR paper account gets a daily equity curve built from its real paper fills, measured against its benchmark (SPY by default), together with the LLM models it runs on and what its LLM calls cost. `poetry run quant benchmark` regenerates the [`benchmark/`](benchmark/README.md) folder (pages, chart and raw data) and the summary below.
+SynodTrade publishes its own track record. Every pipeline that trades an IBKR paper account gets a daily equity curve built from its real paper fills, measured against its benchmark (SPY by default), together with the LLM models it runs on and what its LLM calls cost. `poetry run synodtrade benchmark` regenerates the [`benchmark/`](benchmark/README.md) folder (pages, chart and raw data) and the summary below.
 
 **Model arena.** `configs/pipelines/arena_*.yaml` run the very same pipeline (selection, sentiment, a 5-agent decision vote and 3 risk agents) once per LLM, each with its own 100k virtual sub-ledger on one IBKR paper account. They differ only in `default_model` (and their IBKR client ids), which a test enforces, so the benchmark compares models and nothing else: DeepSeek, Qwen, GLM, GPT and Claude through [OpenRouter](https://openrouter.ai), all low-cost models. `arena_solo_*.yaml` run the same models through a single-agent version of that pipeline (one agent per stage), which shows what the extra agents add for a fraction of the LLM calls.
 
@@ -97,20 +97,20 @@ SynodTrade publishes its own track record. Every pipeline that trades an IBKR pa
 Requirements: **Python 3.12**, **Poetry 2.x**, and Node.js ≥ 20 for the web console.
 
 ```bash
-git clone https://github.com/ZackCHZhang/ROOT.git synodtrade && cd synodtrade
+git clone https://github.com/ZackCHZhang/synodtrade.git synodtrade && cd synodtrade
 python tasks.py install                                   # one shared .venv, every package editable
 
-poetry run quant validate                                 # validate everything under configs/
-poetry run quant run -p long_term_stocks --offline        # full run: no gateway, no API keys, no network
+poetry run synodtrade validate                                 # validate everything under configs/
+poetry run synodtrade run -p long_term_stocks --offline        # full run: no gateway, no API keys, no network
 ```
 
 ### Going for real (paper first)
 
-1. `cp .env.example .env` and fill in your IBKR account, LLM API keys and database URL. The CLIs read `./.env` by default (`--env-file` changes it, `QUANT_NO_DOTENV=1` turns it off).
-2. Start Postgres and IB Gateway (`docker compose up -d postgres`, or the whole stack, see below), then create the tables with `poetry run quant-db upgrade`.
-3. Rehearse with `poetry run quant run -p long_term_stocks --dry-run` (real data and LLMs, orders recorded but not placed).
-4. Run with the config's `mode` (the bundled pipelines use `mode: paper`). Fills are picked up by account sync: as step 1 of each run, every 20 minutes while the web console runs, or on demand with `quant-sync once`.
-5. Schedule it: preview with `quant-scheduler plan`, then `quant-scheduler run`, or bring up Postgres, IB Gateway and the scheduler together with `docker compose up -d`.
+1. `cp .env.example .env` and fill in your IBKR account, LLM API keys and database URL. The CLIs read `./.env` by default (`--env-file` changes it, `SYNODTRADE_NO_DOTENV=1` turns it off).
+2. Start Postgres and IB Gateway (`docker compose up -d postgres`, or the whole stack, see below), then create the tables with `poetry run synodtrade-db upgrade`.
+3. Rehearse with `poetry run synodtrade run -p long_term_stocks --dry-run` (real data and LLMs, orders recorded but not placed).
+4. Run with the config's `mode` (the bundled pipelines use `mode: paper`). Fills are picked up by account sync: as step 1 of each run, every 20 minutes while the web console runs, or on demand with `synodtrade-sync once`.
+5. Schedule it: preview with `synodtrade-scheduler plan`, then `synodtrade-scheduler run`, or bring up Postgres, IB Gateway and the scheduler together with `docker compose up -d`.
 
 > [!NOTE]
 > `ib_async` talks to the **TWS / IB Gateway socket API** (paper ports 4002 / 7497), not to the Client Portal Web API (port 5000).
@@ -119,7 +119,7 @@ poetry run quant run -p long_term_stocks --offline        # full run: no gateway
 
 ```bash
 python tasks.py web                 # install frontend dependencies and build web/dist
-poetry run quant-web serve          # http://127.0.0.1:8765
+poetry run synodtrade-web serve          # http://127.0.0.1:8765
 ```
 
 - **Overview**: kill switch, scheduler state, running jobs, recent runs and each pipeline's NAV.
@@ -178,7 +178,7 @@ Secrets never go into `configs/`: files reference them as `${ENV_VAR}` and the v
 | [`risk`](packages/risk/README.md) | Hard-rule engine and risk agents |
 | [`trading`](packages/trading/README.md) | Order construction, brokers (IBKR / DryRun / Simulated), order tracking |
 | [`account_sync`](packages/account_sync/README.md) | Fills, late fills, snapshots and ledger reconciliation |
-| [`pipeline`](packages/pipeline/README.md) | Builds pipelines from YAML and runs them; the `quant` CLI |
+| [`pipeline`](packages/pipeline/README.md) | Builds pipelines from YAML and runs them; the `synodtrade` CLI |
 | [`scheduler`](packages/scheduler/README.md) | Exchange-calendar scheduling, health checks, alerts |
 | [`webapi`](packages/webapi/README.md) + [`web`](web/README.md) | FastAPI backend and React console |
 
@@ -195,7 +195,7 @@ Unit tests cannot reach the network (pytest-socket, loopback only); tests that n
 
 ```
 configs/     runtime YAML configuration (not packaged)
-packages/    one Poetry package per folder: quant-<name>, sources in src/quant_<name>/
+packages/    one Poetry package per folder: synodtrade-<name>, sources in src/synodtrade_<name>/
 web/         web console frontend (React + MUI + Vite)
 scripts/     manual IBKR checks (ibkr_check.py is read-only; paper_order_smoke.py places one paper order)
 tests/       cross-package integration tests (not run by default)
@@ -204,7 +204,7 @@ tasks.py     cross-platform task runner
 
 ## 🚧 Limitations
 
-- **No backtesting engine yet.** Every read honours `as_of` and `quant run --as-of` replays a single point in time, but there is no day-by-day replay or performance report.
+- **No backtesting engine yet.** Every read honours `as_of` and `synodtrade run --as-of` replays a single point in time, but there is no day-by-day replay or performance report.
 - **Agents only know what the code shows them.** Some agents' instructions mention data the system does not provide (for example rates and other macro data); the model can only infer it from what it sees.
 - **IBKR only.** The broker layer is a protocol, but IBKR (plus dry-run and simulated brokers) is the only implementation.
 
@@ -224,7 +224,5 @@ SynodTrade is open source under the **[Apache License 2.0](LICENSE)**. In short:
 - Keep the copyright and license notices (and the [`NOTICE`](NOTICE) file) in copies you distribute, and mark files you changed.
 - The license includes a patent grant from every contributor.
 - It comes with **no warranty**. You are responsible for any trades it places.
-
-Versions published before October 2026 were licensed under AGPL-3.0-or-later; copies obtained under those terms remain under them.
 
 Interactive Brokers, IBKR, TWS and IB Gateway are trademarks of Interactive Brokers LLC. This project is independent and is not affiliated with, endorsed by or sponsored by Interactive Brokers.

@@ -1,4 +1,4 @@
-# quant-account-sync
+# synodtrade-account-sync
 
 **English** | [简体中文](README.zh-CN.md)
 
@@ -16,13 +16,13 @@ Orders of pipelines that are still running are left alone (their own trading sta
 ## When it syncs
 
 - **First pipeline step**: live paper / live runs (no `--as-of`) sync the pipeline's account before any stage (other pipelines on the same account are synced too); run details show it as step 1, "Account sync". `--offline`, `--dry-run` and `--as-of` replays do not sync.
-- **On a timer**: inside the web console process, every `interval_minutes` (default 20) for all accounts; the "Account sync" page can change it, turn it off, or sync right away. Without the web console, use `quant-sync loop`.
-- **Manually**: `quant-sync once`, or "Sync now" in the web console.
+- **On a timer**: inside the web console process, every `interval_minutes` (default 20) for all accounts; the "Account sync" page can change it, turn it off, or sync right away. Without the web console, use `synodtrade-sync loop`.
+- **Manually**: `synodtrade-sync once`, or "Sync now" in the web console.
 
 ## Configuration: `configs/account_sync.yaml`
 
 ```yaml
-enabled: true                  # scheduled sync (web console / quant-sync loop)
+enabled: true                  # scheduled sync (web console / synodtrade-sync loop)
 interval_minutes: 20
 before_pipeline: true          # sync before every paper/live run
 required_before_pipeline: false  # true: a failed sync fails the whole run (default: log it and continue)
@@ -37,8 +37,8 @@ Without the file, the defaults above apply.
 ## Command line
 
 ```bash
-quant-sync once  --db-url sqlite+aiosqlite:///./paper_test.db   # sync once and print the changes
-quant-sync loop  --db-url ...                                    # keep syncing every interval_minutes
+synodtrade-sync once  --db-url sqlite+aiosqlite:///./paper_test.db   # sync once and print the changes
+synodtrade-sync loop  --db-url ...                                    # keep syncing every interval_minutes
 ```
 
 Note: by default IBKR only keeps the current day's executions (TWS can raise this to 7 days under Global Configuration > API > Settings). The shorter the sync interval, the less likely execution details are missed.

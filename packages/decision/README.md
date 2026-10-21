@@ -1,8 +1,8 @@
-# quant-decision
+# synodtrade-decision
 
 **English** | [简体中文](README.zh-CN.md)
 
-Decision: builds each symbol's decision context, runs the decision agents and aggregates their votes. Technical indicators are computed by `quant_core.indicators` (shared with risk and selection); this package only re-exports them. Depends on `quant-core` and `quant-database`.
+Decision: builds each symbol's decision context, runs the decision agents and aggregates their votes. Technical indicators are computed by `synodtrade_core.indicators` (shared with risk and selection); this package only re-exports them. Depends on `synodtrade-core` and `synodtrade-database`.
 
 ## Flow (`decision` stage)
 
@@ -63,7 +63,7 @@ Votes below `min_confidence` (default 0) and fallback votes of failed agents cou
   history_limit: 5            # 0–50, default 5
 ```
 
-The repository ships 21 decision agent configs (files with `role: decision` in `configs/agents/`, e.g. `value_investor`, `trend_follower`, `pullback_buyer`, `mean_reversion_swing`, `breakout_trader`). All use the same implementation `DecisionAgent` (`decision` in the `quant.agents` entry point) and the same template `configs/agents/prompts/decision_v1.j2`; they differ only in persona and `params.instructions`. The model is chosen in the pipeline's agent reference.
+The repository ships 21 decision agent configs (files with `role: decision` in `configs/agents/`, e.g. `value_investor`, `trend_follower`, `pullback_buyer`, `mean_reversion_swing`, `breakout_trader`). All use the same implementation `DecisionAgent` (`decision` in the `synodtrade.agents` entry point) and the same template `configs/agents/prompts/decision_v1.j2`; they differ only in persona and `params.instructions`. The model is chosen in the pipeline's agent reference.
 
 Services needed by the stage factory `build_decision_stage(config, services)`: `repos`, `config_store`, `llm` (`LLMClientPool`), `pipeline` (`PipelineConfig`; its `budget.max_capital` is used for the sub-ledger).
 

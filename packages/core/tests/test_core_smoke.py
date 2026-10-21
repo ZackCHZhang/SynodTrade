@@ -2,8 +2,8 @@
 
 from importlib.metadata import version
 
-import quant_core
+import synodtrade_core
 
 
 def test_version_matches_metadata() -> None:
-    assert quant_core.__version__ == version("quant-core")
+    assert synodtrade_core.__version__ == version("synodtrade-core")

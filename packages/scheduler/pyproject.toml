@@ -1,14 +1,14 @@
 [project]
-name = "quant-scheduler"
+name = "synodtrade-scheduler"
 version = "0.1.0"
 description = "Scheduler: trading calendar, timed pipeline wake-ups, re-entrancy guard, health checks"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "quant-core",
-    "quant-database",
-    "quant-pipeline",
+    "synodtrade-core",
+    "synodtrade-database",
+    "synodtrade-pipeline",
     "apscheduler>=3.10,<4",
     "exchange-calendars>=4.5",
     "psycopg[binary]>=3.2",
@@ -17,15 +17,15 @@ dependencies = [
 ]
 
 [project.scripts]
-quant-scheduler = "quant_scheduler.cli:app"
+synodtrade-scheduler = "synodtrade_scheduler.cli:app"
 
 [tool.poetry]
-packages = [{ include = "quant_scheduler", from = "src" }]
+packages = [{ include = "synodtrade_scheduler", from = "src" }]
 
 [tool.poetry.dependencies]
-quant-core = { path = "../core", develop = true }
-quant-database = { path = "../database", develop = true }
-quant-pipeline = { path = "../pipeline", develop = true }
+synodtrade-core = { path = "../core", develop = true }
+synodtrade-database = { path = "../database", develop = true }
+synodtrade-pipeline = { path = "../pipeline", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

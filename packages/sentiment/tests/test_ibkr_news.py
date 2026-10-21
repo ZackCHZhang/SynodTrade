@@ -6,13 +6,13 @@ from typing import Any
 import pytest
 from ib_async import HistoricalNews, NewsArticle, NewsProvider, Stock
 
-from quant_sentiment.sources import (
+from synodtrade_sentiment.sources import (
     IBKRNewsOptions,
     IBKRNewsSource,
     SourceError,
     build_ibkr_news_source,
 )
-from quant_sentiment.sources.ibkr_news import html_to_text, parse_headline
+from synodtrade_sentiment.sources.ibkr_news import html_to_text, parse_headline
 
 NOW = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)
 SINCE = NOW - timedelta(hours=24)

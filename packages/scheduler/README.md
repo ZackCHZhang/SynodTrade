@@ -1,18 +1,18 @@
-# quant-scheduler
+# synodtrade-scheduler
 
 **English** | [简体中文](README.zh-CN.md)
 
-Scheduler: decides only *when* to wake *which* pipeline; it contains no business logic. Depends on `quant-pipeline` (and everything below it).
+Scheduler: decides only *when* to wake *which* pipeline; it contains no business logic. Depends on `synodtrade-pipeline` (and everything below it).
 
 ## Command line
 
 ```bash
-quant-scheduler run                 # run until Ctrl+C or SIGTERM
-quant-scheduler plan --days 7       # list runs for the next N days (1–366, default 7) in New York and Berlin time; no credentials needed
-quant-scheduler check               # one health check per scheduled pipeline
+synodtrade-scheduler run                 # run until Ctrl+C or SIGTERM
+synodtrade-scheduler plan --days 7       # list runs for the next N days (1–366, default 7) in New York and Berlin time; no credentials needed
+synodtrade-scheduler check               # one health check per scheduled pipeline
 ```
 
-Database: `--db-url` or `QUANT_DATABASE_URL`. Config folder: `--configs`, default `./configs`. `run` also takes `--log-level`. Like `quant`, it reads `./.env` by default (`quant-scheduler --env-file ... run`).
+Database: `--db-url` or `SYNODTRADE_DATABASE_URL`. Config folder: `--configs`, default `./configs`. `run` also takes `--log-level`. Like `synodtrade`, it reads `./.env` by default (`synodtrade-scheduler --env-file ... run`).
 
 ## Schedule config `configs/schedules.yaml`
 
@@ -59,14 +59,14 @@ Log timestamps are UTC with Berlin time added (`ts_local`); `plan` and the start
 - **Alerts**: always logged. With `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` set they also go to Telegram (warning and above by default); a failed send is only logged and never stops a run. For other channels such as email, implement the `Notifier` protocol (`async notify(level, title, message)`) and add it to `default_notifier`.
   - Alerts are raised for: failed health checks, invalid config, crashed runs, failed runs (with each stage's errors), and a previous run still busy.
 
-The web console (`quant-web`) can also start and stop a scheduler inside its own process (jobs kept in memory only). Do not run it together with a separate `quant-scheduler run`.
+The web console (`synodtrade-web`) can also start and stop a scheduler inside its own process (jobs kept in memory only). Do not run it together with a separate `synodtrade-scheduler run`.
 
 ## Deployment (docker-compose)
 
 `docker-compose.yml` at the repository root has three services:
 - `postgres`: the TimescaleDB image (`timescale/timescaledb:latest-pg16`), bound to localhost.
 - `ib-gateway`: `ghcr.io/gnzsnz/ib-gateway` with IBC auto-login; inside the compose network the paper port is 4004 and the live port 4003.
-- `scheduler`: built from the repository's `Dockerfile`; runs `quant-db upgrade`, then `quant-scheduler run`. The configs folder is mounted read-only, so config changes need no rebuild — just restart the scheduler.
+- `scheduler`: built from the repository's `Dockerfile`; runs `synodtrade-db upgrade`, then `synodtrade-scheduler run`. The configs folder is mounted read-only, so config changes need no rebuild — just restart the scheduler.
 
 ```bash
 cp .env.example .env    # fill in TWS_USERID / TWS_PASSWORD / IBKR_ACCOUNT / API keys / POSTGRES_PASSWORD

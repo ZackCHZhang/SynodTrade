@@ -1,17 +1,17 @@
-# quant-database
+# synodtrade-database
 
 [English](README.md) | **简体中文**
 
-数据库管理：ORM 模型、Repository、Alembic 迁移。生产用 PostgreSQL 16（docker-compose 使用 TimescaleDB 镜像），单元测试用 SQLite。依赖 `quant-core`。
+数据库管理：ORM 模型、Repository、Alembic 迁移。生产用 PostgreSQL 16（docker-compose 使用 TimescaleDB 镜像），单元测试用 SQLite。依赖 `synodtrade-core`。
 
 ## 公开接口
 
-业务包**只通过 Repository 读写数据库**，传入和返回的都是 `quant_core` 的模型，不接触 ORM 或 SQL。
+业务包**只通过 Repository 读写数据库**，传入和返回的都是 `synodtrade_core` 的模型，不接触 ORM 或 SQL。
 
 ```python
-from quant_database import Database, Repositories
+from synodtrade_database import Database, Repositories
 
-db = Database.from_env()  # QUANT_DATABASE_URL
+db = Database.from_env()  # SYNODTRADE_DATABASE_URL
 repos = Repositories.create(db)
 bars = await repos.bars.get_latest_bars("AAPL", 60, as_of=ctx.as_of)
 ```
@@ -48,21 +48,21 @@ bars = await repos.bars.get_latest_bars("AAPL", 60, as_of=ctx.as_of)
 - **时间**：`UtcDateTime` 拒绝不带时区的 datetime，存 UTC，读出来一定带 UTC 时区。
 - **LLM 原始输入输出**：保存在 `llm_calls` 表，包括每次重试和失败。选股、舆情、决策、风控记录通过 `llm_call_ids` 关联过去。
 - **一条帖子提到多个标的**时，每个标的存一行，唯一键是 `(source, external_id, symbol)`。
-- **Kill Switch**：`system_flags` 表里的 `kill_switch` 标记（常量 `KILL_SWITCH`）。风控阶段和交易阶段都会读取它，开启后不再下单。可以用 `quant kill-switch on|off|status` 或 Web 控制台切换。
+- **Kill Switch**：`system_flags` 表里的 `kill_switch` 标记（常量 `KILL_SWITCH`）。风控阶段和交易阶段都会读取它，开启后不再下单。可以用 `synodtrade kill-switch on|off|status` 或 Web 控制台切换。
 - 方言相关的 SQL 只有一处：`repositories/base.py` 里的 `upsert_insert`（ON CONFLICT），支持 SQLite 和 PostgreSQL。
 
 ## 迁移
 
-迁移脚本随包一起发布，在 `src/quant_database/migrations/` 目录下（`0001_initial_schema`、`0002_stock_selection`）。
+迁移脚本随包一起发布，在 `src/synodtrade_database/migrations/` 目录下（`0001_initial_schema`、`0002_stock_selection`）。
 
 ```bash
 docker compose up -d postgres
-quant-db upgrade                          # 使用 $QUANT_DATABASE_URL，默认升级到 head
-quant-db upgrade --url postgresql+asyncpg://...
-quant-db downgrade                        # 默认回退一个版本（--revision 可指定）
-quant-db revision -m "add x"              # 修改 models.py 后，自动生成新的迁移
-quant-db current
-# 如果 quant-db 命令不存在，可以用：python -m quant_database.cli upgrade
+synodtrade-db upgrade                          # 使用 $SYNODTRADE_DATABASE_URL，默认升级到 head
+synodtrade-db upgrade --url postgresql+asyncpg://...
+synodtrade-db downgrade                        # 默认回退一个版本（--revision 可指定）
+synodtrade-db revision -m "add x"              # 修改 models.py 后，自动生成新的迁移
+synodtrade-db current
+# 如果 synodtrade-db 命令不存在，可以用：python -m synodtrade_database.cli upgrade
 ```
 
 有测试保证迁移建出来的表结构和 ORM 模型**完全一致**，并且能完整降级再升级。
@@ -76,6 +76,6 @@ python tasks.py test-database             # SQLite
 同一套 Repository 测试也能在 PostgreSQL 上跑。准备一个可以随意清空的库：
 
 ```bash
-set QUANT_TEST_DATABASE_URL=postgresql+asyncpg://quant:pw@localhost:5432/quant_test   # Linux/macOS: export
+set SYNODTRADE_TEST_DATABASE_URL=postgresql+asyncpg://quant:pw@localhost:5432/synodtrade_test   # Linux/macOS: export
 python tasks.py integration
 ```

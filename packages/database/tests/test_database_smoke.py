@@ -2,13 +2,13 @@
 
 from importlib.metadata import version
 
-import quant_core
-import quant_database
+import synodtrade_core
+import synodtrade_database
 
 
 def test_version_matches_metadata() -> None:
-    assert quant_database.__version__ == version("quant-database")
+    assert synodtrade_database.__version__ == version("synodtrade-database")
 
 
 def test_dependencies_importable() -> None:
-    assert quant_core.__version__ == version("quant-core")
+    assert synodtrade_core.__version__ == version("synodtrade-core")

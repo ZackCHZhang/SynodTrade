@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from quant_core.indicators import (
+from synodtrade_core.indicators import (
     annualised_volatility,
     compute_indicators,
     ema_series,
@@ -14,7 +14,7 @@ from quant_core.indicators import (
     rsi,
     sma,
 )
-from quant_core.models import Bar, Timeframe
+from synodtrade_core.models import Bar, Timeframe
 
 
 def make_bars(symbol: str, closes: Sequence[float]) -> list[Bar]:

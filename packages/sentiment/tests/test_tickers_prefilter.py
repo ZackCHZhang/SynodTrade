@@ -3,9 +3,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from quant_core.models import SentimentItem
-from quant_sentiment import PrefilterOptions, clean_text, prefilter
-from quant_sentiment.sources import mentions
+from synodtrade_core.models import SentimentItem
+from synodtrade_sentiment import PrefilterOptions, clean_text, prefilter
+from synodtrade_sentiment.sources import mentions
 
 NOW = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)  # same instant as conftest.NOW
 Post = Callable[..., SentimentItem]

@@ -1,39 +1,39 @@
 [project]
-name = "quant-pipeline"
+name = "synodtrade-pipeline"
 version = "0.1.0"
 description = "Orchestration: build pipelines from YAML, multi-instance stages, failure policies, CLI"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "quant-core",
-    "quant-database",
-    "quant-market-data",
-    "quant-selection",
-    "quant-sentiment",
-    "quant-decision",
-    "quant-risk",
-    "quant-trading",
-    "quant-account-sync",
+    "synodtrade-core",
+    "synodtrade-database",
+    "synodtrade-market-data",
+    "synodtrade-selection",
+    "synodtrade-sentiment",
+    "synodtrade-decision",
+    "synodtrade-risk",
+    "synodtrade-trading",
+    "synodtrade-account-sync",
     "typer>=0.12",
 ]
 
 [project.scripts]
-quant = "quant_pipeline.cli:app"
+synodtrade = "synodtrade_pipeline.cli:app"
 
 [tool.poetry]
-packages = [{ include = "quant_pipeline", from = "src" }]
+packages = [{ include = "synodtrade_pipeline", from = "src" }]
 
 [tool.poetry.dependencies]
-quant-core = { path = "../core", develop = true }
-quant-database = { path = "../database", develop = true }
-quant-market-data = { path = "../market_data", develop = true }
-quant-selection = { path = "../selection", develop = true }
-quant-sentiment = { path = "../sentiment", develop = true }
-quant-decision = { path = "../decision", develop = true }
-quant-risk = { path = "../risk", develop = true }
-quant-trading = { path = "../trading", develop = true }
-quant-account-sync = { path = "../account_sync", develop = true }
+synodtrade-core = { path = "../core", develop = true }
+synodtrade-database = { path = "../database", develop = true }
+synodtrade-market-data = { path = "../market_data", develop = true }
+synodtrade-selection = { path = "../selection", develop = true }
+synodtrade-sentiment = { path = "../sentiment", develop = true }
+synodtrade-decision = { path = "../decision", develop = true }
+synodtrade-risk = { path = "../risk", develop = true }
+synodtrade-trading = { path = "../trading", develop = true }
+synodtrade-account-sync = { path = "../account_sync", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

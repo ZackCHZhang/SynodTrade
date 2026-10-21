@@ -1,0 +1,59 @@
+"""Stock selection.
+
+Candidate sources (static list / IBKR scanner) + quantitative screen + multi-agent picking
+and aggregation.
+"""
+
+from synodtrade_selection.agent import PickOutput, SelectionAgent, SelectionOutput, candidate_inputs
+from synodtrade_selection.aggregation import (
+    SelectionAggregation,
+    SelectionMethod,
+    aggregate_selection,
+    candidate_scores,
+)
+from synodtrade_selection.scanner import IBKRScannerOptions, IBKRScannerSource
+from synodtrade_selection.screen import CandidateProfile, ScreenOptions, avg_dollar_volume, screen
+from synodtrade_selection.sources import (
+    CandidateSourceError,
+    FakeCandidateSource,
+    StaticCandidateSource,
+    StaticSourceOptions,
+)
+from synodtrade_selection.stage import (
+    CandidateSourceConfig,
+    SelectionError,
+    SelectionFallback,
+    SelectionOptions,
+    SelectionStage,
+    build_selection_stage,
+)
+
+__version__ = "0.1.0"
+
+__all__ = [
+    "CandidateProfile",
+    "CandidateSourceConfig",
+    "CandidateSourceError",
+    "FakeCandidateSource",
+    "IBKRScannerOptions",
+    "IBKRScannerSource",
+    "PickOutput",
+    "ScreenOptions",
+    "SelectionAgent",
+    "SelectionAggregation",
+    "SelectionError",
+    "SelectionFallback",
+    "SelectionMethod",
+    "SelectionOptions",
+    "SelectionOutput",
+    "SelectionStage",
+    "StaticCandidateSource",
+    "StaticSourceOptions",
+    "__version__",
+    "aggregate_selection",
+    "avg_dollar_volume",
+    "build_selection_stage",
+    "candidate_inputs",
+    "candidate_scores",
+    "screen",
+]

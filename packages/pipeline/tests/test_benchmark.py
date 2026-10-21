@@ -11,9 +11,9 @@ from uuid import UUID, uuid4
 import pytest
 from typer.testing import CliRunner
 
-from quant_core.config import ConfigStore
-from quant_core.llm import LLMCallRecord, LLMUsage
-from quant_core.models import (
+from synodtrade_core.config import ConfigStore
+from synodtrade_core.llm import LLMCallRecord, LLMUsage
+from synodtrade_core.models import (
     Action,
     Bar,
     Fill,
@@ -25,11 +25,11 @@ from quant_core.models import (
     RunMode,
     Timeframe,
 )
-from quant_core.timeutil import EXCHANGE_TZ
-from quant_database import Database, Repositories
-from quant_database.records import PipelineRun
-from quant_pipeline.benchmark import build_curves, compute_metrics, render_svg, write_benchmark
-from quant_pipeline.cli import app
+from synodtrade_core.timeutil import EXCHANGE_TZ
+from synodtrade_database import Database, Repositories
+from synodtrade_database.records import PipelineRun
+from synodtrade_pipeline.benchmark import build_curves, compute_metrics, render_svg, write_benchmark
+from synodtrade_pipeline.cli import app
 
 D = Decimal
 PIPELINE = "long_term_stocks"  # max_capital 5000, benchmark SPY in the repo configs

@@ -8,7 +8,7 @@ import pytest
 from anthropic.types import Message
 from tenacity import wait_none
 
-from quant_core.llm import AnthropicLLMClient, LLMError, LLMMessage, LLMRequest
+from synodtrade_core.llm import AnthropicLLMClient, LLMError, LLMMessage, LLMRequest
 
 REQ = LLMRequest(
     model="claude-x",

@@ -7,10 +7,10 @@ from typing import Any
 import httpx
 import pytest
 
-from quant_core.config import AccountConfig, PipelineConfig
-from quant_core.logging import configure_logging
-from quant_database import Database
-from quant_scheduler import (
+from synodtrade_core.config import AccountConfig, PipelineConfig
+from synodtrade_core.logging import configure_logging
+from synodtrade_database import Database
+from synodtrade_scheduler import (
     CompositeNotifier,
     HealthChecker,
     Level,

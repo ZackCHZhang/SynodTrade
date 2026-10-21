@@ -6,10 +6,10 @@ from uuid import uuid4
 import pytest
 from pydantic import BaseModel, Field
 
-from quant_core.agent import Agent
-from quant_core.config import AgentConfig, ConfigStore
-from quant_core.llm import FakeLLMClient, InMemoryLLMCallRecorder, LLMError
-from quant_core.models import Action
+from synodtrade_core.agent import Agent
+from synodtrade_core.config import AgentConfig, ConfigStore
+from synodtrade_core.llm import FakeLLMClient, InMemoryLLMCallRecorder, LLMError
+from synodtrade_core.models import Action
 
 
 class Opinion(BaseModel):

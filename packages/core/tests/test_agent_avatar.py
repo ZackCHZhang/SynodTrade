@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from quant_core.config import AgentConfig
+from synodtrade_core.config import AgentConfig
 
 BASE: dict[str, Any] = {
     "agent_id": "value_investor",

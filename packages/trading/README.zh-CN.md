@@ -1,13 +1,13 @@
-# quant-trading
+# synodtrade-trading
 
 [English](README.md) | **简体中文**
 
-交易执行：把风控批准的动作换算成订单，幂等地提交给券商，跟踪到成交、撤销或拒绝，成交写入数据库（子账本随之更新）。依赖 `quant-core`、`quant-database`。
+交易执行：把风控批准的动作换算成订单，幂等地提交给券商，跟踪到成交、撤销或拒绝，成交写入数据库（子账本随之更新）。依赖 `synodtrade-core`、`synodtrade-database`。
 
 ## 流程（`trading` 阶段）
 
 1. **安全检查**：
-   - `ensure_mode_allowed`：`mode: live` 时必须设置 `QUANT_ALLOW_LIVE=1`。
+   - `ensure_mode_allowed`：`mode: live` 时必须设置 `SYNODTRADE_ALLOW_LIVE=1`。
    - Broker 的 `mode` 必须与本次运行的 `mode` 一致，比如 dry-run 流水线不能接真实券商。
    - 连接券商。
 2. **对账**：先把这条流水线之前运行遗留的未完成订单向券商查询并更新。
@@ -42,7 +42,7 @@
 `create_broker(mode, account)` 按运行模式创建：dry_run → `DryRunBroker`，paper / live → `IBKRBroker`（需要账户配置）。
 
 **`IBKRBroker` 的安全措施**：
-- live 模式在创建和连接时都检查 `QUANT_ALLOW_LIVE=1`。
+- live 模式在创建和连接时都检查 `SYNODTRADE_ALLOW_LIVE=1`。
 - 连接后核对网关登录的账户：
   - paper 模式下，只要有任何非 paper 账户（paper 账户号以 `D` 开头）就拒绝；
   - live 模式下，拒绝 paper 账户；

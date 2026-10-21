@@ -1,13 +1,13 @@
-# quant-trading
+# synodtrade-trading
 
 **English** | [简体中文](README.zh-CN.md)
 
-Order execution: turns the actions approved by risk into orders, submits them idempotently, tracks them until filled, cancelled or rejected, and writes fills to the database (which updates the sub-ledger). Depends on `quant-core` and `quant-database`.
+Order execution: turns the actions approved by risk into orders, submits them idempotently, tracks them until filled, cancelled or rejected, and writes fills to the database (which updates the sub-ledger). Depends on `synodtrade-core` and `synodtrade-database`.
 
 ## Flow (`trading` stage)
 
 1. **Safety checks**:
-   - `ensure_mode_allowed`: `mode: live` requires `QUANT_ALLOW_LIVE=1`.
+   - `ensure_mode_allowed`: `mode: live` requires `SYNODTRADE_ALLOW_LIVE=1`.
    - The broker's `mode` must match the run's `mode`; a dry-run pipeline cannot use a real broker.
    - Connect to the broker.
 2. **Reconcile**: open orders left by this pipeline's earlier runs are looked up at the broker and updated first.
@@ -42,7 +42,7 @@ Order execution: turns the actions approved by risk into orders, submits them id
 `create_broker(mode, account)` picks by run mode: dry_run → `DryRunBroker`, paper / live → `IBKRBroker` (needs an account config).
 
 **`IBKRBroker` safeguards**:
-- Live mode checks `QUANT_ALLOW_LIVE=1` both when created and when connecting.
+- Live mode checks `SYNODTRADE_ALLOW_LIVE=1` both when created and when connecting.
 - After connecting it checks the accounts logged in on the gateway:
   - paper mode refuses if any non-paper account is present (paper account ids start with `D`);
   - live mode refuses paper accounts;

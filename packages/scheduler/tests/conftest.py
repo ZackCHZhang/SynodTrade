@@ -1,4 +1,4 @@
-"""Shared fixtures for quant_scheduler tests (real exchange calendar, no network)."""
+"""Shared fixtures for synodtrade_scheduler tests (real exchange calendar, no network)."""
 
 import shutil
 from collections.abc import AsyncIterator
@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from quant_core.config import ConfigStore
-from quant_database import Database
+from synodtrade_core.config import ConfigStore
+from synodtrade_database import Database
 
 REPO_CONFIGS = Path(__file__).resolve().parents[3] / "configs"
 ENV = {"IBKR_ACCOUNT": "DU1234567", "ANTHROPIC_API_KEY": "test-key"}

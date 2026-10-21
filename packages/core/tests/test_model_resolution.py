@@ -7,9 +7,9 @@ import pytest
 import yaml
 from pydantic import BaseModel, ValidationError
 
-from quant_core.agent import Agent
-from quant_core.agent_factory import instantiate_agents
-from quant_core.config import (
+from synodtrade_core.agent import Agent
+from synodtrade_core.agent_factory import instantiate_agents
+from synodtrade_core.config import (
     AgentConfig,
     AgentRef,
     AgentRole,
@@ -20,7 +20,7 @@ from quant_core.config import (
     PipelineConfig,
     resolve_model,
 )
-from quant_core.llm import FakeLLMClient, LLMClientPool
+from synodtrade_core.llm import FakeLLMClient, LLMClientPool
 
 
 class Out(BaseModel):

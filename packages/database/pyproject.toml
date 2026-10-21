@@ -1,12 +1,12 @@
 [project]
-name = "quant-database"
+name = "synodtrade-database"
 version = "0.1.0"
 description = "Database layer: ORM models, repositories, Alembic migrations"
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "quant-core",
+    "synodtrade-core",
     "sqlalchemy[asyncio]>=2.0.36,<3",
     # The asyncio extra's greenlet is locked with a platform_machine marker that excludes
     # Apple Silicon ("arm64"); require it explicitly so the async engine works everywhere.
@@ -17,13 +17,13 @@ dependencies = [
 ]
 
 [project.scripts]
-quant-db = "quant_database.cli:main"
+synodtrade-db = "synodtrade_database.cli:main"
 
 [tool.poetry]
-packages = [{ include = "quant_database", from = "src" }]
+packages = [{ include = "synodtrade_database", from = "src" }]
 
 [tool.poetry.dependencies]
-quant-core = { path = "../core", develop = true }
+synodtrade-core = { path = "../core", develop = true }
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

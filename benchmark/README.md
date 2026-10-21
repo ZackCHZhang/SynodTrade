@@ -54,5 +54,5 @@
 Generated from the trading database with the command below. The daily series of every pipeline is in [`data.json`](data.json).
 
 ```bash
-poetry run quant benchmark
+poetry run synodtrade benchmark
 ```

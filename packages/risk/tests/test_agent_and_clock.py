@@ -7,10 +7,10 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from quant_core.config import ConfigStore, LLMModelConfig
-from quant_core.llm import FakeLLMClient, LLMError
-from quant_core.models import Action, RiskVerdict, Verdict
-from quant_risk import (
+from synodtrade_core.config import ConfigStore, LLMModelConfig
+from synodtrade_core.llm import FakeLLMClient, LLMError
+from synodtrade_core.models import Action, RiskVerdict, Verdict
+from synodtrade_risk import (
     AlwaysOpenClock,
     CombineMethod,
     ExchangeCalendarClock,
@@ -147,7 +147,7 @@ async def test_prompt_without_order_or_hits(store: ConfigStore, risk_inputs: Inp
 
 
 def verdict(adjusted: Action, proposed: Action = A.STRONG_BUY) -> RiskVerdict:
-    from quant_risk import verdict_between
+    from synodtrade_risk import verdict_between
 
     return RiskVerdict(
         run_id=uuid4(),
