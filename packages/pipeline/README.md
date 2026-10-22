@@ -32,6 +32,7 @@ synodtrade --env-file other.env run -p ...          # ./.env is read by default 
 2. Choose the run mode: dry_run with `--dry-run` or `--offline`, paper with `--paper`, otherwise the config's value. Live mode requires `SYNODTRADE_ALLOW_LIVE=1`; otherwise the run is refused before anything is written to the database.
 3. **Re-entry guard**: if the same pipeline has an unfinished run that started within `max_run_minutes` (default 180), `PipelineBusyError` is raised; older unfinished runs are considered crashed, marked FAILED, and the run continues.
 4. Write a `pipeline_runs` row with `run_id`, mode, `as_of`, `config_hash` and a config snapshot (the pipeline and all agent configs).
+   **Run queue**: runs whose accounts share a run group (by default the IBKR API connection: host, port, `client_id`; or the account's `run_group:`) never overlap. A later run waits, already recorded as running, for the earlier one: in-process on an asyncio lock, across processes by polling the runs table (the oldest run goes first). After `max_queue_minutes` (default 60) it is marked FAILED (`not started: ...`) and `PipelineBusyError` is raised.
 5. **Only the services the selected stages need are built**:
    - repositories, ConfigStore, LLM vendor pool, pipeline config, account config;
    - the market-data provider (IBKR) only with a `data_update` or `selection` stage; both share that one connection, and selection uses it (`bars_refresher`) to fetch candidates' daily bars;
@@ -43,7 +44,7 @@ synodtrade --env-file other.env run -p ...          # ./.env is read by default 
    - When a stage raises: a stage with `on_error: skip` (e.g. sentiment) records the error and the run continues;
    - the default is `abort`: stop immediately, **later stages (including trading) never run**, and the run is FAILED;
    - errors while assembling (config, credentials) also fail the run.
-8. Close connections (each stage's `aclose`, market data, broker, LLM clients) and write the final status and summary (each stage's status and duration, record counts, final actions, order states, errors).
+8. Close connections (each stage's `aclose`, market data, broker, LLM clients; each step bounded to `close_timeout_s`, a failure is logged and the next step still runs) and write the final status and summary (each stage's status and duration, record counts, final actions, order states, errors).
 
 **Service overrides**: `PipelineRunner(store, db, overrides={...})` can replace any service, e.g. `broker`, `market_data`, `llm`, `sentiment_sources`, `market_clock`. This is how tests inject fakes.
 
