@@ -19,6 +19,7 @@ from typing import Any
 from ib_async import IB, Contract, LimitOrder, MarketOrder, Order, Stock, Trade
 from ib_async import Fill as IBFill
 
+from synodtrade_core.aio import bounded
 from synodtrade_core.config import AccountConfig
 from synodtrade_core.logging import get_logger
 from synodtrade_core.models import (
@@ -116,6 +117,7 @@ class IBKRBroker:
         port: int = 4002,
         client_id: int = 18,
         connect_timeout_s: float = 10.0,
+        request_timeout_s: float = 60.0,
         cancel_wait_s: float = 10.0,
         not_transmitted_warn_s: float = 30.0,
         env: dict[str, str] | None = None,
@@ -130,6 +132,7 @@ class IBKRBroker:
         self.account_id = account_id
         self.host, self.port, self.client_id = host, port, client_id
         self.connect_timeout_s = connect_timeout_s
+        self.request_timeout_s = request_timeout_s
         self.cancel_wait_s = cancel_wait_s
         self.not_transmitted_warn_s = not_transmitted_warn_s
         self._ib = ib or IB()
@@ -236,7 +239,7 @@ class IBKRBroker:
         if not self._ib.isConnected():
             return False
         try:
-            await self._ib.reqCurrentTimeAsync()
+            await bounded(self._ib.reqCurrentTimeAsync(), self.connect_timeout_s, "IBKR time")
         except Exception:
             return False
         return True
@@ -250,8 +253,10 @@ class IBKRBroker:
     async def _contract(self, instrument: Instrument) -> Contract:
         if instrument.con_id is not None:
             return Contract(conId=instrument.con_id, exchange=instrument.exchange)
-        [contract] = await self._ib.qualifyContractsAsync(
-            Stock(instrument.symbol, "SMART", instrument.currency)
+        [contract] = await bounded(
+            self._ib.qualifyContractsAsync(Stock(instrument.symbol, "SMART", instrument.currency)),
+            self.request_timeout_s,
+            f"IBKR contract lookup of {instrument.symbol}",
         )
         if not isinstance(contract, Contract) or not contract.conId:
             raise BrokerError(f"IBKR does not know the stock {instrument.symbol}")
@@ -293,16 +298,17 @@ class IBKRBroker:
         self._require_connection()
         trade = self._find(intent.client_order_id)
         if trade is None:
-            await self._ib.reqAllOpenOrdersAsync()  # orders placed by earlier sessions
+            await bounded(  # orders placed by earlier sessions
+                self._ib.reqAllOpenOrdersAsync(), self.request_timeout_s, "IBKR open orders"
+            )
             trade = self._find(intent.client_order_id)
         if trade is not None:
             self._check_transmitted(trade)
             return result_from_trade(intent, trade)
-        fills = [
-            f
-            for f in await self._ib.reqExecutionsAsync()
-            if f.execution.orderRef == intent.client_order_id
-        ]
+        executions = await bounded(
+            self._ib.reqExecutionsAsync(), self.request_timeout_s, "IBKR executions"
+        )
+        fills = [f for f in executions if f.execution.orderRef == intent.client_order_id]
         if not fills:
             return None
         filled = sum((Decimal(str(f.execution.shares)) for f in fills), Decimal(0))

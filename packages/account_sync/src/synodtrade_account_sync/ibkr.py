@@ -16,6 +16,7 @@ from ib_async import IB, ExecutionFilter, StartupFetch, Trade
 from ib_async import Fill as IBFill
 
 from synodtrade_account_sync.snapshot import BrokerExecution, BrokerOrder, BrokerSnapshot
+from synodtrade_core.aio import bounded
 from synodtrade_core.config import AccountConfig
 from synodtrade_core.logging import get_logger
 from synodtrade_core.timeutil import utcnow
@@ -90,6 +91,7 @@ class IBKRAccountReader:
         client_id: int = 21,
         base_currency: str = "USD",
         connect_timeout_s: float = 10.0,
+        request_timeout_s: float = 60.0,
         commission_wait_s: float = 3.0,
         ib: IB | None = None,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
@@ -98,6 +100,7 @@ class IBKRAccountReader:
         self.host, self.port, self.client_id = host, port, client_id
         self.base_currency = base_currency
         self.connect_timeout_s = connect_timeout_s
+        self.request_timeout_s = request_timeout_s
         self.commission_wait_s = commission_wait_s
         self._ib = ib or IB()
         self._sleep = sleep
@@ -139,11 +142,12 @@ class IBKRAccountReader:
         return not account or account == self.account_id
 
     async def _executions(self) -> list[IBFill]:
-        fills = [
-            f
-            for f in await self._ib.reqExecutionsAsync(ExecutionFilter(acctCode=self.account_id))
-            if self._ours(f.execution.acctNumber)
-        ]
+        executions = await bounded(
+            self._ib.reqExecutionsAsync(ExecutionFilter(acctCode=self.account_id)),
+            self.request_timeout_s,
+            "IBKR executions",
+        )
+        fills = [f for f in executions if self._ours(f.execution.acctNumber)]
         # commission reports follow the executions; give them a moment to arrive
         waited = 0.0
         while waited < self.commission_wait_s and any(
@@ -158,14 +162,16 @@ class IBKRAccountReader:
         if not self._ib.isConnected():
             raise AccountSyncError(f"not connected to IBKR at {self.host}:{self.port}")
         fetched_at = utcnow()
-        open_trades = [
-            t for t in await self._ib.reqAllOpenOrdersAsync() if self._ours(t.order.account)
-        ]
-        completed = [
-            t
-            for t in await self._ib.reqCompletedOrdersAsync(apiOnly=False)
-            if self._ours(t.order.account)
-        ]
+        open_all = await bounded(
+            self._ib.reqAllOpenOrdersAsync(), self.request_timeout_s, "IBKR open orders"
+        )
+        open_trades = [t for t in open_all if self._ours(t.order.account)]
+        completed_all = await bounded(
+            self._ib.reqCompletedOrdersAsync(apiOnly=False),
+            self.request_timeout_s,
+            "IBKR completed orders",
+        )
+        completed = [t for t in completed_all if self._ours(t.order.account)]
         fills = await self._executions()
 
         snap = BrokerSnapshot(account_id=self.account_id, fetched_at=fetched_at)
@@ -187,6 +193,7 @@ class IBKRAccountReader:
                     port=self.port,
                     client_id=self.client_id,
                     base_currency=self.base_currency,
+                    request_timeout_s=self.request_timeout_s,
                     ib=self._ib,
                 ).fetch_account(self.account_id)
                 snap.account, snap.positions = data.account, list(data.positions)

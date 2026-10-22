@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 from tenacity.wait import wait_base
 
+from synodtrade_core.aio import bounded
 from synodtrade_core.config import AccountConfig
 from synodtrade_core.logging import get_logger
 from synodtrade_core.models import AccountSnapshot, Bar, Instrument, Position, Quote, Timeframe
@@ -170,7 +171,7 @@ class IBKRMarketDataProvider:
         if not self._ib.isConnected():
             return False
         try:
-            await self._ib.reqCurrentTimeAsync()
+            await bounded(self._ib.reqCurrentTimeAsync(), self.connect_timeout_s, "IBKR time")
         except Exception:
             return False
         return True
@@ -183,8 +184,10 @@ class IBKRMarketDataProvider:
 
     async def resolve_instrument(self, symbol: str) -> Instrument:
         self._require_connection()
-        [contract] = await self._ib.qualifyContractsAsync(
-            Stock(symbol.upper(), "SMART", self.base_currency)
+        [contract] = await bounded(
+            self._ib.qualifyContractsAsync(Stock(symbol.upper(), "SMART", self.base_currency)),
+            self.request_timeout_s,
+            f"IBKR contract lookup of {symbol}",
         )
         if not isinstance(contract, Contract) or not contract.conId:
             raise MarketDataError(f"IBKR does not know the stock {symbol!r}")
@@ -248,7 +251,11 @@ class IBKRMarketDataProvider:
         if not instruments:
             return []
         by_con_id = {i.con_id: i for i in instruments}
-        tickers = await self._ib.reqTickersAsync(*(self._contract(i) for i in instruments))
+        tickers = await bounded(
+            self._ib.reqTickersAsync(*(self._contract(i) for i in instruments)),
+            self.request_timeout_s,
+            f"IBKR quotes of {len(instruments)} instruments",
+        )
         quotes = []
         for t in tickers:
             if t.contract is None or t.contract.conId not in by_con_id:
@@ -293,7 +300,11 @@ class IBKRMarketDataProvider:
         if from_ccy == to_ccy:
             return Decimal(1)
         for pair, invert in ((f"{from_ccy}{to_ccy}", False), (f"{to_ccy}{from_ccy}", True)):
-            [contract] = await self._ib.qualifyContractsAsync(Forex(pair))
+            [contract] = await bounded(
+                self._ib.qualifyContractsAsync(Forex(pair)),
+                self.request_timeout_s,
+                f"IBKR contract lookup of {pair}",
+            )
             if not isinstance(contract, Contract) or not contract.conId:
                 continue
             await self._pacing.acquire(str(contract.conId))
@@ -336,9 +347,12 @@ class IBKRMarketDataProvider:
         the current FX midpoint.
         """
         self._require_connection()
-        values = [
-            v for v in await self._ib.accountSummaryAsync(account_id) if v.account == account_id
-        ]
+        summary = await bounded(
+            self._ib.accountSummaryAsync(account_id),
+            self.request_timeout_s,
+            f"IBKR account summary of {account_id}",
+        )
+        values = [v for v in summary if v.account == account_id]
         account_ccy = next(
             (v.currency for v in values if v.tag == "NetLiquidation" and v.currency), None
         )
@@ -377,6 +391,9 @@ class IBKRMarketDataProvider:
             buying_power=converted("BuyingPower") or Decimal(0),
             available_funds=converted("AvailableFunds"),
         )
+        raw_positions = await bounded(
+            self._ib.reqPositionsAsync(), self.request_timeout_s, "IBKR positions"
+        )
         positions = [
             Position(
                 account_id=account_id,
@@ -385,7 +402,7 @@ class IBKRMarketDataProvider:
                 avg_cost=Decimal(str(p.avgCost)),
                 ts=ts,
             )
-            for p in await self._ib.reqPositionsAsync()
+            for p in raw_positions
             if p.account == account_id and p.contract.secType == "STK" and p.position != 0
         ]
         return AccountData(account, positions)

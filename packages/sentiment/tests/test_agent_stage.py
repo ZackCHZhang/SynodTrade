@@ -7,7 +7,7 @@ from uuid import UUID
 
 import pytest
 
-from synodtrade_core.config import ConfigStore, StageConfig
+from synodtrade_core.config import AccountConfig, ConfigStore, StageConfig
 from synodtrade_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
 from synodtrade_core.models import PipelineContext, RunMode, SentimentItem
 from synodtrade_core.registry import AGENTS, SENTIMENT_SOURCES, STAGES
@@ -19,7 +19,7 @@ from synodtrade_sentiment import (
     SentimentStage,
     build_sentiment_stage,
 )
-from synodtrade_sentiment.sources import FakeSentimentSource, build_reddit_source
+from synodtrade_sentiment.sources import FakeSentimentSource, IBKRNewsSource, build_reddit_source
 
 NOW = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)
 CLAUDE = {"provider": "anthropic", "name": "claude-opus-5"}
@@ -282,3 +282,18 @@ async def test_source_that_cannot_be_created_only_loses_that_source(
             await only_broken.run(ctx(run_id, ["AAPL"]))
     finally:
         SENTIMENT_SOURCES.unregister("broken_test_source")
+
+
+async def test_ibkr_news_connects_with_the_pipeline_account(
+    repos: Repositories, store: ConfigStore
+) -> None:
+    pool = LLMClientPool({}, env={})
+    pool.set("anthropic", FakeLLMClient())
+    account = AccountConfig(
+        name="arena", account_id="DU1", host="10.0.0.2", port=7497, client_id=40
+    )
+    services = Services(repos=repos, config_store=store, llm=pool, account=account)
+    stage = build_sentiment_stage(stage_config(sources=["ibkr_news"]), services)
+    [news] = stage.sources
+    assert isinstance(news, IBKRNewsSource)
+    assert (news.host, news.port, news.client_id) == ("10.0.0.2", 7497, 42)

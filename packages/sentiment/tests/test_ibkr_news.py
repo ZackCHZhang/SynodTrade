@@ -1,18 +1,24 @@
 """IBKRNewsSource against a stub `IB` object — no gateway, no network."""
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
 from ib_async import HistoricalNews, NewsArticle, NewsProvider, Stock
 
+from synodtrade_core.config import AccountConfig
 from synodtrade_sentiment.sources import (
     IBKRNewsOptions,
     IBKRNewsSource,
     SourceError,
     build_ibkr_news_source,
 )
-from synodtrade_sentiment.sources.ibkr_news import html_to_text, parse_headline
+from synodtrade_sentiment.sources.ibkr_news import (
+    account_connection,
+    html_to_text,
+    parse_headline,
+)
 
 NOW = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)
 SINCE = NOW - timedelta(hours=24)
@@ -168,3 +174,23 @@ def test_connection_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     assert (defaults.host, defaults.port, defaults.client_id) == ("127.0.0.1", 4002, 19)
     monkeypatch.delenv("IBKR_CLIENT_ID", raising=False)
     assert build_ibkr_news_source({"max_headlines": 5}).options.max_headlines == 5
+
+
+class SilentIB(StubIB):
+    """TWS never answers historical news requests."""
+
+    async def reqHistoricalNewsAsync(  # noqa: N802
+        self, con_id: int, providers: str, start: datetime, end: datetime, total: int
+    ) -> Any:
+        await asyncio.Event().wait()
+
+
+async def test_unanswered_news_requests_time_out() -> None:
+    src = source(SilentIB(), request_timeout_s=0.01)
+    with pytest.raises(SourceError, match="IBKR news of AAPL timed out"):
+        await asyncio.wait_for(src.fetch(["AAPL"], SINCE), 5)
+
+
+def test_account_connection() -> None:
+    account = AccountConfig(name="a", account_id="DU1", host="h", port=7497, client_id=40)
+    assert account_connection(account) == {"host": "h", "port": 7497, "client_id": 42}
