@@ -122,6 +122,19 @@ python tasks.py web                 # 安装前端依赖并构建 web/dist
 poetry run synodtrade-web serve          # http://127.0.0.1:8765
 ```
 
+<p align="center"><img src="docs/assets/screenshots/overview.png" alt="SynodTrade 总览页" width="880"><br><sub><b>总览</b>：熔断开关、调度器、最近运行与各流水线净值一目了然。</sub></p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/risk-rules.png" alt="风控规则编辑器"><br><sub><b>把你的交易原则写成硬规则。</b>单票仓位、总敞口、最低现金、日/周亏损与交易次数上限都由代码强制执行，LLM 无法绕过。</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/agent-editor.png" alt="Agent 编辑器：人设与策略指令"><br><sub><b>给每个 agent 写自己的打法。</b>人设（系统提示词）+ 白话策略指令；用哪个模型在流水线里按需指定。</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/run-decision.png" alt="一次运行的决策投票"><br><sub><b>每笔交易前 agent 先投票。</b>每个决策都能看到聚合方式、得分和每个 agent 的票。</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/agent-library.png" alt="Agent 库"><br><sub><b>内置 66 个 agent</b>，覆盖选股、情绪、决策与风控，可自由组合进你的流水线。</sub></td>
+  </tr>
+</table>
+
 - **总览**：熔断开关、调度器状态、正在运行的任务、最近运行和每条流水线的净值。
 - **运行记录**：通过 SSE 实时查看阶段进度和日志，以及一次运行中的每个选股结果、舆情结果、投票、风控结论、订单和 LLM 调用。
 - **配置**：流水线、agent、提示词、风控规则、账户、LLM 供应商和调度的可视化编辑器，与 YAML 标签页实时同步，服务端实时校验。

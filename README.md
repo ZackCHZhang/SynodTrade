@@ -122,6 +122,19 @@ python tasks.py web                 # install frontend dependencies and build we
 poetry run synodtrade-web serve          # http://127.0.0.1:8765
 ```
 
+<p align="center"><img src="docs/assets/screenshots/overview.png" alt="SynodTrade overview page" width="880"><br><sub><b>Overview</b>: kill switch, scheduler, recent runs and every pipeline's NAV at a glance.</sub></p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/risk-rules.png" alt="Risk rules editor"><br><sub><b>Your trading principles as hard rules.</b> Position size, exposure, cash floor, daily/weekly loss and trade limits are enforced in code before any LLM sees the trade.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/agent-editor.png" alt="Agent editor with persona and strategy instructions"><br><sub><b>Give each agent its own playbook.</b> A persona (system prompt) plus plain-language strategy instructions; the model is picked per pipeline.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/run-decision.png" alt="Decision votes of a run"><br><sub><b>Agents vote before every trade.</b> Each decision shows the aggregation method, the score and every agent's vote.</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/agent-library.png" alt="Agent library"><br><sub><b>66 bundled agents</b> for selection, sentiment, decision and risk, ready to mix into your own pipelines.</sub></td>
+  </tr>
+</table>
+
 - **Overview**: kill switch, scheduler state, running jobs, recent runs and each pipeline's NAV.
 - **Runs**: live stage progress and logs over SSE, and every selection, sentiment result, vote, risk verdict, order and LLM call of a run.
 - **Configs**: visual editors for pipelines, agents, prompts, risk rules, accounts, providers and schedules, kept in sync with a YAML tab and validated live by the server.
