@@ -1,7 +1,975 @@
 {
- "generated_at": "2026-10-14",
+ "generated_at": "2026-10-23",
  "kind": "paper-trading benchmark",
  "pipelines": [
+  {
+   "pipeline": "arena_claude",
+   "mode": "paper",
+   "benchmark": "SPY",
+   "capital": 100000.0,
+   "started": "2026-10-19T15:10:00.169615+00:00",
+   "models": [
+    "anthropic/claude-haiku-5.5"
+   ],
+   "llm": {
+    "total": {
+     "calls": 491,
+     "input_tokens": 2662794,
+     "output_tokens": 381900,
+     "cache_read_tokens": 0,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.4572,
+     "unpriced": []
+    },
+    "last_7_days": {
+     "calls": 491,
+     "input_tokens": 2662794,
+     "output_tokens": 381900,
+     "cache_read_tokens": 0,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.4572,
+     "unpriced": []
+    }
+   },
+   "metrics": {
+    "days": 5,
+    "total_return": -0.002378106629999932,
+    "benchmark_return": -0.0038912545037668167,
+    "excess_return": 0.0015131478737668846,
+    "cagr": null,
+    "volatility": null,
+    "sharpe": null,
+    "max_drawdown": -0.00901480561000001,
+    "benchmark_max_drawdown": -0.016569868967390655,
+    "win_rate": null
+   },
+   "stats": {
+    "fills": 5,
+    "buys": 5,
+    "sells": 0,
+    "winning_sells": 0,
+    "realized_pnl": 0.0,
+    "commissions": 5.0,
+    "open_positions": 4,
+    "invested": 0.5456
+   },
+   "series": [
+    {
+     "date": "2026-10-16",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 763.25,
+     "benchmark_return": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "nav": 99867.1,
+     "return": -0.001329,
+     "benchmark_close": 766.48,
+     "benchmark_return": 0.004232
+    },
+    {
+     "date": "2026-10-20",
+     "nav": 99943.92,
+     "return": -0.000561,
+     "benchmark_close": 769.05,
+     "benchmark_return": 0.007599
+    },
+    {
+     "date": "2026-10-21",
+     "nav": 99681.68,
+     "return": -0.003183,
+     "benchmark_close": 773.09,
+     "benchmark_return": 0.012892
+    },
+    {
+     "date": "2026-10-22",
+     "nav": 99098.52,
+     "return": -0.009015,
+     "benchmark_close": 763.96,
+     "benchmark_return": 0.00093
+    },
+    {
+     "date": "2026-10-23",
+     "nav": 99762.19,
+     "return": -0.002378,
+     "benchmark_close": 760.28,
+     "benchmark_return": -0.003891
+    }
+   ]
+  },
+  {
+   "pipeline": "arena_deepseek",
+   "mode": "paper",
+   "benchmark": "SPY",
+   "capital": 100000.0,
+   "started": "2026-10-19T13:50:00.128173+00:00",
+   "models": [
+    "deepseek/deepseek-v4.1-flash"
+   ],
+   "llm": {
+    "total": {
+     "calls": 829,
+     "input_tokens": 3217610,
+     "output_tokens": 822174,
+     "cache_read_tokens": 105600,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.9604,
+     "unpriced": []
+    },
+    "last_7_days": {
+     "calls": 829,
+     "input_tokens": 3217610,
+     "output_tokens": 822174,
+     "cache_read_tokens": 105600,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.9604,
+     "unpriced": []
+    }
+   },
+   "metrics": {
+    "days": 5,
+    "total_return": -0.00028421050999993813,
+    "benchmark_return": -0.0038912545037668167,
+    "excess_return": 0.0036070439937668786,
+    "cagr": null,
+    "volatility": null,
+    "sharpe": null,
+    "max_drawdown": -0.007404710499999911,
+    "benchmark_max_drawdown": -0.016569868967390655,
+    "win_rate": 0.0
+   },
+   "stats": {
+    "fills": 17,
+    "buys": 15,
+    "sells": 2,
+    "winning_sells": 0,
+    "realized_pnl": -75.35,
+    "commissions": 17.03,
+    "open_positions": 10,
+    "invested": 0.8851
+   },
+   "series": [
+    {
+     "date": "2026-10-16",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 763.25,
+     "benchmark_return": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "nav": 99705.58,
+     "return": -0.002944,
+     "benchmark_close": 766.48,
+     "benchmark_return": 0.004232
+    },
+    {
+     "date": "2026-10-20",
+     "nav": 99640.07,
+     "return": -0.003599,
+     "benchmark_close": 769.05,
+     "benchmark_return": 0.007599
+    },
+    {
+     "date": "2026-10-21",
+     "nav": 99526.99,
+     "return": -0.00473,
+     "benchmark_close": 773.09,
+     "benchmark_return": 0.012892
+    },
+    {
+     "date": "2026-10-22",
+     "nav": 99259.53,
+     "return": -0.007405,
+     "benchmark_close": 763.96,
+     "benchmark_return": 0.00093
+    },
+    {
+     "date": "2026-10-23",
+     "nav": 99971.58,
+     "return": -0.000284,
+     "benchmark_close": 760.28,
+     "benchmark_return": -0.003891
+    }
+   ]
+  },
+  {
+   "pipeline": "arena_glm",
+   "mode": "paper",
+   "benchmark": "SPY",
+   "capital": 100000.0,
+   "started": "2026-10-19T14:30:00.137740+00:00",
+   "models": [
+    "z-ai/glm-5.3-flashx"
+   ],
+   "llm": {
+    "total": {
+     "calls": 671,
+     "input_tokens": 2730827,
+     "output_tokens": 1104703,
+     "cache_read_tokens": 224832,
+     "cache_write_tokens": 0,
+     "cost_usd": 2.3283,
+     "unpriced": []
+    },
+    "last_7_days": {
+     "calls": 671,
+     "input_tokens": 2730827,
+     "output_tokens": 1104703,
+     "cache_read_tokens": 224832,
+     "cache_write_tokens": 0,
+     "cost_usd": 2.3283,
+     "unpriced": []
+    }
+   },
+   "metrics": {
+    "days": 5,
+    "total_return": -0.01126446070000009,
+    "benchmark_return": -0.0038912545037668167,
+    "excess_return": -0.007373206196233273,
+    "cagr": null,
+    "volatility": null,
+    "sharpe": null,
+    "max_drawdown": -0.01126446070000009,
+    "benchmark_max_drawdown": -0.016569868967390655,
+    "win_rate": 0.0
+   },
+   "stats": {
+    "fills": 16,
+    "buys": 10,
+    "sells": 6,
+    "winning_sells": 0,
+    "realized_pnl": -435.73,
+    "commissions": 16.16,
+    "open_positions": 7,
+    "invested": 0.721
+   },
+   "series": [
+    {
+     "date": "2026-10-16",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 763.25,
+     "benchmark_return": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "nav": 99710.44,
+     "return": -0.002896,
+     "benchmark_close": 766.48,
+     "benchmark_return": 0.004232
+    },
+    {
+     "date": "2026-10-20",
+     "nav": 99687.91,
+     "return": -0.003121,
+     "benchmark_close": 769.05,
+     "benchmark_return": 0.007599
+    },
+    {
+     "date": "2026-10-21",
+     "nav": 99447.31,
+     "return": -0.005527,
+     "benchmark_close": 773.09,
+     "benchmark_return": 0.012892
+    },
+    {
+     "date": "2026-10-22",
+     "nav": 98876.73,
+     "return": -0.011233,
+     "benchmark_close": 763.96,
+     "benchmark_return": 0.00093
+    },
+    {
+     "date": "2026-10-23",
+     "nav": 98873.55,
+     "return": -0.011264,
+     "benchmark_close": 760.28,
+     "benchmark_return": -0.003891
+    }
+   ]
+  },
+  {
+   "pipeline": "arena_gpt",
+   "mode": "paper",
+   "benchmark": "SPY",
+   "capital": 100000.0,
+   "started": "2026-10-19T14:50:00.125040+00:00",
+   "models": [
+    "openai/gpt-6-luna"
+   ],
+   "llm": {
+    "total": {
+     "calls": 710,
+     "input_tokens": 1832256,
+     "output_tokens": 237802,
+     "cache_read_tokens": 0,
+     "cache_write_tokens": 0,
+     "cost_usd": null,
+     "unpriced": [
+      "openrouter_gpt/openai/gpt-6-luna"
+     ]
+    },
+    "last_7_days": {
+     "calls": 710,
+     "input_tokens": 1832256,
+     "output_tokens": 237802,
+     "cache_read_tokens": 0,
+     "cache_write_tokens": 0,
+     "cost_usd": null,
+     "unpriced": [
+      "openrouter_gpt/openai/gpt-6-luna"
+     ]
+    }
+   },
+   "metrics": {
+    "days": 5,
+    "total_return": 0.00463179324999996,
+    "benchmark_return": -0.0038912545037668167,
+    "excess_return": 0.008523047753766777,
+    "cagr": null,
+    "volatility": null,
+    "sharpe": null,
+    "max_drawdown": -0.0013135050400000514,
+    "benchmark_max_drawdown": -0.016569868967390655,
+    "win_rate": null
+   },
+   "stats": {
+    "fills": 6,
+    "buys": 6,
+    "sells": 0,
+    "winning_sells": 0,
+    "realized_pnl": 0.0,
+    "commissions": 5.0,
+    "open_positions": 5,
+    "invested": 0.5532
+   },
+   "series": [
+    {
+     "date": "2026-10-16",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 763.25,
+     "benchmark_return": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "nav": 99930.39,
+     "return": -0.000696,
+     "benchmark_close": 766.48,
+     "benchmark_return": 0.004232
+    },
+    {
+     "date": "2026-10-20",
+     "nav": 99868.83,
+     "return": -0.001312,
+     "benchmark_close": 769.05,
+     "benchmark_return": 0.007599
+    },
+    {
+     "date": "2026-10-21",
+     "nav": 99963.92,
+     "return": -0.000361,
+     "benchmark_close": 773.09,
+     "benchmark_return": 0.012892
+    },
+    {
+     "date": "2026-10-22",
+     "nav": 99868.65,
+     "return": -0.001314,
+     "benchmark_close": 763.96,
+     "benchmark_return": 0.00093
+    },
+    {
+     "date": "2026-10-23",
+     "nav": 100463.18,
+     "return": 0.004632,
+     "benchmark_close": 760.28,
+     "benchmark_return": -0.003891
+    }
+   ]
+  },
+  {
+   "pipeline": "arena_qwen",
+   "mode": "paper",
+   "benchmark": "SPY",
+   "capital": 100000.0,
+   "started": "2026-10-19T14:10:00.161689+00:00",
+   "models": [
+    "qwen/qwen3.8-omni-flash"
+   ],
+   "llm": {
+    "total": {
+     "calls": 516,
+     "input_tokens": 2208236,
+     "output_tokens": 1179828,
+     "cache_read_tokens": 8960,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.8846,
+     "unpriced": []
+    },
+    "last_7_days": {
+     "calls": 516,
+     "input_tokens": 2208236,
+     "output_tokens": 1179828,
+     "cache_read_tokens": 8960,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.8846,
+     "unpriced": []
+    }
+   },
+   "metrics": {
+    "days": 5,
+    "total_return": 0.0005349034299999555,
+    "benchmark_return": -0.0038912545037668167,
+    "excess_return": 0.004426157933766772,
+    "cagr": null,
+    "volatility": null,
+    "sharpe": null,
+    "max_drawdown": -0.004534905430000125,
+    "benchmark_max_drawdown": -0.016569868967390655,
+    "win_rate": 0.0
+   },
+   "stats": {
+    "fills": 6,
+    "buys": 5,
+    "sells": 1,
+    "winning_sells": 0,
+    "realized_pnl": -12.96,
+    "commissions": 6.02,
+    "open_positions": 5,
+    "invested": 0.5371
+   },
+   "series": [
+    {
+     "date": "2026-10-16",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 763.25,
+     "benchmark_return": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "nav": 99724.98,
+     "return": -0.00275,
+     "benchmark_close": 766.48,
+     "benchmark_return": 0.004232
+    },
+    {
+     "date": "2026-10-20",
+     "nav": 99735.56,
+     "return": -0.002644,
+     "benchmark_close": 769.05,
+     "benchmark_return": 0.007599
+    },
+    {
+     "date": "2026-10-21",
+     "nav": 99764.03,
+     "return": -0.00236,
+     "benchmark_close": 773.09,
+     "benchmark_return": 0.012892
+    },
+    {
+     "date": "2026-10-22",
+     "nav": 99546.51,
+     "return": -0.004535,
+     "benchmark_close": 763.96,
+     "benchmark_return": 0.00093
+    },
+    {
+     "date": "2026-10-23",
+     "nav": 100053.49,
+     "return": 0.000535,
+     "benchmark_close": 760.28,
+     "benchmark_return": -0.003891
+    }
+   ]
+  },
+  {
+   "pipeline": "arena_solo_claude",
+   "mode": "paper",
+   "benchmark": "SPY",
+   "capital": 100000.0,
+   "started": "2026-10-19T15:20:00.120107+00:00",
+   "models": [
+    "anthropic/claude-haiku-5.5"
+   ],
+   "llm": {
+    "total": {
+     "calls": 183,
+     "input_tokens": 739521,
+     "output_tokens": 133663,
+     "cache_read_tokens": 0,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.1408,
+     "unpriced": []
+    },
+    "last_7_days": {
+     "calls": 183,
+     "input_tokens": 739521,
+     "output_tokens": 133663,
+     "cache_read_tokens": 0,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.1408,
+     "unpriced": []
+    }
+   },
+   "metrics": {
+    "days": 5,
+    "total_return": 0.0011545943899999855,
+    "benchmark_return": -0.0038912545037668167,
+    "excess_return": 0.005045848893766802,
+    "cagr": null,
+    "volatility": null,
+    "sharpe": null,
+    "max_drawdown": -0.00313432733021779,
+    "benchmark_max_drawdown": -0.016569868967390655,
+    "win_rate": null
+   },
+   "stats": {
+    "fills": 5,
+    "buys": 5,
+    "sells": 0,
+    "winning_sells": 0,
+    "realized_pnl": 0.0,
+    "commissions": 5.0,
+    "open_positions": 5,
+    "invested": 0.5438
+   },
+   "series": [
+    {
+     "date": "2026-10-16",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 763.25,
+     "benchmark_return": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "nav": 99994.74,
+     "return": -5.3e-05,
+     "benchmark_close": 766.48,
+     "benchmark_return": 0.004232
+    },
+    {
+     "date": "2026-10-20",
+     "nav": 100021.48,
+     "return": 0.000215,
+     "benchmark_close": 769.05,
+     "benchmark_return": 0.007599
+    },
+    {
+     "date": "2026-10-21",
+     "nav": 99812.08,
+     "return": -0.001879,
+     "benchmark_close": 773.09,
+     "benchmark_return": 0.012892
+    },
+    {
+     "date": "2026-10-22",
+     "nav": 99707.98,
+     "return": -0.00292,
+     "benchmark_close": 763.96,
+     "benchmark_return": 0.00093
+    },
+    {
+     "date": "2026-10-23",
+     "nav": 100115.46,
+     "return": 0.001155,
+     "benchmark_close": 760.28,
+     "benchmark_return": -0.003891
+    }
+   ]
+  },
+  {
+   "pipeline": "arena_solo_deepseek",
+   "mode": "paper",
+   "benchmark": "SPY",
+   "capital": 100000.0,
+   "started": "2026-10-19T14:00:00.144055+00:00",
+   "models": [
+    "deepseek/deepseek-v4.1-flash"
+   ],
+   "llm": {
+    "total": {
+     "calls": 161,
+     "input_tokens": 493062,
+     "output_tokens": 168702,
+     "cache_read_tokens": 9856,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.1737,
+     "unpriced": []
+    },
+    "last_7_days": {
+     "calls": 161,
+     "input_tokens": 493062,
+     "output_tokens": 168702,
+     "cache_read_tokens": 9856,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.1737,
+     "unpriced": []
+    }
+   },
+   "metrics": {
+    "days": 5,
+    "total_return": 0.0012662942700001345,
+    "benchmark_return": -0.0038912545037668167,
+    "excess_return": 0.005157548773766951,
+    "cagr": null,
+    "volatility": null,
+    "sharpe": null,
+    "max_drawdown": -0.004868105010000012,
+    "benchmark_max_drawdown": -0.016569868967390655,
+    "win_rate": null
+   },
+   "stats": {
+    "fills": 5,
+    "buys": 5,
+    "sells": 0,
+    "winning_sells": 0,
+    "realized_pnl": 0.0,
+    "commissions": 5.0,
+    "open_positions": 5,
+    "invested": 0.5453
+   },
+   "series": [
+    {
+     "date": "2026-10-16",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 763.25,
+     "benchmark_return": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "nav": 99575.23,
+     "return": -0.004248,
+     "benchmark_close": 766.48,
+     "benchmark_return": 0.004232
+    },
+    {
+     "date": "2026-10-20",
+     "nav": 99513.19,
+     "return": -0.004868,
+     "benchmark_close": 769.05,
+     "benchmark_return": 0.007599
+    },
+    {
+     "date": "2026-10-21",
+     "nav": 99590.88,
+     "return": -0.004091,
+     "benchmark_close": 773.09,
+     "benchmark_return": 0.012892
+    },
+    {
+     "date": "2026-10-22",
+     "nav": 99752.63,
+     "return": -0.002474,
+     "benchmark_close": 763.96,
+     "benchmark_return": 0.00093
+    },
+    {
+     "date": "2026-10-23",
+     "nav": 100126.63,
+     "return": 0.001266,
+     "benchmark_close": 760.28,
+     "benchmark_return": -0.003891
+    }
+   ]
+  },
+  {
+   "pipeline": "arena_solo_glm",
+   "mode": "paper",
+   "benchmark": "SPY",
+   "capital": 100000.0,
+   "started": "2026-10-19T14:40:00.107956+00:00",
+   "models": [
+    "z-ai/glm-5.3-flashx"
+   ],
+   "llm": {
+    "total": {
+     "calls": 263,
+     "input_tokens": 764926,
+     "output_tokens": 388718,
+     "cache_read_tokens": 57536,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.7528,
+     "unpriced": []
+    },
+    "last_7_days": {
+     "calls": 263,
+     "input_tokens": 764926,
+     "output_tokens": 388718,
+     "cache_read_tokens": 57536,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.7528,
+     "unpriced": []
+    }
+   },
+   "metrics": {
+    "days": 5,
+    "total_return": 0.0040699771700001275,
+    "benchmark_return": -0.0038912545037668167,
+    "excess_return": 0.007961231673766944,
+    "cagr": null,
+    "volatility": null,
+    "sharpe": null,
+    "max_drawdown": -0.0030404551717535533,
+    "benchmark_max_drawdown": -0.016569868967390655,
+    "win_rate": null
+   },
+   "stats": {
+    "fills": 9,
+    "buys": 9,
+    "sells": 0,
+    "winning_sells": 0,
+    "realized_pnl": 0.0,
+    "commissions": 7.48,
+    "open_positions": 7,
+    "invested": 0.6757
+   },
+   "series": [
+    {
+     "date": "2026-10-16",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 763.25,
+     "benchmark_return": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "nav": 100036.02,
+     "return": 0.00036,
+     "benchmark_close": 766.48,
+     "benchmark_return": 0.004232
+    },
+    {
+     "date": "2026-10-20",
+     "nav": 100119.88,
+     "return": 0.001199,
+     "benchmark_close": 769.05,
+     "benchmark_return": 0.007599
+    },
+    {
+     "date": "2026-10-21",
+     "nav": 99815.47,
+     "return": -0.001845,
+     "benchmark_close": 773.09,
+     "benchmark_return": 0.012892
+    },
+    {
+     "date": "2026-10-22",
+     "nav": 99833.47,
+     "return": -0.001665,
+     "benchmark_close": 763.96,
+     "benchmark_return": 0.00093
+    },
+    {
+     "date": "2026-10-23",
+     "nav": 100407.0,
+     "return": 0.00407,
+     "benchmark_close": 760.28,
+     "benchmark_return": -0.003891
+    }
+   ]
+  },
+  {
+   "pipeline": "arena_solo_gpt",
+   "mode": "paper",
+   "benchmark": "SPY",
+   "capital": 100000.0,
+   "started": "2026-10-19T15:00:00.109458+00:00",
+   "models": [
+    "openai/gpt-6-luna"
+   ],
+   "llm": {
+    "total": {
+     "calls": 243,
+     "input_tokens": 679835,
+     "output_tokens": 97522,
+     "cache_read_tokens": 0,
+     "cache_write_tokens": 0,
+     "cost_usd": null,
+     "unpriced": [
+      "openrouter_gpt/openai/gpt-6-luna"
+     ]
+    },
+    "last_7_days": {
+     "calls": 243,
+     "input_tokens": 679835,
+     "output_tokens": 97522,
+     "cache_read_tokens": 0,
+     "cache_write_tokens": 0,
+     "cost_usd": null,
+     "unpriced": [
+      "openrouter_gpt/openai/gpt-6-luna"
+     ]
+    }
+   },
+   "metrics": {
+    "days": 5,
+    "total_return": 0.005977797180000133,
+    "benchmark_return": -0.0038912545037668167,
+    "excess_return": 0.00986905168376695,
+    "cagr": null,
+    "volatility": null,
+    "sharpe": null,
+    "max_drawdown": -2.8192596703724426e-05,
+    "benchmark_max_drawdown": -0.016569868967390655,
+    "win_rate": null
+   },
+   "stats": {
+    "fills": 1,
+    "buys": 1,
+    "sells": 0,
+    "winning_sells": 0,
+    "realized_pnl": 0.0,
+    "commissions": 1.0,
+    "open_positions": 1,
+    "invested": 0.1532
+   },
+   "series": [
+    {
+     "date": "2026-10-16",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 763.25,
+     "benchmark_return": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 766.48,
+     "benchmark_return": 0.004232
+    },
+    {
+     "date": "2026-10-20",
+     "nav": 100026.26,
+     "return": 0.000263,
+     "benchmark_close": 769.05,
+     "benchmark_return": 0.007599
+    },
+    {
+     "date": "2026-10-21",
+     "nav": 100023.44,
+     "return": 0.000234,
+     "benchmark_close": 773.09,
+     "benchmark_return": 0.012892
+    },
+    {
+     "date": "2026-10-22",
+     "nav": 100030.96,
+     "return": 0.00031,
+     "benchmark_close": 763.96,
+     "benchmark_return": 0.00093
+    },
+    {
+     "date": "2026-10-23",
+     "nav": 100597.78,
+     "return": 0.005978,
+     "benchmark_close": 760.28,
+     "benchmark_return": -0.003891
+    }
+   ]
+  },
+  {
+   "pipeline": "arena_solo_qwen",
+   "mode": "paper",
+   "benchmark": "SPY",
+   "capital": 100000.0,
+   "started": "2026-10-19T14:20:00.109256+00:00",
+   "models": [
+    "qwen/qwen3.8-omni-flash"
+   ],
+   "llm": {
+    "total": {
+     "calls": 35,
+     "input_tokens": 118038,
+     "output_tokens": 83639,
+     "cache_read_tokens": 0,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.057,
+     "unpriced": []
+    },
+    "last_7_days": {
+     "calls": 35,
+     "input_tokens": 118038,
+     "output_tokens": 83639,
+     "cache_read_tokens": 0,
+     "cache_write_tokens": 0,
+     "cost_usd": 0.057,
+     "unpriced": []
+    }
+   },
+   "metrics": {
+    "days": 5,
+    "total_return": 0.0,
+    "benchmark_return": -0.0038912545037668167,
+    "excess_return": 0.0038912545037668167,
+    "cagr": null,
+    "volatility": null,
+    "sharpe": null,
+    "max_drawdown": 0.0,
+    "benchmark_max_drawdown": -0.016569868967390655,
+    "win_rate": null
+   },
+   "stats": {
+    "fills": 0,
+    "buys": 0,
+    "sells": 0,
+    "winning_sells": 0,
+    "realized_pnl": 0.0,
+    "commissions": 0.0,
+    "open_positions": 0,
+    "invested": 0.0
+   },
+   "series": [
+    {
+     "date": "2026-10-16",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 763.25,
+     "benchmark_return": 0.0
+    },
+    {
+     "date": "2026-10-19",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 766.48,
+     "benchmark_return": 0.004232
+    },
+    {
+     "date": "2026-10-20",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 769.05,
+     "benchmark_return": 0.007599
+    },
+    {
+     "date": "2026-10-21",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 773.09,
+     "benchmark_return": 0.012892
+    },
+    {
+     "date": "2026-10-22",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 763.96,
+     "benchmark_return": 0.00093
+    },
+    {
+     "date": "2026-10-23",
+     "nav": 100000.0,
+     "return": 0.0,
+     "benchmark_close": 760.28,
+     "benchmark_return": -0.003891
+    }
+   ]
+  },
   {
    "pipeline": "demo_all_modules",
    "mode": "paper",
@@ -12,30 +980,50 @@
     "deepseek-chat"
    ],
    "llm": {
-    "total": null,
-    "last_7_days": null
+    "total": {
+     "calls": 3068,
+     "input_tokens": 11641137,
+     "output_tokens": 1007961,
+     "cache_read_tokens": 751872,
+     "cache_write_tokens": 0,
+     "cost_usd": null,
+     "unpriced": [
+      "deepseek/deepseek-chat"
+     ]
+    },
+    "last_7_days": {
+     "calls": 1189,
+     "input_tokens": 4505519,
+     "output_tokens": 349433,
+     "cache_read_tokens": 285568,
+     "cache_write_tokens": 0,
+     "cost_usd": null,
+     "unpriced": [
+      "deepseek/deepseek-chat"
+     ]
+    }
    },
    "metrics": {
-    "days": 5,
-    "total_return": -0.005255756400000089,
-    "benchmark_return": -0.01024163042639159,
-    "excess_return": 0.004985874026391501,
+    "days": 12,
+    "total_return": -0.0410219087,
+    "benchmark_return": -0.02179563058078804,
+    "excess_return": -0.01922627811921196,
     "cagr": null,
     "volatility": null,
     "sharpe": null,
-    "max_drawdown": -0.011616000026946738,
-    "benchmark_max_drawdown": -0.011957820106092032,
+    "max_drawdown": -0.04715346898075978,
+    "benchmark_max_drawdown": -0.023491786223461042,
     "win_rate": 0.0
    },
    "stats": {
-    "fills": 14,
-    "buys": 12,
-    "sells": 2,
+    "fills": 30,
+    "buys": 15,
+    "sells": 15,
     "winning_sells": 0,
-    "realized_pnl": -12.18,
-    "commissions": 13.64,
-    "open_positions": 8,
-    "invested": 0.733
+    "realized_pnl": -260.09,
+    "commissions": 27.9,
+    "open_positions": 6,
+    "invested": 0.613
    },
    "series": [
     {
@@ -75,10 +1063,59 @@
     },
     {
      "date": "2026-10-14",
-     "nav": 9947.44,
-     "return": -0.005256,
-     "benchmark_close": 769.26,
-     "benchmark_return": -0.010242
+     "nav": 9952.63,
+     "return": -0.004737,
+     "benchmark_close": 769.6,
+     "benchmark_return": -0.009804
+    },
+    {
+     "date": "2026-10-15",
+     "nav": 9818.43,
+     "return": -0.018157,
+     "benchmark_close": 771.79,
+     "benchmark_return": -0.006986
+    },
+    {
+     "date": "2026-10-16",
+     "nav": 9719.52,
+     "return": -0.028048,
+     "benchmark_close": 763.25,
+     "benchmark_return": -0.017974
+    },
+    {
+     "date": "2026-10-19",
+     "nav": 9703.53,
+     "return": -0.029647,
+     "benchmark_close": 766.48,
+     "benchmark_return": -0.013818
+    },
+    {
+     "date": "2026-10-20",
+     "nav": 9691.88,
+     "return": -0.030812,
+     "benchmark_close": 769.05,
+     "benchmark_return": -0.010512
+    },
+    {
+     "date": "2026-10-21",
+     "nav": 9725.52,
+     "return": -0.027448,
+     "benchmark_close": 773.09,
+     "benchmark_return": -0.005314
+    },
+    {
+     "date": "2026-10-22",
+     "nav": 9611.34,
+     "return": -0.038866,
+     "benchmark_close": 763.96,
+     "benchmark_return": -0.017061
+    },
+    {
+     "date": "2026-10-23",
+     "nav": 9589.78,
+     "return": -0.041022,
+     "benchmark_close": 760.28,
+     "benchmark_return": -0.021796
     }
    ]
   }
