@@ -3,31 +3,68 @@
 <rect class="bg" x="0.5" y="0.5" width="879" height="399" rx="8"/>
 <text class="title" x="60" y="22">Cumulative return</text>
 <line class="line s1" x1="60.0" x2="78.0" y1="38" y2="38"/>
-<text class="t1" x="84.0" y="42">demo_all_modules</text>
-<line class="line bench" x1="224.4" x2="242.4" y1="38" y2="38"/>
-<text class="t1" x="248.4" y="42">SPY (benchmark)</text>
-<line class="grid" x1="60" x2="678.4" y1="356.0" y2="356.0"/>
-<text class="t2" x="52" y="360.0" text-anchor="end">-1.5%</text>
-<line class="grid" x1="60" x2="678.4" y1="297.6" y2="297.6"/>
-<text class="t2" x="52" y="301.6" text-anchor="end">-1.0%</text>
-<line class="grid" x1="60" x2="678.4" y1="239.2" y2="239.2"/>
-<text class="t2" x="52" y="243.2" text-anchor="end">-0.5%</text>
-<line class="zero" x1="60" x2="678.4" y1="180.8" y2="180.8"/>
-<text class="t2" x="52" y="184.8" text-anchor="end">0%</text>
-<line class="grid" x1="60" x2="678.4" y1="122.4" y2="122.4"/>
-<text class="t2" x="52" y="126.4" text-anchor="end">+0.5%</text>
-<line class="grid" x1="60" x2="678.4" y1="64.0" y2="64.0"/>
-<text class="t2" x="52" y="68.0" text-anchor="end">+1.0%</text>
+<text class="t1" x="84.0" y="42">arena_claude</text>
+<line class="line s2" x1="194.8" x2="212.8" y1="38" y2="38"/>
+<text class="t1" x="218.8" y="42">arena_deepseek</text>
+<line class="line s3" x1="344.40000000000003" x2="362.40000000000003" y1="38" y2="38"/>
+<text class="t1" x="368.40000000000003" y="42">arena_glm</text>
+<line class="line s4" x1="457.00000000000006" x2="475.00000000000006" y1="38" y2="38"/>
+<text class="t1" x="481.00000000000006" y="42">arena_gpt</text>
+<line class="line s5" x1="569.6" x2="587.6" y1="38" y2="38"/>
+<text class="t1" x="593.6" y="42">arena_qwen</text>
+<line class="line s6" x1="689.6" x2="707.6" y1="38" y2="38"/>
+<text class="t1" x="713.6" y="42">arena_solo_claude</text>
+<line class="line s7" x1="861.4000000000001" x2="879.4000000000001" y1="38" y2="38"/>
+<text class="t1" x="885.4000000000001" y="42">arena_solo_deepseek</text>
+<line class="line s8" x1="1048.0" x2="1066.0" y1="38" y2="38"/>
+<text class="t1" x="1072.0" y="42">arena_solo_glm</text>
+<line class="line bench" x1="1197.6" x2="1215.6" y1="38" y2="38"/>
+<text class="t1" x="1221.6" y="42">SPY (benchmark)</text>
+<line class="grid" x1="60" x2="656.2" y1="356.0" y2="356.0"/>
+<text class="t2" x="52" y="360.0" text-anchor="end">-2.5%</text>
+<line class="grid" x1="60" x2="656.2" y1="307.3" y2="307.3"/>
+<text class="t2" x="52" y="311.3" text-anchor="end">-2.0%</text>
+<line class="grid" x1="60" x2="656.2" y1="258.7" y2="258.7"/>
+<text class="t2" x="52" y="262.7" text-anchor="end">-1.5%</text>
+<line class="grid" x1="60" x2="656.2" y1="210.0" y2="210.0"/>
+<text class="t2" x="52" y="214.0" text-anchor="end">-1.0%</text>
+<line class="grid" x1="60" x2="656.2" y1="161.3" y2="161.3"/>
+<text class="t2" x="52" y="165.3" text-anchor="end">-0.5%</text>
+<line class="zero" x1="60" x2="656.2" y1="112.7" y2="112.7"/>
+<text class="t2" x="52" y="116.7" text-anchor="end">0%</text>
+<line class="grid" x1="60" x2="656.2" y1="64.0" y2="64.0"/>
+<text class="t2" x="52" y="68.0" text-anchor="end">+0.5%</text>
 <text class="t2" x="60.0" y="378" text-anchor="start">Oct 7</text>
-<text class="t2" x="183.7" y="378" text-anchor="middle">Oct 8</text>
-<text class="t2" x="307.4" y="378" text-anchor="middle">Oct 9</text>
-<text class="t2" x="431.0" y="378" text-anchor="middle">Oct 12</text>
-<text class="t2" x="554.7" y="378" text-anchor="middle">Oct 13</text>
-<text class="t2" x="678.4" y="378" text-anchor="end">Oct 14</text>
-<polyline class="line bench" points="60.0,180.8 183.7,230.2 307.4,160.5 431.0,167.6 554.7,168.9 678.4,300.4"/>
-<polyline class="line s1" points="60.0,180.8 183.7,170.1 307.4,215.8 431.0,230.4 554.7,105.6 678.4,242.2"/>
-<circle class="dot s1" cx="678.4" cy="242.2" r="4"/>
-<text class="t1" x="690.4" y="246.2">demo_all_modules <tspan class="t2">-0.53%</tspan></text>
-<circle class="dot bench" cx="678.4" cy="300.4" r="4"/>
-<text class="t1" x="690.4" y="304.4">SPY <tspan class="t2">-1.02%</tspan></text>
+<text class="t2" x="159.4" y="378" text-anchor="middle">Oct 9</text>
+<text class="t2" x="308.4" y="378" text-anchor="middle">Oct 14</text>
+<text class="t2" x="407.8" y="378" text-anchor="middle">Oct 16</text>
+<text class="t2" x="556.8" y="378" text-anchor="middle">Oct 21</text>
+<text class="t2" x="656.2" y="378" text-anchor="end">Oct 23</text>
+<polyline class="line bench" points="60.0,112.7 109.7,153.9 159.4,95.8 209.1,101.6 258.7,102.8 308.4,208.1 358.1,180.7 407.8,287.6 457.5,247.2 507.2,215.0 556.8,164.4 606.5,278.7 656.2,324.8"/>
+<polyline class="line s1" points="407.8,112.7 457.5,125.6 507.2,118.1 556.8,143.6 606.5,200.4 656.2,135.8"/>
+<polyline class="line s2" points="407.8,112.7 457.5,141.3 507.2,147.7 556.8,158.7 606.5,184.7 656.2,115.4"/>
+<polyline class="line s3" points="407.8,112.7 457.5,140.9 507.2,143.0 556.8,166.5 606.5,222.0 656.2,222.3"/>
+<polyline class="line s4" points="407.8,112.7 457.5,119.4 507.2,125.4 556.8,116.2 606.5,125.5 656.2,67.6"/>
+<polyline class="line s5" points="407.8,112.7 457.5,139.4 507.2,138.4 556.8,135.6 606.5,156.8 656.2,107.5"/>
+<polyline class="line s6" points="407.8,112.7 457.5,113.2 507.2,110.6 556.8,131.0 606.5,141.1 656.2,101.4"/>
+<polyline class="line s7" points="407.8,112.7 457.5,154.0 507.2,160.0 556.8,152.5 606.5,136.7 656.2,100.3"/>
+<polyline class="line s8" points="407.8,112.7 457.5,109.2 507.2,101.0 556.8,130.6 606.5,128.9 656.2,73.1"/>
+<circle class="dot s1" cx="656.2" cy="135.8" r="4"/>
+<text class="t1" x="668.2" y="168.3">arena_claude <tspan class="t2">-0.24%</tspan></text>
+<circle class="dot s2" cx="656.2" cy="115.4" r="4"/>
+<text class="t1" x="668.2" y="152.3">arena_deepseek <tspan class="t2">-0.03%</tspan></text>
+<circle class="dot s3" cx="656.2" cy="222.3" r="4"/>
+<text class="t1" x="668.2" y="226.3">arena_glm <tspan class="t2">-1.13%</tspan></text>
+<circle class="dot s4" cx="656.2" cy="67.6" r="4"/>
+<text class="t1" x="668.2" y="71.6">arena_gpt <tspan class="t2">+0.46%</tspan></text>
+<circle class="dot s5" cx="656.2" cy="107.5" r="4"/>
+<text class="t1" x="668.2" y="136.3">arena_qwen <tspan class="t2">+0.05%</tspan></text>
+<circle class="dot s6" cx="656.2" cy="101.4" r="4"/>
+<text class="t1" x="668.2" y="120.3">arena_solo_claude <tspan class="t2">+0.12%</tspan></text>
+<circle class="dot s7" cx="656.2" cy="100.3" r="4"/>
+<text class="t1" x="668.2" y="104.3">arena_solo_deepseek <tspan class="t2">+0.13%</tspan></text>
+<circle class="dot s8" cx="656.2" cy="73.1" r="4"/>
+<text class="t1" x="668.2" y="87.6">arena_solo_glm <tspan class="t2">+0.41%</tspan></text>
+<circle class="dot bench" cx="656.2" cy="324.8" r="4"/>
+<text class="t1" x="668.2" y="328.8">SPY <tspan class="t2">-2.18%</tspan></text>
 </svg>

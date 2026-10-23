@@ -87,9 +87,19 @@ SynodTrade 公开自己的交易表现。每条在 IBKR 模拟账户（paper）�
 
 | 流水线 | 模型 | 收益 | 基准 | 超额收益 | 最大回撤 | 夏普比率 | LLM 费用 |
 |:--|:--|--:|--:|--:|--:|--:|--:|
-| **demo_all_modules** | deepseek-chat | -0.53% | SPY -1.02% | +0.50% | -1.16% | — | — |
+| **arena_claude** | claude-haiku-5.5 | -0.24% | SPY -0.39% | +0.15% | -0.90% | — | $0.46 |
+| **arena_deepseek** | deepseek-v4.1-flash | -0.03% | SPY -0.39% | +0.36% | -0.74% | — | $0.96 |
+| **arena_glm** | glm-5.3-flashx | -1.13% | SPY -0.39% | -0.74% | -1.13% | — | $2.33 |
+| **arena_gpt** | gpt-6-luna | +0.46% | SPY -0.39% | +0.85% | -0.13% | — | — |
+| **arena_qwen** | qwen3.8-omni-flash | +0.05% | SPY -0.39% | +0.44% | -0.45% | — | $0.88 |
+| **arena_solo_claude** | claude-haiku-5.5 | +0.12% | SPY -0.39% | +0.50% | -0.31% | — | $0.14 |
+| **arena_solo_deepseek** | deepseek-v4.1-flash | +0.13% | SPY -0.39% | +0.52% | -0.49% | — | $0.17 |
+| **arena_solo_glm** | glm-5.3-flashx | +0.41% | SPY -0.39% | +0.80% | -0.30% | — | $0.75 |
+| **arena_solo_gpt** | gpt-6-luna | +0.60% | SPY -0.39% | +0.99% | -0.00% | — | — |
+| **arena_solo_qwen** | qwen3.8-omni-flash | +0.00% | SPY -0.39% | +0.39% | +0.00% | — | $0.06 |
+| **demo_all_modules** | deepseek-chat | -4.10% | SPY -2.18% | -1.92% | -4.72% | — | — |
 
-<sub>IBKR 模拟盘 · 更新于 2026-10-14 · [详细数据、计算方法和原始数据](benchmark/README.zh-CN.md)</sub>
+<sub>IBKR 模拟盘 · 更新于 2026-10-23 · [详细数据、计算方法和原始数据](benchmark/README.zh-CN.md)</sub>
 <!-- benchmark:end -->
 
 ## 🚀 快速开始
