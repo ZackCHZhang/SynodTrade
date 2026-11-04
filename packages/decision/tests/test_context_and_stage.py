@@ -428,3 +428,62 @@ async def test_each_pipeline_agent_reference_picks_its_model(
         ("value_investor", "anthropic", "claude-opus-5"),
         ("value_investor", "deepseek", "deepseek-reasoner"),
     ]
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+async def test_agent_sell_fraction_only_when_enabled(
+    store: ConfigStore, make_bars: MakeBars, enabled: bool
+) -> None:
+    bars = make_bars("AAPL", [100 + i for i in range(60)])
+    context = SymbolContext(
+        symbol="AAPL",
+        as_of=NOW,
+        bars=bars,
+        indicators=compute_indicators(bars),
+        ledger=LedgerState(
+            pipeline_name="p",
+            max_capital=D(5000),
+            cash=D(4000),
+            positions={"AAPL": LedgerPosition("AAPL", D(10), D(1000))},
+        ),
+        nav=D(5000),
+        extra={"agent_sell_fraction": enabled},
+    )
+    reply = {"action": "sell", "confidence": 0.8, "reasoning": "stop hit", "sell_fraction": 1}
+    llm = FakeLLMClient(default=lambda _: json.dumps(reply))
+    agent = DecisionAgent(
+        store.agent("value_investor"),
+        llm,
+        model=LLMModelConfig(provider="deepseek", name="deepseek-chat"),
+        prompt_root=store.agents_dir,
+    )
+    decision = await agent.decide(context, run_id=uuid4())
+    assert decision.action is Action.SELL
+    assert decision.sell_fraction == (D(1) if enabled else None)
+    [request] = llm.requests
+    assert ('"sell_fraction"' in request.messages[0].content) is enabled
+    assert ("sell 15% of the current AAPL position" in request.messages[0].content) is not enabled
+
+
+async def test_sell_fraction_is_dropped_on_non_sells(
+    store: ConfigStore, make_bars: MakeBars
+) -> None:
+    bars = make_bars("AAPL", [100 + i for i in range(60)])
+    context = SymbolContext(
+        symbol="AAPL",
+        as_of=NOW,
+        bars=bars,
+        indicators=compute_indicators(bars),
+        ledger=LedgerState(pipeline_name="p", max_capital=D(1000), cash=D(1000)),
+        nav=D(1000),
+        extra={"agent_sell_fraction": True},
+    )
+    reply = {"action": "buy", "confidence": 0.8, "reasoning": "r", "sell_fraction": 0.5}
+    agent = DecisionAgent(
+        store.agent("value_investor"),
+        FakeLLMClient(default=lambda _: json.dumps(reply)),
+        model=LLMModelConfig(provider="deepseek", name="deepseek-chat"),
+        prompt_root=store.agents_dir,
+    )
+    decision = await agent.decide(context, run_id=uuid4())
+    assert (decision.action, decision.sell_fraction) == (Action.BUY, None)

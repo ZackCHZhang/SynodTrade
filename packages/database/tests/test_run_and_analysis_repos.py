@@ -1,5 +1,6 @@
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
@@ -236,6 +237,33 @@ async def test_decisions_and_aggregates(repos: Repositories, make_run: MakeRun) 
     )
     await repos.decisions.add_aggregated([agg])
     assert await repos.decisions.get_aggregated_by_run(run_id) == [agg]
+    assert agg.sell_fraction is None
+
+    # a decision's own sell fraction survives the round trip
+    sell_run = await make_run()
+    sell = decisions[0].model_copy(
+        update={
+            "id": uuid4(),
+            "run_id": sell_run,
+            "symbol": "MSFT",
+            "action": Action.SELL,
+            "sell_fraction": Decimal("0.5"),
+        }
+    )
+    await repos.decisions.add_decisions([sell])
+    assert await repos.decisions.get_decisions_by_run(sell_run) == [sell]
+    sell_agg = agg.model_copy(
+        update={
+            "id": uuid4(),
+            "run_id": sell_run,
+            "symbol": "MSFT",
+            "final_action": Action.SELL,
+            "score": -0.15,
+            "sell_fraction": Decimal("0.5"),
+        }
+    )
+    await repos.decisions.add_aggregated([sell_agg])
+    assert await repos.decisions.get_aggregated_by_run(sell_run) == [sell_agg]
     assert await repos.decisions.get_recent_aggregated("AAPL", 5, as_of=T0) == [agg]
     assert await repos.decisions.get_recent_aggregated("AAPL", 5, as_of=T0 - timedelta(1)) == []
 

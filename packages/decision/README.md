@@ -33,6 +33,7 @@ Fundamentals, earnings, macro data and ATR are **not provided**. Some decision a
 Every piece of data carries an id: `ind:rsi_14`, `bar:2026-09-23`, `pos:AAPL`, `sent:<uuid>`, `hist:<uuid>`. Agents cite them in `referenced_data_ids`; ids that were not in this prompt are dropped with a warning, so the data behind every decision is traceable. The prompt also tells the model:
 
 - The exact meaning of the five actions: buys use 15% / 30% of available cash, sells 15% / 30% of the position.
+  With `agent_sell_fraction: true` the agent instead chooses how much of the position a sell sells (`sell_fraction`, 0–1, where 1 exits); the final fraction is the weighted median (weight × confidence) of the sell votes, a sell vote without one counting as its tier's 15% / 30%.
 - No shorting; a sell without a position is ignored.
 - Later risk controls can only reduce risk, never enlarge a position.
 
@@ -61,6 +62,7 @@ Votes below `min_confidence` (default 0) and fallback votes of failed agents cou
   min_bars: 30                # default 30
   recent_bars_in_prompt: 20   # 0–250, default 20
   history_limit: 5            # 0–50, default 5
+  agent_sell_fraction: false  # true: agents choose the fraction a sell sells; default false
 ```
 
 The repository ships 21 decision agent configs (files with `role: decision` in `configs/agents/`, e.g. `value_investor`, `trend_follower`, `pullback_buyer`, `mean_reversion_swing`, `breakout_trader`). All use the same implementation `DecisionAgent` (`decision` in the `synodtrade.agents` entry point) and the same template `configs/agents/prompts/decision_v1.j2`; they differ only in persona and `params.instructions`. The model is chosen in the pipeline's agent reference.

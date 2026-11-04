@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -24,6 +25,12 @@ class DecisionOutput(BaseModel):
     reasoning: str = Field(max_length=2000, description="Concise justification")
     referenced_data_ids: list[str] = Field(
         default_factory=list, description="ids of the data points the decision relies on"
+    )
+    sell_fraction: float | None = Field(
+        default=None,
+        gt=0.0,
+        le=1.0,
+        description="Sells only: fraction of the current position to sell (1 = all of it)",
     )
 
 
@@ -51,6 +58,7 @@ class DecisionAgent(Agent[DecisionOutput]):
     async def decide(self, context: SymbolContext, *, run_id: UUID) -> Decision:
         inputs, shown_ids = context.to_inputs()
         inputs["instructions"] = self.config.params.get("instructions", "")
+        inputs.setdefault("agent_sell_fraction", False)  # the stage's option (context.extra)
         result = await self.invoke(inputs, run_id=run_id)
         out = result.output
         cited = [i for i in out.referenced_data_ids if i in shown_ids]
@@ -61,6 +69,14 @@ class DecisionAgent(Agent[DecisionOutput]):
                 symbol=context.symbol,
                 unknown=sorted(set(out.referenced_data_ids) - shown_ids),
             )
+        # Only used when the stage asks for it, and only meaningful on a sell.
+        sell_fraction = (
+            Decimal(str(out.sell_fraction))
+            if inputs.get("agent_sell_fraction")
+            and out.sell_fraction is not None
+            and out.action.direction < 0
+            else None
+        )
         return Decision(
             created_at=context.as_of,
             run_id=run_id,
@@ -72,6 +88,7 @@ class DecisionAgent(Agent[DecisionOutput]):
             confidence=out.confidence,
             reasoning=out.reasoning,
             referenced_data_ids=cited,
+            sell_fraction=sell_fraction,
             llm_call_ids=result.call_ids,
             error=result.error,
         )

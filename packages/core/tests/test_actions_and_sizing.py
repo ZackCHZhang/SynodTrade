@@ -6,6 +6,7 @@ from synodtrade_core.models import ACTION_TO_WEIGHT, Action, OrderSide
 from synodtrade_core.sizing import (
     BuyBase,
     SizingConfig,
+    adjusted_sell_fraction,
     buy_base_amount,
     floor_to_lot,
     size_order,
@@ -256,3 +257,81 @@ def test_sizing_config_validation() -> None:
     with pytest.raises(ValueError, match="greater than 0"):
         SizingConfig(lot_size=D(0))
     assert SizingConfig().buy_base is BuyBase.AVAILABLE_CASH
+
+
+# ------------------------------------------------------------------ decision's own sell fraction
+
+
+@pytest.mark.parametrize(
+    ("action", "fraction", "qty"),
+    [
+        (Action.SELL, D("0.5"), D(50)),
+        (Action.SELL, D(1), D(100)),  # full exit
+        (Action.STRONG_SELL, D("0.05"), D(5)),  # smaller than the tier is allowed
+        (Action.SELL, D("0.333"), D(33)),  # floored to whole shares
+    ],
+)
+def test_sell_fraction_replaces_the_tier(action: Action, fraction: Decimal, qty: Decimal) -> None:
+    sized = size_order(
+        action,
+        price=D(50),
+        base_amount=D(0),
+        cash_cap=D(0),
+        position_qty=D(100),
+        sell_fraction=fraction,
+    )
+    assert (sized.side, sized.quantity) == (OrderSide.SELL, qty)
+    assert "decision" in sized.reason
+
+
+def test_sell_fraction_of_one_sells_the_whole_lot_floored_position() -> None:
+    sized = size_order(
+        Action.SELL,
+        price=D(5),
+        base_amount=D(0),
+        cash_cap=D(0),
+        position_qty=D(7),
+        sell_fraction=D(1),
+    )
+    assert sized.quantity == 7
+
+
+def test_sell_fraction_is_ignored_on_buys() -> None:
+    sized = size_order(
+        Action.BUY,
+        price=D(10),
+        base_amount=D(1000),
+        cash_cap=D(1000),
+        position_qty=D(0),
+        sell_fraction=D(1),
+    )
+    assert (sized.side, sized.quantity) == (OrderSide.BUY, D(15))
+
+
+@pytest.mark.parametrize("bad", [D(0), D("-0.1"), D("1.01")])
+def test_sell_fraction_bounds(bad: Decimal) -> None:
+    with pytest.raises(ValueError, match="sell_fraction"):
+        size_order(
+            Action.SELL,
+            price=D(5),
+            base_amount=D(0),
+            cash_cap=D(0),
+            position_qty=D(7),
+            sell_fraction=bad,
+        )
+
+
+@pytest.mark.parametrize(
+    ("fraction", "decided", "adjusted", "expected"),
+    [
+        (None, Action.SELL, Action.SELL, None),  # no own fraction: the tier applies
+        (D("0.8"), Action.SELL, Action.SELL, D("0.8")),  # approved as is
+        (D("0.8"), Action.STRONG_SELL, Action.SELL, D("0.15")),  # risk lowered the tier: capped
+        (D("0.1"), Action.STRONG_SELL, Action.SELL, D("0.1")),  # already below the cap
+        (D("0.8"), Action.SELL, Action.HOLD, None),
+    ],
+)
+def test_adjusted_sell_fraction(
+    fraction: Decimal | None, decided: Action, adjusted: Action, expected: Decimal | None
+) -> None:
+    assert adjusted_sell_fraction(fraction, decided, adjusted) == expected

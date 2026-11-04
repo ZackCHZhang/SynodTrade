@@ -51,9 +51,10 @@ def evaluate(
     mk: MarketSnapshot | None = None,
     symbol: str = "AAPL",
     sizing: SizingConfig | None = None,
+    sell_fraction: Decimal | None = None,
 ) -> RuleOutcome:
     engine = RuleEngine(cfg or rules(), sizing or SizingConfig())
-    return engine.evaluate(symbol, action, mk or market(), st or state())
+    return engine.evaluate(symbol, action, mk or market(), st or state(), sell_fraction)
 
 
 def blocking(outcome: RuleOutcome) -> set[str]:
@@ -157,6 +158,27 @@ def test_sell_limited_only_by_notional() -> None:
         A.STRONG_SELL, st=st, mk=market(price="200"), cfg=rules(max_order_notional=10_000)
     )
     assert lenient.adjusted is A.STRONG_SELL  # position/exposure/cash rules never block sells
+
+
+def test_decision_sell_fraction_is_sized_and_capped_when_reduced() -> None:
+    st = state(position_qty={"AAPL": D(100)}, position_value={"AAPL": D(10_000)})
+    lenient = rules(max_order_notional=20_000)
+    out = evaluate(A.SELL, st=st, cfg=lenient, sell_fraction=D(1))
+    assert out.adjusted is A.SELL
+    assert out.sized is not None
+    assert out.sized.quantity == 100  # full exit, not 15
+    # 100 shares (10,000) break the 2,000 order limit. Risk may only reduce, so the lower
+    # tier sells at most its own 15%: 15 shares (1,500) fit, at a 1,000 limit nothing does.
+    assert (
+        evaluate(
+            A.STRONG_SELL, st=st, cfg=rules(max_order_notional=1_000), sell_fraction=D(1)
+        ).adjusted
+        is A.HOLD
+    )
+    out = evaluate(A.STRONG_SELL, st=st, sell_fraction=D(1))
+    assert out.adjusted is A.SELL
+    assert out.sized is not None
+    assert out.sized.quantity == 15
 
 
 def test_sell_without_position_is_not_blocked() -> None:

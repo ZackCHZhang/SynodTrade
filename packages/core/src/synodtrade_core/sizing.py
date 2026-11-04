@@ -4,6 +4,7 @@
   cash or NAV, per `sizing.buy_base`), never more than the spendable cash.
 - Sell tiers (-15% / -30%): sell that fraction of the *current position* (the pipeline's
   own sub-ledger position), floored to the lot size. No position -> HOLD (no shorting).
+  A decision may give its own `sell_fraction` (0..1] instead of the tier's; 1 sells it all.
 """
 
 from __future__ import annotations
@@ -64,6 +65,19 @@ def spendable_cash(*, ledger_cash: Decimal, account_available_cash: Decimal) -> 
     return max(Decimal(0), min(ledger_cash, account_available_cash))
 
 
+def adjusted_sell_fraction(
+    fraction: Decimal | None, decided: Action, adjusted: Action
+) -> Decimal | None:
+    """A decision's own sell fraction after the risk layer turned `decided` into `adjusted`.
+
+    Risk may only reduce: a lowered sell tier caps the fraction at that tier's fixed one.
+    None: not a sell, or no own fraction (the tier's fixed fraction applies).
+    """
+    if fraction is None or adjusted.direction >= 0:
+        return None
+    return fraction if adjusted is decided else min(fraction, abs(adjusted.weight))
+
+
 def size_order(
     action: Action,
     *,
@@ -72,12 +86,15 @@ def size_order(
     cash_cap: Decimal,
     position_qty: Decimal,
     config: SizingConfig | None = None,
+    sell_fraction: Decimal | None = None,
 ) -> SizedOrder:
     cfg = config or SizingConfig()
     if price <= 0:
         raise ValueError(f"price must be positive, got {price}")
     if base_amount < 0 or cash_cap < 0:
         raise ValueError("base_amount and cash_cap must not be negative")
+    if sell_fraction is not None and not Decimal(0) < sell_fraction <= Decimal(1):
+        raise ValueError(f"sell_fraction must be in (0, 1], got {sell_fraction}")
 
     def hold(reason: str) -> SizedOrder:
         return SizedOrder(action, Action.HOLD, None, Decimal(0), Decimal(0), reason)
@@ -95,8 +112,9 @@ def size_order(
     if position_qty <= 0:
         return hold("no position to sell")
     held = floor_to_lot(position_qty, cfg.lot_size)
-    qty = floor_to_lot(position_qty * abs(action.weight), cfg.lot_size)
-    reason = "sell tier"
+    fraction = abs(action.weight) if sell_fraction is None else sell_fraction
+    qty = floor_to_lot(position_qty * fraction, cfg.lot_size)
+    reason = "sell tier" if sell_fraction is None else f"sell {fraction:%} (decision)"
     if qty == 0 and cfg.min_one_lot_on_sell and held > 0:
         qty, reason = cfg.lot_size, "sell tier rounded up to one lot"
     if qty == 0:

@@ -528,3 +528,28 @@ async def test_stale_or_missing_quotes_get_a_wider_limit(
     planned, _ = await stage.planner.plan(context(await new_run(), {"AAPL": A.BUY, "MSFT": A.BUY}))
     limits = {p.intent.symbol: p.intent.limit_price for p in planned}
     assert limits == {"AAPL": D("100.11"), "MSFT": D("402.00")}  # +5 bps vs +50 bps
+
+
+async def test_decision_sell_fraction_sizes_the_sell(
+    repos: Repositories, new_run: NewRun, seed_market: Seed
+) -> None:
+    await seed_market({"NVDA": "50", "AAPL": "100"})
+    await filled_position(repos, new_run, "NVDA", "40", "50")
+    await filled_position(repos, new_run, "AAPL", "20", "100")
+    run_id = await new_run()
+    ctx = context(run_id, {"NVDA": A.SELL, "AAPL": A.SELL})
+    nvda = ctx.aggregated_decisions["NVDA"]
+    # NVDA: the decision chose a full exit; AAPL: decided strong_sell 50%, risk lowered it
+    ctx.aggregated_decisions["NVDA"] = nvda.model_copy(update={"sell_fraction": D(1)})
+    ctx.aggregated_decisions["AAPL"] = AggregatedDecision(
+        run_id=run_id,
+        symbol="AAPL",
+        final_action=A.STRONG_SELL,
+        method="m",
+        score=-0.3,
+        votes=[],
+        sell_fraction=D("0.5"),
+    )
+    ctx = await build(repos, SimulatedBroker(commission=D(0))).run(ctx)
+    quantities = {i.symbol: i.quantity for i in ctx.order_intents}
+    assert quantities == {"NVDA": D(40), "AAPL": D(3)}  # AAPL: capped at sell's 15% of 20
