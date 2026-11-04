@@ -1,3 +1,4 @@
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -9,7 +10,13 @@ RUN = uuid4()
 A = Action
 
 
-def vote(action: Action, confidence: float = 0.8, *, error: str | None = None) -> Decision:
+def vote(
+    action: Action,
+    confidence: float = 0.8,
+    *,
+    error: str | None = None,
+    sell_fraction: str | None = None,
+) -> Decision:
     return Decision(
         run_id=RUN,
         instance_id=uuid4(),
@@ -20,6 +27,7 @@ def vote(action: Action, confidence: float = 0.8, *, error: str | None = None) -
         confidence=confidence,
         reasoning="r",
         error=error,
+        sell_fraction=Decimal(sell_fraction) if sell_fraction is not None else None,
     )
 
 
@@ -151,3 +159,43 @@ def test_hold_weight_lets_directional_votes_through() -> None:
     # all holds stay HOLD even with weight 0 (no division by zero)
     zero = AggregationOptions(hold_weight=0.0)
     assert aggregate(RUN, "AAPL", [(vote(A.HOLD), 1.0)], zero).final_action is A.HOLD
+
+
+# ------------------------------------------------------------------ sell fraction
+
+
+def fraction(votes: list[tuple[Decision, float]], min_confidence: float = 0.0) -> Decimal | None:
+    opts = AggregationOptions(min_confidence=min_confidence)
+    return aggregate(RUN, "AAPL", votes, opts).sell_fraction
+
+
+def test_no_own_fraction_keeps_the_tier() -> None:
+    assert fraction([(vote(A.SELL), 1.0), (vote(A.STRONG_SELL), 1.0)]) is None
+
+
+def test_single_own_fraction() -> None:
+    assert fraction([(vote(A.SELL, sell_fraction="1"), 1.0)]) == Decimal(1)
+
+
+def test_weighted_median_of_sell_votes() -> None:
+    votes = [
+        (vote(A.SELL, 0.9, sell_fraction="1"), 1.0),  # weight 0.9
+        (vote(A.SELL, 0.5, sell_fraction="0.4"), 1.0),  # weight 0.5
+        (vote(A.SELL, 0.5), 1.0),  # no own fraction: counts as its tier, 0.15 (weight 0.5)
+    ]
+    # sorted: 0.15 (0.5), 0.4 (0.5), 1 (0.9); half of 1.9 = 0.95 is reached at 0.4
+    assert fraction(votes) == Decimal("0.4")
+    heavier = [(votes[0][0], 3.0), *votes[1:]]
+    assert fraction(heavier) == Decimal(1)
+
+
+def test_low_confidence_votes_do_not_count() -> None:
+    votes = [
+        (vote(A.SELL, 0.9, sell_fraction="0.5"), 1.0),
+        (vote(A.SELL, 0.3, sell_fraction="1"), 1.0),  # below min_confidence: a HOLD
+    ]
+    assert fraction(votes, min_confidence=0.5) == Decimal("0.5")
+
+
+def test_no_fraction_unless_the_final_action_sells() -> None:
+    assert fraction([(vote(A.SELL, 0.5, sell_fraction="1"), 1.0), (vote(A.BUY, 0.9), 1.0)]) is None

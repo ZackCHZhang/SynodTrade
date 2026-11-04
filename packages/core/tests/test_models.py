@@ -7,7 +7,9 @@ from pydantic import ValidationError
 
 from synodtrade_core.models import (
     Action,
+    AggregatedDecision,
     Bar,
+    Decision,
     Instrument,
     OrderIntent,
     OrderSide,
@@ -123,6 +125,61 @@ def test_confidence_and_sentiment_bounds() -> None:
         SentimentResult(**common, sentiment=1.5, confidence=0.5)  # type: ignore[arg-type]
     with pytest.raises(ValidationError):
         SentimentResult(**common, sentiment=0.0, confidence=1.2)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("action", [Action.SELL, Action.STRONG_SELL])
+def test_sell_fraction_on_sells(action: Action) -> None:
+    decision = Decision(
+        run_id=uuid4(),
+        instance_id=uuid4(),
+        agent_id="a",
+        prompt_version="v1",
+        symbol="AAPL",
+        action=action,
+        confidence=0.5,
+        reasoning="r",
+        sell_fraction=D(1),
+    )
+    assert decision.sell_fraction == 1
+    agg = AggregatedDecision(
+        run_id=uuid4(),
+        symbol="AAPL",
+        final_action=action,
+        method="m",
+        score=-0.15,
+        votes=[],
+        sell_fraction=D("0.5"),
+    )
+    assert agg.sell_fraction == D("0.5")
+
+
+@pytest.mark.parametrize(
+    ("action", "fraction"),
+    [(Action.BUY, D("0.5")), (Action.HOLD, D("0.5")), (Action.SELL, D(0)), (Action.SELL, D(2))],
+)
+def test_sell_fraction_rejected(action: Action, fraction: Decimal) -> None:
+    with pytest.raises(ValidationError):
+        Decision(
+            run_id=uuid4(),
+            instance_id=uuid4(),
+            agent_id="a",
+            prompt_version="v1",
+            symbol="AAPL",
+            action=action,
+            confidence=0.5,
+            reasoning="r",
+            sell_fraction=fraction,
+        )
+    with pytest.raises(ValidationError):
+        AggregatedDecision(
+            run_id=uuid4(),
+            symbol="AAPL",
+            final_action=action,
+            method="m",
+            score=0.0,
+            votes=[],
+            sell_fraction=fraction,
+        )
 
 
 # ------------------------------------------------------------------ RiskVerdict

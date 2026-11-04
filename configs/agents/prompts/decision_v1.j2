@@ -5,8 +5,13 @@ You decide on ONE action for {{ symbol }} for this strategy. The five possible a
 - "strong_buy": invest 30% of the strategy's available cash in {{ symbol }}
 - "buy": invest 15% of the strategy's available cash
 - "hold": do nothing
+{% if agent_sell_fraction -%}
+- "sell" / "strong_sell": sell part or all of the current {{ symbol }} position; you choose
+  how much with "sell_fraction" (below). "strong_sell" signals higher urgency.
+{% else -%}
 - "sell": sell 15% of the current {{ symbol }} position
 - "strong_sell": sell 30% of the current position
+{% endif -%}
 There is no short selling: without a position, any sell is ignored. Independent risk controls
 run after you and may reduce or reject your action, never enlarge it. Every number below was
 computed by code and is accurate; do not recompute it. Use only the data below: if your
@@ -99,3 +104,8 @@ Respond with a JSON object containing:
 - "reasoning": a concise justification (a few sentences)
 - "referenced_data_ids": the ids in square brackets (e.g. "ind:rsi_14", "fund:pe",
   "pos:{{ symbol }}") of the data your decision relies on most
+{% if agent_sell_fraction and position -%}
+- "sell_fraction": only with "sell" or "strong_sell": the fraction of the position to sell,
+  from 0 (exclusive) to 1. Use 1 to exit completely (stop hit, thesis broken), smaller values
+  to trim (take partial profit, reduce an oversized position). Omit it for other actions.
+{% endif -%}

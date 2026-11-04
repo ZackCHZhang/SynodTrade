@@ -53,6 +53,32 @@ def _nearest_in_direction(direction: int, mean_abs_weight: float) -> Action:
     return min(tiers, key=lambda a: (abs(float(abs(a.weight)) - mean_abs_weight), abs(a.weight)))
 
 
+def _sell_fraction(
+    final: Action, effective: Sequence[tuple[Action, Decision, float]]
+) -> Decimal | None:
+    """How much of the position a final sell sells: the weighted median of the sell votes'
+    fractions (weight x confidence). A sell vote without its own fraction counts with its
+    tier's fixed one. None (the tier decides) unless at least one vote gave a fraction."""
+    if final.direction >= 0:
+        return None
+    sells = [(a, d, w) for a, d, w in effective if a.direction < 0]
+    if not any(d.sell_fraction is not None for _, d, _ in sells):
+        return None
+    points = sorted(
+        (d.sell_fraction if d.sell_fraction is not None else abs(a.weight), w * d.confidence)
+        for a, d, w in sells
+    )
+    total = sum(weight for _, weight in points)
+    if total <= 0:
+        return None
+    running = 0.0
+    for fraction, weight in points:
+        running += weight
+        if running >= total / 2:
+            return fraction
+    return points[-1][0]  # pragma: no cover - float rounding only
+
+
 def aggregate(
     run_id: UUID,
     symbol: str,
@@ -100,6 +126,7 @@ def aggregate(
         run_id=run_id,
         symbol=symbol,
         final_action=final,
+        sell_fraction=_sell_fraction(final, effective),
         method=f"{options.method.value}(min_confidence={options.min_confidence}"
         + (f", hold_weight={options.hold_weight})" if options.hold_weight != 1 else ")"),
         score=score,

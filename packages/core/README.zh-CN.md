@@ -87,7 +87,7 @@ pool.set("deepseek", FakeLLMClient(...))  # 测试或 dry-run 时替换成假客
 - **时间一律带时区**：模型字段拒绝不带时区的 datetime，并统一转成 UTC。ruff 的 `DTZ` 规则在 lint 阶段就会拦截不带时区的写法。
 - **五档仓位**（`Action` 的权重：`strong_buy` 0.30、`buy` 0.15、`hold` 0、`sell` −0.15、`strong_sell` −0.30）：
   - 买入档 = 买入基数 × 15% / 30%。买入基数取流水线子账本的现金或 NAV（由 `sizing.buy_base` 决定，默认 `available_cash`），且不超过可动用现金。
-  - 卖出档 = 子账本持仓 × 15% / 30%，向下取整到交易单位（`lot_size`，默认 1）；没有持仓时降为 HOLD（不做空）。
+  - 卖出档 = 子账本持仓 × 15% / 30%，向下取整到交易单位（`lot_size`，默认 1）；没有持仓时降为 HOLD（不做空）。决策给出自己的 `sell_fraction`（0–1）时代替档位比例；若风控下调了卖出档位，比例不超过该档位的比例（风控只能降低风险）。
   - `min_one_lot_on_sell: true` 时，向下取整为 0 的卖出改为卖出 1 手。否则小仓位永远卖不掉，例如 3 股 × 15% 向下取整就是 0。
 - **风控只能降低风险**：`RiskVerdict` 在模型校验层面强制，只允许同方向减小或改为 HOLD。
 - **失败即 HOLD**：LLM 输出按 Pydantic 校验，不合格时把错误信息反馈给模型重试（最多 `max_validation_attempts` 次，默认 3）；仍失败或 LLM 不可用时，由 `Agent.fallback_output()` 给出安全输出（决策 agent 为 HOLD），并记录错误。每一次调用都会通过 `LLMCallRecorder` 留下审计记录。

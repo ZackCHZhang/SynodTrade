@@ -130,6 +130,15 @@ class Decision(AgentOutputMeta):
     confidence: Probability
     reasoning: str
     referenced_data_ids: list[str] = Field(default_factory=list)
+    # Sell-side only: how much of the position to sell, chosen by the agent. None: the
+    # action's fixed tier (sell 15% / strong_sell 30%).
+    sell_fraction: Decimal | None = Field(default=None, gt=0, le=1)
+
+    @model_validator(mode="after")
+    def _sell_fraction_only_on_sells(self) -> Self:
+        if self.sell_fraction is not None and self.action.direction >= 0:
+            raise ValueError("sell_fraction is only allowed on sell actions")
+        return self
 
 
 class DecisionOutcome(CoreModel):
@@ -159,6 +168,14 @@ class AggregatedDecision(CoreModel):
     score: float  # method-specific; for weighted_vote the ordinal weight-space score
     votes: list[Vote]
     created_at: UtcDatetime = Field(default_factory=utcnow)
+    # Set when final_action is a sell and at least one sell vote gave its own fraction.
+    sell_fraction: Decimal | None = Field(default=None, gt=0, le=1)
+
+    @model_validator(mode="after")
+    def _sell_fraction_only_on_sells(self) -> Self:
+        if self.sell_fraction is not None and self.final_action.direction >= 0:
+            raise ValueError("sell_fraction is only allowed on sell actions")
+        return self
 
 
 class RuleHit(CoreModel):

@@ -49,6 +49,9 @@ class DecisionOptions(BaseModel):
     stored_sentiment_hours: int = Field(default=48, ge=0, le=24 * 30)
     max_quote_age_minutes: int = Field(default=30, ge=1)  # older quotes are not shown
     fundamentals: bool = True  # show stored fundamentals (refreshed by data_update/selection)
+    # True: agents choose how much of a position a sell sells (`sell_fraction`, 0..1).
+    # False: sells use the tier's fixed fraction (sell 15%, strong_sell 30%).
+    agent_sell_fraction: bool = False
 
 
 class DecisionStage:
@@ -126,6 +129,7 @@ class DecisionStage:
             benchmark_indicators=market[1] if market is not None else None,
             relative=relative,
             selection=selection.get(symbol),
+            extra={"agent_sell_fraction": opts.agent_sell_fraction},
         )
 
     async def _market(self, ctx: PipelineContext) -> tuple[list[Bar], TechnicalSnapshot] | None:

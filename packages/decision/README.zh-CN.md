@@ -33,6 +33,7 @@
 每条数据都带一个 id：`ind:rsi_14`、`bar:2026-09-23`、`pos:AAPL`、`sent:<uuid>`、`hist:<uuid>`。agent 在 `referenced_data_ids` 中引用这些 id；不在本次 prompt 里的 id 会被丢弃并记录警告，所以每条决策引用的数据都能追溯到。prompt 还会告诉模型：
 
 - 五档动作的确切含义：买入按可用现金的 15% / 30%，卖出按持仓的 15% / 30%。
+  设置 `agent_sell_fraction: true` 后，改由 agent 决定卖出持仓的比例（`sell_fraction`，0–1，1 表示清仓）；最终比例取卖出票的加权中位数（权重 × 置信度），没给比例的卖出票按其档位的 15% / 30% 计。
 - 不能做空；没有持仓时的卖出会被忽略。
 - 之后的风控只会降低风险，不会放大仓位。
 
@@ -61,6 +62,7 @@
   min_bars: 30                # 默认 30
   recent_bars_in_prompt: 20   # 0–250，默认 20
   history_limit: 5            # 0–50，默认 5
+  agent_sell_fraction: false  # true：由 agent 决定卖出比例；默认 false
 ```
 
 仓库自带 21 个决策 agent 配置（`configs/agents/` 中 `role: decision` 的文件，例如 `value_investor`、`trend_follower`、`pullback_buyer`、`mean_reversion_swing`、`breakout_trader`）。它们都使用同一个实现 `DecisionAgent`（entry point `synodtrade.agents` 中的 `decision`）和同一个模板 `configs/agents/prompts/decision_v1.j2`，区别只在人格和 `params.instructions`。模型在流水线的 agent 引用中指定。

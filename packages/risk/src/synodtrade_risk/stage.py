@@ -524,7 +524,9 @@ class RiskStage:
         for symbol in _processing_order(ctx.aggregated_decisions):
             agg = ctx.aggregated_decisions[symbol]
             market = markets[symbol]
-            outcome = self.engine.evaluate(symbol, agg.final_action, market, state)
+            outcome = self.engine.evaluate(
+                symbol, agg.final_action, market, state, agg.sell_fraction
+            )
             value = state.position_value.get(symbol, Decimal(0))
             notional = outcome.sized.notional if outcome.sized else Decimal(0)
             nav = state.nav

@@ -15,7 +15,13 @@ from decimal import Decimal
 from enum import IntEnum
 
 from synodtrade_core.models import Action, RuleHit, Verdict
-from synodtrade_core.sizing import SizedOrder, SizingConfig, buy_base_amount, size_order
+from synodtrade_core.sizing import (
+    SizedOrder,
+    SizingConfig,
+    adjusted_sell_fraction,
+    buy_base_amount,
+    size_order,
+)
 from synodtrade_risk.config import RiskRulesConfig
 
 
@@ -119,8 +125,14 @@ class RuleEngine:
         self.sizing = sizing
 
     def evaluate(
-        self, symbol: str, action: Action, market: MarketSnapshot, state: PortfolioState
+        self,
+        symbol: str,
+        action: Action,
+        market: MarketSnapshot,
+        state: PortfolioState,
+        sell_fraction: Decimal | None = None,
     ) -> RuleOutcome:
+        """`sell_fraction`: the decision's own fraction for a sell (None: the tier's)."""
         symbol = symbol.upper()
         gate, gate_hits = self._gates(symbol, action, market, state)
         hits = list(gate_hits)
@@ -130,7 +142,8 @@ class RuleEngine:
             if gate is Gate.CLOSED or (gate is Gate.NO_BUYS and candidate.direction > 0):
                 continue
             assert market.price is not None  # a missing price closes the gate
-            sized, failures = self._size_rules(symbol, candidate, market.price, state)
+            fraction = adjusted_sell_fraction(sell_fraction, action, candidate)
+            sized, failures = self._size_rules(symbol, candidate, market.price, state, fraction)
             if failures:
                 hits += failures
                 continue
@@ -241,7 +254,12 @@ class RuleEngine:
     # ------------------------------------------------------------ size rules
 
     def _size_rules(
-        self, symbol: str, action: Action, price: Decimal, state: PortfolioState
+        self,
+        symbol: str,
+        action: Action,
+        price: Decimal,
+        state: PortfolioState,
+        sell_fraction: Decimal | None = None,
     ) -> tuple[SizedOrder, list[RuleHit]]:
         cfg = self.config
         sized = size_order(
@@ -253,6 +271,7 @@ class RuleEngine:
             cash_cap=max(state.cash, Decimal(0)),
             position_qty=state.position_qty.get(symbol, Decimal(0)),
             config=self.sizing,
+            sell_fraction=sell_fraction,
         )
         if not sized.is_trade:
             return sized, []

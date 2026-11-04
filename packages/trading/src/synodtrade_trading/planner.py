@@ -19,7 +19,13 @@ from synodtrade_core.models import (
     Quote,
     Timeframe,
 )
-from synodtrade_core.sizing import SizingConfig, buy_base_amount, size_order, spendable_cash
+from synodtrade_core.sizing import (
+    SizingConfig,
+    adjusted_sell_fraction,
+    buy_base_amount,
+    size_order,
+    spendable_cash,
+)
 from synodtrade_database import Repositories
 from synodtrade_trading.broker import client_order_id
 
@@ -174,6 +180,7 @@ class OrderPlanner:
                 cash_cap=max(cash, Decimal(0)),
                 position_qty=ledger.position_qty(symbol),
                 config=self.sizing,
+                sell_fraction=_sell_fraction(ctx, symbol, action),
             )
             if not sized.is_trade:
                 skipped.append(SkippedOrder(symbol, action, sized.reason))
@@ -196,3 +203,11 @@ class OrderPlanner:
             )
             planned.append(PlannedOrder(intent, instrument))
         return planned, skipped
+
+
+def _sell_fraction(ctx: PipelineContext, symbol: str, action: Action) -> Decimal | None:
+    """The decision's own sell fraction, capped if risk lowered the sell tier."""
+    decision = ctx.aggregated_decisions.get(symbol)
+    if decision is None:
+        return None
+    return adjusted_sell_fraction(decision.sell_fraction, decision.final_action, action)

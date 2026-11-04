@@ -87,7 +87,7 @@ pool.set("deepseek", FakeLLMClient(...))  # swap in a fake client for tests or d
 - **Times are always timezone-aware**: model fields reject naive datetimes and convert to UTC. Ruff's `DTZ` rules catch naive datetimes at lint time.
 - **Five-tier sizing** (`Action` weights: `strong_buy` 0.30, `buy` 0.15, `hold` 0, `sell` −0.15, `strong_sell` −0.30):
   - Buy tiers = buy base × 15% / 30%. The buy base is the pipeline sub-ledger's cash or NAV (`sizing.buy_base`, default `available_cash`), capped by spendable cash.
-  - Sell tiers = sub-ledger position × 15% / 30%, floored to the lot size (`lot_size`, default 1); without a position the action becomes HOLD (no shorting).
+  - Sell tiers = sub-ledger position × 15% / 30%, floored to the lot size (`lot_size`, default 1); without a position the action becomes HOLD (no shorting). A decision's own `sell_fraction` (0–1) replaces the tier's fraction; if risk lowered the sell tier, it is capped at that tier's fraction (risk can only reduce).
   - With `min_one_lot_on_sell: true` a sell that floors to 0 sells one lot instead; otherwise a small position may never be sellable (3 shares × 15% floors to 0).
 - **Risk can only reduce risk**: `RiskVerdict` enforces at model-validation level that an adjustment keeps the direction with a smaller-or-equal size, or becomes HOLD.
 - **Failure means HOLD**: LLM output is validated by Pydantic; on failure the error is fed back and the model retries (up to `max_validation_attempts`, default 3). If it still fails or the LLM is unavailable, `Agent.fallback_output()` supplies a safe output (HOLD for decision agents) and the error is recorded. Every call leaves an audit record through `LLMCallRecorder`.

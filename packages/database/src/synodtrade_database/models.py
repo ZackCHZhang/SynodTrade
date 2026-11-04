@@ -325,6 +325,7 @@ class DecisionRow(Base):
     llm_call_ids: Mapped[list[Any]]
     error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime]
+    sell_fraction: Mapped[Decimal | None]  # NULL: the action's fixed sell tier
 
 
 class AggregatedDecisionRow(Base):
@@ -340,6 +341,7 @@ class AggregatedDecisionRow(Base):
     score: Mapped[float] = mapped_column(Float)
     votes: Mapped[list[Any]]
     created_at: Mapped[datetime]
+    sell_fraction: Mapped[Decimal | None]  # NULL: the action's fixed sell tier
 
 
 class RiskAssessmentRow(Base):
