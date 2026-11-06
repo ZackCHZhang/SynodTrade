@@ -5,7 +5,7 @@
 > [!IMPORTANT]
 > These are **paper-trading** results from IBKR paper accounts, not real money. Fills are real paper fills, but paper trading ignores market impact and can fill orders a live account would not. Past results say nothing about future ones. Not investment advice.
 
-<sub>Updated 2026-10-30 · data through 2026-10-30</sub>
+<sub>Updated 2026-11-06 · data through 2026-11-05</sub>
 
 <p align="center"><img src="equity.svg" alt="Cumulative paper-trading return of each pipeline against its benchmark" width="880"></p>
 
@@ -13,17 +13,17 @@
 
 | Pipeline | Model | Since | Return | Benchmark | Excess | Max drawdown | Sharpe | LLM cost |
 |:--|:--|--:|--:|--:|--:|--:|--:|--:|
-| **arena_claude** | claude-haiku-5.5 | 2026-10-16 | -0.79% | SPY -1.31% | +0.53% | -2.62% | — | $1.17 |
-| **arena_deepseek** | deepseek-v4.1-flash | 2026-10-16 | +0.45% | SPY -1.31% | +1.76% | -1.77% | — | $2.15 |
-| **arena_glm** | glm-5.3-flashx | 2026-10-16 | +0.19% | SPY -1.31% | +1.50% | -2.04% | — | $4.49 |
-| **arena_gpt** | gpt-6-luna | 2026-10-16 | +0.57% | SPY -1.31% | +1.88% | -1.72% | — | — |
-| **arena_qwen** | qwen3.8-omni-flash | 2026-10-16 | -0.08% | SPY -1.31% | +1.24% | -1.85% | — | $2.31 |
-| **arena_solo_claude** | claude-haiku-5.5 | 2026-10-16 | +1.07% | SPY -1.31% | +2.39% | -1.68% | — | $0.31 |
-| **arena_solo_deepseek** | deepseek-v4.1-flash | 2026-10-16 | +0.82% | SPY -1.31% | +2.14% | -1.17% | — | $0.39 |
-| **arena_solo_glm** | glm-5.3-flashx | 2026-10-16 | +1.68% | SPY -1.31% | +2.99% | -1.60% | — | $1.52 |
-| **arena_solo_gpt** | gpt-6-luna | 2026-10-16 | +1.12% | SPY -1.31% | +2.43% | -0.26% | — | — |
-| **arena_solo_qwen** | qwen3.8-omni-flash | 2026-10-16 | +0.00% | SPY -1.31% | +1.31% | +0.00% | — | $0.07 |
-| **demo_all_modules** | deepseek-chat | 2026-10-07 | -5.81% | SPY -3.09% | -2.72% | -6.51% | — | — |
+| **arena_claude** | claude-haiku-5.5 | 2026-10-16 | -5.27% | SPY -3.96% | -1.30% | -5.45% | — | $1.85 |
+| **arena_deepseek** | deepseek-v4.1-flash | 2026-10-16 | -4.17% | SPY -3.96% | -0.21% | -4.79% | — | $3.32 |
+| **arena_glm** | glm-5.3-flashx | 2026-10-16 | -3.29% | SPY -3.96% | +0.67% | -3.59% | — | $7.18 |
+| **arena_gpt** | gpt-6-luna | 2026-10-16 | -3.40% | SPY -3.96% | +0.56% | -4.09% | — | — |
+| **arena_qwen** | qwen3.8-omni-flash | 2026-10-16 | -4.36% | SPY -3.96% | -0.39% | -4.57% | — | $4.06 |
+| **arena_solo_claude** | claude-haiku-5.5 | 2026-10-16 | -3.09% | SPY -3.96% | +0.87% | -4.23% | — | $0.47 |
+| **arena_solo_deepseek** | deepseek-v4.1-flash | 2026-10-16 | -2.08% | SPY -3.96% | +1.89% | -2.96% | — | $0.59 |
+| **arena_solo_glm** | glm-5.3-flashx | 2026-10-16 | -2.60% | SPY -3.96% | +1.36% | -4.43% | — | $2.30 |
+| **arena_solo_gpt** | gpt-6-luna | 2026-10-16 | -1.13% | SPY -3.96% | +2.83% | -2.27% | — | — |
+| **arena_solo_qwen** | qwen3.8-omni-flash | 2026-10-16 | -0.02% | SPY -3.96% | +3.94% | -0.02% | — | $0.15 |
+| **demo_all_modules** | deepseek-chat | 2026-10-07 | -7.56% | SPY -5.69% | -1.87% | -8.15% | -7.72 | — |
 
 ## Pipelines
 
@@ -33,22 +33,22 @@
 |:--|--:|
 | Models | `anthropic/claude-haiku-5.5` |
 | Mode | paper |
-| Sessions | 10 |
+| Sessions | 14 |
 | Starting capital | 100,000.00 |
 | First paper/live run | 2026-10-19 15:10 UTC |
-| Net asset value | 99,213.09 (-0.79%) |
-| Fills (buys / sells) | 11 (6 / 5) |
+| Net asset value | 94,734.53 (-5.27%) |
+| Fills (buys / sells) | 23 (9 / 14) |
 | Sells at a profit | 0.00% |
-| Realised P&L | -761.83 |
-| Commissions | 11.18 |
-| Open positions | 5 |
-| Invested | 52.34% |
+| Realised P&L | -4,316.91 |
+| Commissions | 22.91 |
+| Open positions | 4 |
+| Invested | 31.59% |
 | Volatility (annualised) | — |
 | CAGR | — |
-| Benchmark max drawdown | -2.57% |
-| LLM calls | 1284 |
-| LLM tokens (in / out / cache read) | 6.78M / 974.0k / 0 |
-| LLM cost (total / last 7 days) | $1.17 / $0.71 |
+| Benchmark max drawdown | -5.19% |
+| LLM calls | 2032 |
+| LLM tokens (in / out / cache read) | 10.72M / 1.56M / 0 |
+| LLM cost (total / last 7 days) | $1.85 / $0.80 |
 
 ### arena_deepseek
 
@@ -56,22 +56,22 @@
 |:--|--:|
 | Models | `deepseek/deepseek-v4.1-flash` |
 | Mode | paper |
-| Sessions | 10 |
+| Sessions | 14 |
 | Starting capital | 100,000.00 |
 | First paper/live run | 2026-10-19 13:50 UTC |
-| Net asset value | 100,445.58 (+0.45%) |
-| Fills (buys / sells) | 35 (20 / 15) |
-| Sells at a profit | 6.67% |
-| Realised P&L | -793.11 |
-| Commissions | 35.24 |
-| Open positions | 11 |
-| Invested | 86.96% |
+| Net asset value | 95,825.56 (-4.17%) |
+| Fills (buys / sells) | 55 (24 / 31) |
+| Sells at a profit | 3.23% |
+| Realised P&L | -5,055.04 |
+| Commissions | 55.15 |
+| Open positions | 6 |
+| Invested | 52.89% |
 | Volatility (annualised) | — |
 | CAGR | — |
-| Benchmark max drawdown | -2.57% |
-| LLM calls | 1888 |
-| LLM tokens (in / out / cache read) | 7.29M / 1.83M / 254.5k |
-| LLM cost (total / last 7 days) | $2.15 / $1.19 |
+| Benchmark max drawdown | -5.19% |
+| LLM calls | 2873 |
+| LLM tokens (in / out / cache read) | 11.11M / 2.85M / 381.7k |
+| LLM cost (total / last 7 days) | $3.32 / $1.27 |
 
 ### arena_glm
 
@@ -79,22 +79,22 @@
 |:--|--:|
 | Models | `z-ai/glm-5.3-flashx` |
 | Mode | paper |
-| Sessions | 10 |
+| Sessions | 14 |
 | Starting capital | 100,000.00 |
 | First paper/live run | 2026-10-19 14:30 UTC |
-| Net asset value | 100,191.39 (+0.19%) |
-| Fills (buys / sells) | 31 (16 / 15) |
+| Net asset value | 96,709.62 (-3.29%) |
+| Fills (buys / sells) | 52 (21 / 31) |
 | Sells at a profit | 0.00% |
-| Realised P&L | -1,169.28 |
-| Commissions | 31.36 |
-| Open positions | 8 |
-| Invested | 81.84% |
+| Realised P&L | -4,537.15 |
+| Commissions | 53.13 |
+| Open positions | 6 |
+| Invested | 65.22% |
 | Volatility (annualised) | — |
 | CAGR | — |
-| Benchmark max drawdown | -2.57% |
-| LLM calls | 1302 |
-| LLM tokens (in / out / cache read) | 5.27M / 2.13M / 467.5k |
-| LLM cost (total / last 7 days) | $4.49 / $2.16 |
+| Benchmark max drawdown | -5.19% |
+| LLM calls | 2070 |
+| LLM tokens (in / out / cache read) | 8.41M / 3.45M / 895.0k |
+| LLM cost (total / last 7 days) | $7.18 / $2.97 |
 
 ### arena_gpt
 
@@ -102,22 +102,22 @@
 |:--|--:|
 | Models | `openai/gpt-6-luna` |
 | Mode | paper |
-| Sessions | 10 |
+| Sessions | 14 |
 | Starting capital | 100,000.00 |
 | First paper/live run | 2026-10-19 14:50 UTC |
-| Net asset value | 100,571.61 (+0.57%) |
-| Fills (buys / sells) | 14 (8 / 6) |
+| Net asset value | 96,598.79 (-3.40%) |
+| Fills (buys / sells) | 22 (8 / 14) |
 | Sells at a profit | 0.00% |
-| Realised P&L | -462.86 |
-| Commissions | 13.13 |
-| Open positions | 7 |
-| Invested | 62.13% |
+| Realised P&L | -3,490.98 |
+| Commissions | 21.72 |
+| Open positions | 4 |
+| Invested | 30.84% |
 | Volatility (annualised) | — |
 | CAGR | — |
-| Benchmark max drawdown | -2.57% |
-| LLM calls | 1511 |
-| LLM tokens (in / out / cache read) | 4.84M / 600.4k / 0 |
-| LLM cost (total / last 7 days) | — / $0.48 |
+| Benchmark max drawdown | -5.19% |
+| LLM calls | 2260 |
+| LLM tokens (in / out / cache read) | 7.66M / 939.5k / 0 |
+| LLM cost (total / last 7 days) | — / $0.49 |
 
 ### arena_qwen
 
@@ -125,22 +125,22 @@
 |:--|--:|
 | Models | `qwen/qwen3.8-omni-flash` |
 | Mode | paper |
-| Sessions | 10 |
+| Sessions | 14 |
 | Starting capital | 100,000.00 |
 | First paper/live run | 2026-10-19 14:10 UTC |
-| Net asset value | 99,924.97 (-0.08%) |
-| Fills (buys / sells) | 18 (8 / 10) |
-| Sells at a profit | 0.00% |
-| Realised P&L | -531.72 |
-| Commissions | 18.21 |
-| Open positions | 8 |
-| Invested | 63.82% |
+| Net asset value | 95,643.12 (-4.36%) |
+| Fills (buys / sells) | 31 (9 / 22) |
+| Sells at a profit | 4.55% |
+| Realised P&L | -4,570.34 |
+| Commissions | 32.10 |
+| Open positions | 3 |
+| Invested | 22.50% |
 | Volatility (annualised) | — |
 | CAGR | — |
-| Benchmark max drawdown | -2.57% |
-| LLM calls | 1308 |
-| LLM tokens (in / out / cache read) | 5.62M / 3.13M / 26.9k |
-| LLM cost (total / last 7 days) | $2.31 / $1.43 |
+| Benchmark max drawdown | -5.19% |
+| LLM calls | 2287 |
+| LLM tokens (in / out / cache read) | 9.78M / 5.59M / 224.0k |
+| LLM cost (total / last 7 days) | $4.06 / $1.91 |
 
 ### arena_solo_claude
 
@@ -148,22 +148,22 @@
 |:--|--:|
 | Models | `anthropic/claude-haiku-5.5` |
 | Mode | paper |
-| Sessions | 10 |
+| Sessions | 14 |
 | Starting capital | 100,000.00 |
 | First paper/live run | 2026-10-19 15:20 UTC |
-| Net asset value | 101,073.14 (+1.07%) |
-| Fills (buys / sells) | 11 (10 / 1) |
+| Net asset value | 96,908.03 (-3.09%) |
+| Fills (buys / sells) | 29 (17 / 12) |
 | Sells at a profit | 0.00% |
-| Realised P&L | -72.34 |
-| Commissions | 11.02 |
-| Open positions | 7 |
-| Invested | 78.56% |
+| Realised P&L | -3,679.10 |
+| Commissions | 29.66 |
+| Open positions | 6 |
+| Invested | 61.30% |
 | Volatility (annualised) | — |
 | CAGR | — |
-| Benchmark max drawdown | -2.57% |
-| LLM calls | 399 |
-| LLM tokens (in / out / cache read) | 1.62M / 289.6k / 0 |
-| LLM cost (total / last 7 days) | $0.31 / $0.17 |
+| Benchmark max drawdown | -5.19% |
+| LLM calls | 613 |
+| LLM tokens (in / out / cache read) | 2.49M / 449.7k / 0 |
+| LLM cost (total / last 7 days) | $0.47 / $0.19 |
 
 ### arena_solo_deepseek
 
@@ -171,22 +171,22 @@
 |:--|--:|
 | Models | `deepseek/deepseek-v4.1-flash` |
 | Mode | paper |
-| Sessions | 10 |
+| Sessions | 14 |
 | Starting capital | 100,000.00 |
 | First paper/live run | 2026-10-19 14:00 UTC |
-| Net asset value | 100,823.70 (+0.82%) |
-| Fills (buys / sells) | 8 (8 / 0) |
-| Sells at a profit | — |
-| Realised P&L | 0.00 |
-| Commissions | 8.00 |
-| Open positions | 7 |
-| Invested | 71.83% |
+| Net asset value | 97,924.35 (-2.08%) |
+| Fills (buys / sells) | 21 (12 / 9) |
+| Sells at a profit | 0.00% |
+| Realised P&L | -2,565.49 |
+| Commissions | 21.45 |
+| Open positions | 8 |
+| Invested | 65.75% |
 | Volatility (annualised) | — |
 | CAGR | — |
-| Benchmark max drawdown | -2.57% |
-| LLM calls | 363 |
-| LLM tokens (in / out / cache read) | 1.13M / 374.7k / 42.2k |
-| LLM cost (total / last 7 days) | $0.39 / $0.21 |
+| Benchmark max drawdown | -5.19% |
+| LLM calls | 558 |
+| LLM tokens (in / out / cache read) | 1.69M / 583.6k / 66.9k |
+| LLM cost (total / last 7 days) | $0.59 / $0.23 |
 
 ### arena_solo_glm
 
@@ -194,22 +194,22 @@
 |:--|--:|
 | Models | `z-ai/glm-5.3-flashx` |
 | Mode | paper |
-| Sessions | 10 |
+| Sessions | 14 |
 | Starting capital | 100,000.00 |
 | First paper/live run | 2026-10-19 14:40 UTC |
-| Net asset value | 101,676.34 (+1.68%) |
-| Fills (buys / sells) | 15 (13 / 2) |
+| Net asset value | 97,400.95 (-2.60%) |
+| Fills (buys / sells) | 35 (19 / 16) |
 | Sells at a profit | 0.00% |
-| Realised P&L | -273.13 |
-| Commissions | 12.54 |
+| Realised P&L | -3,019.66 |
+| Commissions | 32.22 |
 | Open positions | 9 |
-| Invested | 77.26% |
+| Invested | 60.66% |
 | Volatility (annualised) | — |
 | CAGR | — |
-| Benchmark max drawdown | -2.57% |
-| LLM calls | 528 |
-| LLM tokens (in / out / cache read) | 1.58M / 778.9k / 141.7k |
-| LLM cost (total / last 7 days) | $1.52 / $0.76 |
+| Benchmark max drawdown | -5.19% |
+| LLM calls | 797 |
+| LLM tokens (in / out / cache read) | 2.41M / 1.18M / 240.6k |
+| LLM cost (total / last 7 days) | $2.30 / $0.87 |
 
 ### arena_solo_gpt
 
@@ -217,22 +217,22 @@
 |:--|--:|
 | Models | `openai/gpt-6-luna` |
 | Mode | paper |
-| Sessions | 10 |
+| Sessions | 14 |
 | Starting capital | 100,000.00 |
 | First paper/live run | 2026-10-19 15:00 UTC |
-| Net asset value | 101,116.70 (+1.12%) |
-| Fills (buys / sells) | 2 (2 / 0) |
-| Sells at a profit | — |
-| Realised P&L | 0.00 |
-| Commissions | 2.00 |
-| Open positions | 2 |
-| Invested | 27.96% |
+| Net asset value | 98,867.72 (-1.13%) |
+| Fills (buys / sells) | 7 (3 / 4) |
+| Sells at a profit | 0.00% |
+| Realised P&L | -730.28 |
+| Commissions | 7.22 |
+| Open positions | 3 |
+| Invested | 26.19% |
 | Volatility (annualised) | — |
 | CAGR | — |
-| Benchmark max drawdown | -2.57% |
-| LLM calls | 507 |
-| LLM tokens (in / out / cache read) | 1.43M / 201.4k / 0 |
-| LLM cost (total / last 7 days) | — / $0.13 |
+| Benchmark max drawdown | -5.19% |
+| LLM calls | 693 |
+| LLM tokens (in / out / cache read) | 1.96M / 277.2k / 0 |
+| LLM cost (total / last 7 days) | — / $0.11 |
 
 ### arena_solo_qwen
 
@@ -240,22 +240,22 @@
 |:--|--:|
 | Models | `qwen/qwen3.8-omni-flash` |
 | Mode | paper |
-| Sessions | 10 |
+| Sessions | 14 |
 | Starting capital | 100,000.00 |
 | First paper/live run | 2026-10-19 14:20 UTC |
-| Net asset value | 100,000.00 (+0.00%) |
-| Fills (buys / sells) | 0 (0 / 0) |
+| Net asset value | 99,979.22 (-0.02%) |
+| Fills (buys / sells) | 1 (1 / 0) |
 | Sells at a profit | — |
 | Realised P&L | 0.00 |
-| Commissions | 0.00 |
-| Open positions | 0 |
-| Invested | 0.00% |
+| Commissions | 1.00 |
+| Open positions | 1 |
+| Invested | 14.80% |
 | Volatility (annualised) | — |
 | CAGR | — |
-| Benchmark max drawdown | -2.57% |
-| LLM calls | 45 |
-| LLM tokens (in / out / cache read) | 154.8k / 108.1k / 0 |
-| LLM cost (total / last 7 days) | $0.07 / $0.02 |
+| Benchmark max drawdown | -5.19% |
+| LLM calls | 99 |
+| LLM tokens (in / out / cache read) | 324.2k / 212.0k / 0 |
+| LLM cost (total / last 7 days) | $0.15 / $0.07 |
 
 ### demo_all_modules
 
@@ -263,21 +263,21 @@
 |:--|--:|
 | Models | `deepseek-chat` |
 | Mode | paper |
-| Sessions | 17 |
+| Sessions | 21 |
 | Starting capital | 10,000.00 |
 | First paper/live run | 2026-10-08 13:40 UTC |
-| Net asset value | 9,419.30 (-5.81%) |
-| Fills (buys / sells) | 33 (16 / 17) |
+| Net asset value | 9,244.11 (-7.56%) |
+| Fills (buys / sells) | 45 (18 / 27) |
 | Sells at a profit | 0.00% |
-| Realised P&L | -287.62 |
-| Commissions | 30.50 |
-| Open positions | 6 |
-| Invested | 62.08% |
-| Volatility (annualised) | — |
+| Realised P&L | -790.13 |
+| Commissions | 41.52 |
+| Open positions | 4 |
+| Invested | 40.68% |
+| Volatility (annualised) | 12.10% |
 | CAGR | — |
-| Benchmark max drawdown | -3.25% |
-| LLM calls | 4108 |
-| LLM tokens (in / out / cache read) | 15.61M / 1.32M / 1.01M |
+| Benchmark max drawdown | -5.85% |
+| LLM calls | 4947 |
+| LLM tokens (in / out / cache read) | 18.89M / 1.57M / 1.22M |
 | LLM cost (total / last 7 days) | — / — |
 
 ## Methodology
