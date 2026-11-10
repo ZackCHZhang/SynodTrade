@@ -6,6 +6,7 @@ connection (a different client id) in the trading package.
 
 from __future__ import annotations
 
+import asyncio
 import math
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, time, timedelta
@@ -250,24 +251,53 @@ class IBKRMarketDataProvider:
         self._require_connection()
         if not instruments:
             return []
-        by_con_id = {i.con_id: i for i in instruments}
-        tickers = await bounded(
-            self._ib.reqTickersAsync(*(self._contract(i) for i in instruments)),
-            self.request_timeout_s,
-            f"IBKR quotes of {len(instruments)} instruments",
-        )
-        quotes = []
-        for t in tickers:
-            if t.contract is None or t.contract.conId not in by_con_id:
-                continue
-            instrument = by_con_id[t.contract.conId]
-            quote = quote_from_ticker(instrument.symbol, t)
-            if quote.reference_price is None:
-                # No streaming data (e.g. a paper account without market data sharing):
-                # fall back to the latest 1-minute bar, stamped with its real (delayed) time.
-                quote = await self._quote_from_bars(instrument) or quote
-            quotes.append(quote)
+        # One request per instrument: TWS sometimes never answers the snapshot of a single
+        # stock (seen with MA on 2026-11-10), and in one combined request that stock would
+        # time out the quotes of all the others. Now only its own quote is missing.
+        results = await asyncio.gather(*(self._fetch_quote(i) for i in instruments))
+        quotes = [quote for quote, _ in results if quote is not None]
+        timed_out = [i.symbol for i, (_, late) in zip(instruments, results, strict=True) if late]
+        if not quotes and len(timed_out) == len(instruments):  # TWS answers nothing
+            raise TimeoutError(
+                f"IBKR quotes of {len(instruments)} instruments timed out after "
+                f"{self.request_timeout_s:g}s"
+            )
+        if timed_out:
+            log.warning("ibkr.quotes_timed_out", symbols=timed_out, fetched=len(quotes))
         return quotes
+
+    async def _fetch_quote(self, instrument: Instrument) -> tuple[Quote | None, bool]:
+        """The instrument's quote (None if none) and whether its snapshot timed out."""
+        quote: Quote | None = None
+        timed_out = False
+        try:
+            tickers = await bounded(
+                self._ib.reqTickersAsync(self._contract(instrument)),
+                self.request_timeout_s,
+                f"IBKR quote of {instrument.symbol}",
+            )
+            for t in tickers:
+                if t.contract is not None and t.contract.conId == instrument.con_id:
+                    quote = quote_from_ticker(instrument.symbol, t)
+                    break
+        except TimeoutError:
+            timed_out = True
+        if quote is None or quote.reference_price is None:
+            # No streaming data (e.g. a paper account without market data sharing, or no
+            # answer at all): fall back to the latest 1-minute bar, stamped with its real
+            # (delayed) time.
+            try:
+                quote = (
+                    await bounded(
+                        self._quote_from_bars(instrument),
+                        self.request_timeout_s,
+                        f"IBKR 1-minute bars of {instrument.symbol}",
+                    )
+                    or quote
+                )
+            except Exception as exc:  # one symbol's fallback must not fail the others
+                log.warning("ibkr.quote_fallback_failed", symbol=instrument.symbol, error=str(exc))
+        return quote, timed_out
 
     async def _quote_from_bars(self, instrument: Instrument) -> Quote | None:
         contract = self._contract(instrument)
