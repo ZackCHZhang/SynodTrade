@@ -54,6 +54,9 @@ class AccountConfig(CoreModel):
     port: int = Field(ge=1, le=65535)
     client_id: int = Field(ge=0)
     base_currency: str = "USD"
+    # Pipelines whose accounts share a run group never run at the same time: a run waits
+    # for the earlier one. Default: the API connection (host, port, client_id).
+    run_group: str | None = Field(default=None, min_length=1)
 
 
 class LLMModelConfig(CoreModel):

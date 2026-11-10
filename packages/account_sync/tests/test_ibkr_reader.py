@@ -1,5 +1,6 @@
 """IBKRAccountReader against a stub `IB` object — no gateway; nothing is ever sent."""
 
+import asyncio
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -180,3 +181,19 @@ async def test_account_summary_failure_is_reported_not_raised() -> None:
     snap = await r.snapshot(account=True)  # the stub has no account summary
     assert snap.account is None
     assert snap.account_error is not None
+
+
+class SilentIB(StubIB):
+    """TWS never answers the completed orders request."""
+
+    async def reqCompletedOrdersAsync(self, apiOnly: bool) -> list[Trade]:  # noqa: N802, N803
+        await asyncio.Event().wait()
+        return []
+
+
+async def test_unanswered_requests_time_out() -> None:
+    ib = SilentIB()
+    r = IBKRAccountReader(account_id=ACCOUNT, ib=ib, sleep=no_sleep, request_timeout_s=0.01)  # type: ignore[arg-type]
+    await r.connect()
+    with pytest.raises(TimeoutError, match="completed orders"):
+        await asyncio.wait_for(r.snapshot(), 5)

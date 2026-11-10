@@ -1,8 +1,9 @@
 """IBKR news headlines (and optionally article bodies) via `ib_async`.
 
 Uses its own read-only connection to TWS / IB Gateway. IBKR client ids must be unique per
-connection; by default this source uses IBKR_CLIENT_ID + 2 (market data uses the configured
-id, trading + 1). Which providers are available depends on the account's news
+connection; in a pipeline this source uses the pipeline account's host, port and
+client_id + 2 (market data uses the configured id, trading + 1), standalone
+IBKR_CLIENT_ID + 2. Which providers are available depends on the account's news
 subscriptions; the API includes free ones such as Briefing.com (BRFG, BRFUPDN) and
 Dow Jones (DJNL).
 
@@ -21,6 +22,8 @@ from typing import Any
 from ib_async import IB, Contract, Stock
 from pydantic import BaseModel, ConfigDict, Field
 
+from synodtrade_core.aio import bounded
+from synodtrade_core.config import AccountConfig
 from synodtrade_core.logging import get_logger
 from synodtrade_core.models import SentimentItem
 from synodtrade_core.timeutil import utcnow
@@ -45,6 +48,17 @@ class IBKRNewsOptions(BaseModel):
     max_body_chars: int = Field(default=4000, ge=100)
     currency: str = "USD"
     connect_timeout_s: float = Field(default=10.0, gt=0)
+    request_timeout_s: float = Field(default=60.0, gt=0)
+
+
+def account_connection(account: AccountConfig) -> dict[str, Any]:
+    """Connection options of this source for a pipeline's IBKR account (its own client id,
+    so pipelines on different accounts/client ids never collide on one)."""
+    return {
+        "host": account.host,
+        "port": account.port,
+        "client_id": account.client_id + CLIENT_ID_OFFSET,
+    }
 
 
 def parse_headline(raw: str) -> tuple[str, dict[str, float | None]]:
@@ -112,7 +126,12 @@ class IBKRNewsSource:
         if self._provider_codes is None:
             codes = self.options.providers
             if codes is None:
-                codes = [p.code for p in await self._ib.reqNewsProvidersAsync()]
+                providers = await bounded(
+                    self._ib.reqNewsProvidersAsync(),
+                    self.options.request_timeout_s,
+                    "IBKR news providers",
+                )
+                codes = [p.code for p in providers]
             if not codes:
                 raise SourceError("ibkr_news: the account has no news providers")
             self._provider_codes = "+".join(codes)
@@ -120,8 +139,10 @@ class IBKRNewsSource:
 
     async def _con_id(self, symbol: str) -> int:
         if symbol not in self._con_ids:
-            [contract] = await self._ib.qualifyContractsAsync(
-                Stock(symbol, "SMART", self.options.currency)
+            [contract] = await bounded(
+                self._ib.qualifyContractsAsync(Stock(symbol, "SMART", self.options.currency)),
+                self.options.request_timeout_s,
+                f"IBKR contract lookup of {symbol}",
             )
             if not isinstance(contract, Contract) or not contract.conId:
                 raise SourceError(f"ibkr_news: unknown stock {symbol}")
@@ -148,8 +169,12 @@ class IBKRNewsSource:
         self, symbol: str, providers: str, since: datetime
     ) -> list[SentimentItem]:
         con_id = await self._con_id(symbol)
-        headlines: Any = await self._ib.reqHistoricalNewsAsync(
-            con_id, providers, since, utcnow(), self.options.max_headlines
+        headlines: Any = await bounded(
+            self._ib.reqHistoricalNewsAsync(
+                con_id, providers, since, utcnow(), self.options.max_headlines
+            ),
+            self.options.request_timeout_s,
+            f"IBKR news of {symbol}",
         )
         if headlines is None:
             raise SourceError("historical news request timed out")
@@ -179,7 +204,11 @@ class IBKRNewsSource:
         return items
 
     async def _body(self, provider: str, article_id: str) -> str | None:
-        article = await self._ib.reqNewsArticleAsync(provider, article_id)
+        article = await bounded(
+            self._ib.reqNewsArticleAsync(provider, article_id),
+            self.options.request_timeout_s,
+            f"IBKR news article {article_id}",
+        )
         if article is None or article.articleType != 0:  # 1 = binary (PDF)
             return None
         return html_to_text(article.articleText)[: self.options.max_body_chars]

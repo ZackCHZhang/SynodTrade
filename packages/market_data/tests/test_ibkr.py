@@ -1,6 +1,8 @@
 """IBKRMarketDataProvider against a stub `IB` object — no gateway, no network."""
 
+import asyncio
 import math
+from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -471,3 +473,90 @@ async def test_quotes_fall_back_to_the_latest_minute_bar() -> None:
     ib.tickers, ib.history = [empty], [[]]  # no bars either: keep the empty quote
     [nothing] = await make_provider(ib).fetch_quotes([AAPL])
     assert nothing.reference_price is None
+
+
+# ------------------------------------------------------------------ requests that never return
+
+
+class SilentIB(StubIB):
+    """TWS never answers the requests named in `silent` (ib_async does not time them out)."""
+
+    def __init__(self, *silent: str) -> None:
+        super().__init__()
+        self.silent = set(silent)
+
+    async def _maybe_hang(self, name: str) -> None:
+        if name in self.silent:
+            await asyncio.Event().wait()
+
+    async def qualifyContractsAsync(self, *contracts: Contract) -> list[Any]:  # noqa: N802
+        await self._maybe_hang("qualify")
+        return await super().qualifyContractsAsync(*contracts)
+
+    async def reqTickersAsync(self, *contracts: Contract) -> list[Ticker]:  # noqa: N802
+        await self._maybe_hang("tickers")
+        return await super().reqTickersAsync(*contracts)
+
+    async def accountSummaryAsync(self, account: str) -> list[AccountValue]:  # noqa: N802
+        await self._maybe_hang("summary")
+        return await super().accountSummaryAsync(account)
+
+    async def reqPositionsAsync(self) -> list[Position]:  # noqa: N802
+        await self._maybe_hang("positions")
+        return await super().reqPositionsAsync()
+
+
+@pytest.mark.parametrize(
+    ("silent", "call", "message"),
+    [
+        ("qualify", lambda p: p.resolve_instrument("AAPL"), "contract lookup of AAPL"),
+        ("tickers", lambda p: p.fetch_quotes([AAPL]), "quotes of 1 instruments"),
+        ("summary", lambda p: p.fetch_account("DU1"), "account summary of DU1"),
+        ("positions", lambda p: p.fetch_account("DU1"), "positions"),
+    ],
+)
+async def test_unanswered_requests_time_out(
+    silent: str, call: Callable[[IBKRMarketDataProvider], Awaitable[object]], message: str
+) -> None:
+    ib = SilentIB(silent)
+    ib.summary = [
+        _value("NetLiquidation", "1"),
+        _value("TotalCashValue", "1"),
+        _value("BuyingPower", "1"),
+    ]
+    provider = make_provider(ib, request_timeout_s=0.01)
+    with pytest.raises(TimeoutError, match=message):
+        await asyncio.wait_for(call(provider), 5)
+
+
+class OneSilentIB(StubIB):
+    """TWS never answers the quote snapshot of one contract; the others answer."""
+
+    def __init__(self, silent_con_id: int) -> None:
+        super().__init__()
+        self.silent_con_id = silent_con_id
+
+    async def reqTickersAsync(self, *contracts: Contract) -> list[Ticker]:  # noqa: N802
+        if any(c.conId == self.silent_con_id for c in contracts):
+            await asyncio.Event().wait()
+        return await super().reqTickersAsync(*contracts)
+
+
+async def test_one_unanswered_quote_does_not_fail_the_others() -> None:
+    ma = Instrument(symbol="MA", con_id=38685693, primary_exchange="NYSE")
+    ib = OneSilentIB(ma.con_id)
+    ib.tickers = [ticker(Contract(conId=265598), time=NOW, bid=1.0, ask=2.0)]
+    provider = make_provider(ib, request_timeout_s=0.01)
+    quotes = await asyncio.wait_for(provider.fetch_quotes([AAPL, ma]), 5)
+    assert [(q.symbol, q.mid) for q in quotes] == [("AAPL", D("1.5"))]
+
+
+async def test_unanswered_quote_falls_back_to_bars() -> None:
+    ib = SilentIB("tickers")
+    minute = datetime(2026, 11, 10, 15, 0, tzinfo=UTC)
+    ib.history = [
+        [BarData(date=minute, open=1, high=1, low=1, close=7.5, volume=1, average=1, barCount=1)]
+    ]
+    provider = make_provider(ib, request_timeout_s=0.01)
+    [quote] = await asyncio.wait_for(provider.fetch_quotes([AAPL]), 5)
+    assert quote.last == D("7.5")

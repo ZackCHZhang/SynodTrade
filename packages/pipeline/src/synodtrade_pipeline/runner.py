@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import os
 import time
-from collections.abc import Mapping, Sequence
+import weakref
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
 from synodtrade_account_sync import AccountSyncService
+from synodtrade_core.aio import bounded
 from synodtrade_core.config import (
     AccountConfig,
     ConfigError,
@@ -68,7 +72,31 @@ STAGE_ALIASES = {
 
 
 class PipelineBusyError(RuntimeError):
-    """Another run of the same pipeline is still in progress."""
+    """Another run of the same pipeline is still in progress (or a run queued too long)."""
+
+
+def run_group(account: AccountConfig) -> str:
+    """Runs whose accounts share this key never overlap: they queue (see `PipelineRunner`).
+    By default it is the IBKR API connection (host, port, client id): two runs on one
+    connection would fight over its client ids (market data +0, trading +1, news +2,
+    scanner +3, account sync +4). `run_group:` in an account config widens it, e.g. one
+    group for every pipeline trading the same IBKR account."""
+    return (
+        account.run_group or f"{account.broker}:{account.host}:{account.port}:{account.client_id}"
+    )
+
+
+# In-process queue: one lock per run group, per event loop (asyncio locks belong to one loop).
+_GROUP_LOCKS: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, dict[str, asyncio.Lock]] = (
+    weakref.WeakKeyDictionary()
+)
+# Runs of this process, which queue on `_GROUP_LOCKS`; the database check covers the others.
+_LOCAL_RUNS: set[UUID] = set()
+
+
+def _group_lock(group: str) -> asyncio.Lock:
+    locks = _GROUP_LOCKS.setdefault(asyncio.get_running_loop(), {})
+    return locks.setdefault(group, asyncio.Lock())
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +108,7 @@ class RunOptions:
     offline: bool = False  # fake market data, sentiment and LLM; implies dry_run
     offline_llm: OfflineLLMStyle = "neutral"  # bullish: fake decisions say buy
     max_run_minutes: int = 180  # an older unfinished run is considered crashed
+    max_queue_minutes: int = 60  # give up waiting for an earlier run on the same connection
 
 
 @dataclass(slots=True)
@@ -119,12 +148,16 @@ class PipelineRunner:
         *,
         overrides: Mapping[str, Any] | None = None,
         env: Mapping[str, str] | None = None,
+        close_timeout_s: float = 30.0,
+        queue_poll_s: float = 5.0,
     ) -> None:
         self.store = store
         self.db = db
         self.repos = Repositories.create(db)
         self._overrides = dict(overrides or {})
         self._env = os.environ if env is None else env
+        self.close_timeout_s = close_timeout_s  # per teardown step
+        self.queue_poll_s = queue_poll_s  # how often to look for runs of other processes
 
     # ------------------------------------------------------------ services
 
@@ -219,25 +252,34 @@ class PipelineRunner:
                 items[name] = o[name]
         return Services(**items)
 
-    @staticmethod
-    async def _close(services: Services, stages: list[Stage]) -> None:
+    async def _close(self, services: Services, stages: list[Stage]) -> None:
+        """Release connections. Every step is bounded and may fail on its own (e.g. an HTTP
+        client stuck on a half-closed socket): the run is still finished and recorded."""
+        steps: list[tuple[str, Callable[[], Awaitable[object]]]] = []
         for stage in stages:
             close = getattr(stage, "aclose", None)
             if close is not None:
-                await close()
+                steps.append((f"stage {type(stage).__name__}", close))
         market_data = services.optional("market_data", MarketDataProvider)
         if market_data is not None:
-            await market_data.disconnect()
+            steps.append(("market_data", market_data.disconnect))
         broker = services.optional("broker", Broker)
         if broker is not None:
-            await broker.disconnect()
+            steps.append(("broker", broker.disconnect))
         llm = services.optional("llm", LLMClientPool)
         if llm is not None:
-            await llm.aclose()
+            steps.append(("llm", llm.aclose))
         fundamentals = services.optional("fundamentals", FundamentalsRefresher)
         close = getattr(fundamentals, "aclose", None)
         if close is not None:
-            await close()
+            steps.append(("fundamentals", close))
+        for what, step in steps:
+            try:
+                await bounded(step(), self.close_timeout_s, f"closing {what}")
+            except Exception as exc:
+                log.warning(
+                    "pipeline.close_failed", what=what, error=f"{type(exc).__name__}: {exc}"
+                )
 
     # ------------------------------------------------------------ run
 
@@ -323,6 +365,100 @@ class PipelineRunner:
             )
             log.warning("pipeline.stale_run_closed", stale_run_id=str(run.run_id))
 
+    def _run_group(self, pipeline: PipelineConfig, offline: bool) -> str | None:
+        """The run group of a pipeline (None: it does not use a broker connection)."""
+        if offline:
+            return None
+        try:
+            return run_group(self.store.account(pipeline.account))
+        except ConfigError:
+            return None
+
+    async def _earlier_runs_elsewhere(
+        self, group: str, run_id: UUID, started: datetime, max_minutes: int
+    ) -> list[PipelineRun]:
+        """Unfinished runs of other processes in the same group that started before this one
+        (the oldest goes first, so two processes never wait for each other)."""
+        earlier = []
+        for run in await self.repos.runs.running_runs():
+            if run.run_id == run_id or run.run_id in _LOCAL_RUNS:
+                continue
+            if started - run.started_at >= timedelta(minutes=max_minutes):
+                continue  # crashed long ago; its own pipeline's next run closes it
+            if (run.started_at, str(run.run_id)) > (started, str(run_id)):
+                continue
+            try:
+                other = self.store.pipeline(run.pipeline_name)
+            except ConfigError:
+                continue
+            if self._run_group(other, bool(run.config.get("offline"))) == group:
+                earlier.append(run)
+        return earlier
+
+    async def _wait_for_group(
+        self,
+        group: str,
+        lock: asyncio.Lock,
+        run_id: UUID,
+        started: datetime,
+        options: RunOptions,
+    ) -> None:
+        """Acquire the group's `lock`, then wait for earlier runs of other processes. Raises
+        `PipelineBusyError` after `max_queue_minutes` in all (the lock is then not held)."""
+        limit_s = options.max_queue_minutes * 60
+        deadline = time.monotonic() + limit_s
+        if lock.locked():
+            log.info("pipeline.queued", group=group, waiting_for="a run of this process")
+        try:
+            await bounded(lock.acquire(), limit_s, f"waiting for run group {group}")
+        except TimeoutError as exc:
+            raise PipelineBusyError(str(exc)) from exc
+        try:
+            while earlier := await self._earlier_runs_elsewhere(
+                group, run_id, started, options.max_run_minutes
+            ):
+                if time.monotonic() >= deadline:
+                    raise PipelineBusyError(
+                        f"run group {group} still busy after {options.max_queue_minutes} min "
+                        f"(run {earlier[0].run_id} of {earlier[0].pipeline_name})"
+                    )
+                log.info(
+                    "pipeline.queued", group=group, waiting_for=[str(r.run_id) for r in earlier]
+                )
+                await asyncio.sleep(self.queue_poll_s)
+        except BaseException:
+            lock.release()
+            raise
+
+    @contextlib.asynccontextmanager
+    async def _queue(
+        self, group: str | None, run_id: UUID, started: datetime, options: RunOptions
+    ) -> AsyncIterator[None]:
+        """Wait until no earlier run of the same group (see `run_group`) is in progress, in
+        this process (an asyncio lock) or another one (polling the runs table), then hold
+        the group until the run is finished. Raises `PipelineBusyError` after
+        `max_queue_minutes`."""
+        if group is None:
+            yield
+            return
+        lock = _group_lock(group)
+        _LOCAL_RUNS.add(run_id)
+        try:
+            try:
+                await self._wait_for_group(group, lock, run_id, started, options)
+            except BaseException as exc:  # queued too long, or cancelled while queued
+                await self.repos.runs.finish_run(
+                    run_id, RunStatus.FAILED, error=f"not started: {type(exc).__name__}: {exc}"
+                )
+                log.warning("pipeline.not_started", error=f"{type(exc).__name__}: {exc}")
+                raise
+            try:
+                yield
+            finally:
+                lock.release()
+        finally:
+            _LOCAL_RUNS.discard(run_id)
+
     def _config_snapshot(self, pipeline: PipelineConfig) -> tuple[str, dict[str, Any]]:
         agents = {
             ref.agent: self.store.agent(ref.agent) for s in pipeline.stages for ref in s.agents
@@ -382,113 +518,118 @@ class PipelineRunner:
         services: Services | None = None
         stages: list[Stage] = []
         with bind_run(run_id, pipeline.name):
-            log.info(
-                "pipeline.start",
-                mode=mode.value,
-                stages=stages_run,
-                as_of=as_of.isoformat(),
-            )
-            finished = False
-            try:
-                # First of all: bring orders, fills and positions up to date with the broker,
-                # so the ledger read below (and by every stage) is the real one.
-                if account_sync is not None:
-                    await self._sync_account(account_sync, pipeline, ctx, timings)
-                # Held symbols always stay in the universe, so a position the config no longer
-                # lists still gets data, decisions and (if decided) a sell; so do watchlist
-                # entries (e.g. added by hand in the web console). Selection re-applies both.
-                ledger = await self.repos.ledger.get_state(
-                    pipeline.name, pipeline.budget.max_capital, as_of=as_of
+            async with self._queue(self._run_group(pipeline, offline), run_id, started, options):
+                log.info(
+                    "pipeline.start",
+                    mode=mode.value,
+                    stages=stages_run,
+                    as_of=as_of.isoformat(),
                 )
-                watched = [
-                    e.symbol for e in await self.repos.watchlist.get_active(pipeline.name, as_of)
-                ]
-                held = [
-                    s for s in dict.fromkeys([*watched, *sorted(ledger.positions)])
-                    if s not in pipeline.universe
-                ]  # fmt: skip
-                ctx.universe = [*pipeline.universe, *held]
-                log.info("pipeline.universe", added_to_universe=held)
-                built: list[tuple[StageConfig, Stage]] = []
-                if not ctx.aborted:
-                    try:
-                        services = self._services(
-                            pipeline, stage_configs, mode, options, as_of, held
-                        )
-                        built = [
-                            (cfg, STAGES.get(cfg.type)(cfg, services)) for cfg in stage_configs
-                        ]
-                        stages = [stage for _, stage in built]
-                    except Exception as exc:  # configuration / credentials: nothing ran
-                        ctx.errors.append(
-                            StageError(
-                                stage="setup",
-                                error_type=type(exc).__name__,
-                                message=str(exc),
-                                skipped=False,
+                finished = False
+                try:
+                    # First of all: bring orders, fills and positions up to date with the broker,
+                    # so the ledger read below (and by every stage) is the real one.
+                    if account_sync is not None:
+                        await self._sync_account(account_sync, pipeline, ctx, timings)
+                    # Held symbols always stay in the universe, so a position the config no longer
+                    # lists still gets data, decisions and (if decided) a sell; so do watchlist
+                    # entries (e.g. added by hand in the web console). Selection re-applies both.
+                    ledger = await self.repos.ledger.get_state(
+                        pipeline.name, pipeline.budget.max_capital, as_of=as_of
+                    )
+                    watched = [
+                        e.symbol
+                        for e in await self.repos.watchlist.get_active(pipeline.name, as_of)
+                    ]
+                    held = [
+                        s for s in dict.fromkeys([*watched, *sorted(ledger.positions)])
+                        if s not in pipeline.universe
+                    ]  # fmt: skip
+                    ctx.universe = [*pipeline.universe, *held]
+                    log.info("pipeline.universe", added_to_universe=held)
+                    built: list[tuple[StageConfig, Stage]] = []
+                    if not ctx.aborted:
+                        try:
+                            services = self._services(
+                                pipeline, stage_configs, mode, options, as_of, held
                             )
-                        )
-                        built = []
-                await self._prepare(built, ctx)
-                total = len(built)
-                for index, (cfg, stage) in enumerate(built):
-                    log.info("pipeline.stage_start", stage=cfg.type, index=index, total=total)
-                    t0 = time.perf_counter()
-                    try:
-                        ctx = await stage.run(ctx)
-                        ctx.completed_stages.append(cfg.type)
-                        status = "ok"
-                    except Exception as exc:
-                        skip = cfg.on_error is OnError.SKIP
-                        ctx.errors.append(
-                            StageError(
+                            built = [
+                                (cfg, STAGES.get(cfg.type)(cfg, services)) for cfg in stage_configs
+                            ]
+                            stages = [stage for _, stage in built]
+                        except Exception as exc:  # configuration / credentials: nothing ran
+                            ctx.errors.append(
+                                StageError(
+                                    stage="setup",
+                                    error_type=type(exc).__name__,
+                                    message=str(exc),
+                                    skipped=False,
+                                )
+                            )
+                            built = []
+                    await self._prepare(built, ctx)
+                    total = len(built)
+                    for index, (cfg, stage) in enumerate(built):
+                        log.info("pipeline.stage_start", stage=cfg.type, index=index, total=total)
+                        t0 = time.perf_counter()
+                        try:
+                            ctx = await stage.run(ctx)
+                            ctx.completed_stages.append(cfg.type)
+                            status = "ok"
+                        except Exception as exc:
+                            skip = cfg.on_error is OnError.SKIP
+                            ctx.errors.append(
+                                StageError(
+                                    stage=cfg.type,
+                                    error_type=type(exc).__name__,
+                                    message=str(exc),
+                                    skipped=skip,
+                                )
+                            )
+                            log.error(
+                                "pipeline.stage_failed",
                                 stage=cfg.type,
-                                error_type=type(exc).__name__,
-                                message=str(exc),
                                 skipped=skip,
+                                error=f"{type(exc).__name__}: {exc}",
                             )
-                        )
-                        log.error(
-                            "pipeline.stage_failed",
+                            status = "failed_skipped" if skip else "failed"
+                        timings[cfg.type] = {
+                            "status": status,
+                            "seconds": round(time.perf_counter() - t0, 3),
+                        }
+                        log.info(
+                            "pipeline.stage_done",
                             stage=cfg.type,
-                            skipped=skip,
-                            error=f"{type(exc).__name__}: {exc}",
+                            index=index,
+                            **timings[cfg.type],
                         )
-                        status = "failed_skipped" if skip else "failed"
-                    timings[cfg.type] = {
-                        "status": status,
-                        "seconds": round(time.perf_counter() - t0, 3),
-                    }
-                    log.info(
-                        "pipeline.stage_done", stage=cfg.type, index=index, **timings[cfg.type]
-                    )
-                    if ctx.aborted:
-                        break  # fail-safe: later stages (and so trading) never run
-                finished = True
-            finally:
-                # Also on cancellation (e.g. stopped from the web UI): release the gateway
-                # connections and never leave the run marked as running.
-                if services is not None:
-                    await self._close(services, stages)
-                if not finished:
-                    await self.repos.runs.finish_run(
-                        run_id,
-                        RunStatus.FAILED,
-                        error="cancelled before completion",
-                        summary=summarize(ctx, timings),
-                    )
-                    log.warning("pipeline.cancelled")
+                        if ctx.aborted:
+                            break  # fail-safe: later stages (and so trading) never run
+                    finished = True
+                finally:
+                    # Also on cancellation (e.g. stopped from the web UI): release the gateway
+                    # connections and never leave the run marked as running.
+                    if services is not None:
+                        await self._close(services, stages)
+                    if not finished:
+                        await self.repos.runs.finish_run(
+                            run_id,
+                            RunStatus.FAILED,
+                            error="cancelled before completion",
+                            summary=summarize(ctx, timings),
+                        )
+                        log.warning("pipeline.cancelled")
 
-            run_status = RunStatus.FAILED if ctx.aborted else RunStatus.SUCCEEDED
-            summary = summarize(ctx, timings)
-            await self.repos.runs.finish_run(
-                run_id,
-                run_status,
-                error="; ".join(f"{e.stage}: {e.message}" for e in ctx.errors if not e.skipped)
-                or None,
-                summary=summary,
-            )
-            log.info("pipeline.finish", status=run_status.value, summary=summary)
+                run_status = RunStatus.FAILED if ctx.aborted else RunStatus.SUCCEEDED
+                summary = summarize(ctx, timings)
+                await self.repos.runs.finish_run(
+                    run_id,
+                    run_status,
+                    error="; ".join(f"{e.stage}: {e.message}" for e in ctx.errors if not e.skipped)
+                    or None,
+                    summary=summary,
+                )
+                log.info("pipeline.finish", status=run_status.value, summary=summary)
         return RunReport(run_id, pipeline.name, mode, run_status, summary, ctx, list(ctx.errors))
 
 

@@ -6,6 +6,7 @@ connection (a different client id) in the trading package.
 
 from __future__ import annotations
 
+import asyncio
 import math
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, time, timedelta
@@ -17,6 +18,7 @@ from pydantic import ValidationError
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 from tenacity.wait import wait_base
 
+from synodtrade_core.aio import bounded
 from synodtrade_core.config import AccountConfig
 from synodtrade_core.logging import get_logger
 from synodtrade_core.models import AccountSnapshot, Bar, Instrument, Position, Quote, Timeframe
@@ -170,7 +172,7 @@ class IBKRMarketDataProvider:
         if not self._ib.isConnected():
             return False
         try:
-            await self._ib.reqCurrentTimeAsync()
+            await bounded(self._ib.reqCurrentTimeAsync(), self.connect_timeout_s, "IBKR time")
         except Exception:
             return False
         return True
@@ -183,8 +185,10 @@ class IBKRMarketDataProvider:
 
     async def resolve_instrument(self, symbol: str) -> Instrument:
         self._require_connection()
-        [contract] = await self._ib.qualifyContractsAsync(
-            Stock(symbol.upper(), "SMART", self.base_currency)
+        [contract] = await bounded(
+            self._ib.qualifyContractsAsync(Stock(symbol.upper(), "SMART", self.base_currency)),
+            self.request_timeout_s,
+            f"IBKR contract lookup of {symbol}",
         )
         if not isinstance(contract, Contract) or not contract.conId:
             raise MarketDataError(f"IBKR does not know the stock {symbol!r}")
@@ -247,20 +251,53 @@ class IBKRMarketDataProvider:
         self._require_connection()
         if not instruments:
             return []
-        by_con_id = {i.con_id: i for i in instruments}
-        tickers = await self._ib.reqTickersAsync(*(self._contract(i) for i in instruments))
-        quotes = []
-        for t in tickers:
-            if t.contract is None or t.contract.conId not in by_con_id:
-                continue
-            instrument = by_con_id[t.contract.conId]
-            quote = quote_from_ticker(instrument.symbol, t)
-            if quote.reference_price is None:
-                # No streaming data (e.g. a paper account without market data sharing):
-                # fall back to the latest 1-minute bar, stamped with its real (delayed) time.
-                quote = await self._quote_from_bars(instrument) or quote
-            quotes.append(quote)
+        # One request per instrument: TWS sometimes never answers the snapshot of a single
+        # stock (seen with MA on 2026-11-10), and in one combined request that stock would
+        # time out the quotes of all the others. Now only its own quote is missing.
+        results = await asyncio.gather(*(self._fetch_quote(i) for i in instruments))
+        quotes = [quote for quote, _ in results if quote is not None]
+        timed_out = [i.symbol for i, (_, late) in zip(instruments, results, strict=True) if late]
+        if not quotes and len(timed_out) == len(instruments):  # TWS answers nothing
+            raise TimeoutError(
+                f"IBKR quotes of {len(instruments)} instruments timed out after "
+                f"{self.request_timeout_s:g}s"
+            )
+        if timed_out:
+            log.warning("ibkr.quotes_timed_out", symbols=timed_out, fetched=len(quotes))
         return quotes
+
+    async def _fetch_quote(self, instrument: Instrument) -> tuple[Quote | None, bool]:
+        """The instrument's quote (None if none) and whether its snapshot timed out."""
+        quote: Quote | None = None
+        timed_out = False
+        try:
+            tickers = await bounded(
+                self._ib.reqTickersAsync(self._contract(instrument)),
+                self.request_timeout_s,
+                f"IBKR quote of {instrument.symbol}",
+            )
+            for t in tickers:
+                if t.contract is not None and t.contract.conId == instrument.con_id:
+                    quote = quote_from_ticker(instrument.symbol, t)
+                    break
+        except TimeoutError:
+            timed_out = True
+        if quote is None or quote.reference_price is None:
+            # No streaming data (e.g. a paper account without market data sharing, or no
+            # answer at all): fall back to the latest 1-minute bar, stamped with its real
+            # (delayed) time.
+            try:
+                quote = (
+                    await bounded(
+                        self._quote_from_bars(instrument),
+                        self.request_timeout_s,
+                        f"IBKR 1-minute bars of {instrument.symbol}",
+                    )
+                    or quote
+                )
+            except Exception as exc:  # one symbol's fallback must not fail the others
+                log.warning("ibkr.quote_fallback_failed", symbol=instrument.symbol, error=str(exc))
+        return quote, timed_out
 
     async def _quote_from_bars(self, instrument: Instrument) -> Quote | None:
         contract = self._contract(instrument)
@@ -293,7 +330,11 @@ class IBKRMarketDataProvider:
         if from_ccy == to_ccy:
             return Decimal(1)
         for pair, invert in ((f"{from_ccy}{to_ccy}", False), (f"{to_ccy}{from_ccy}", True)):
-            [contract] = await self._ib.qualifyContractsAsync(Forex(pair))
+            [contract] = await bounded(
+                self._ib.qualifyContractsAsync(Forex(pair)),
+                self.request_timeout_s,
+                f"IBKR contract lookup of {pair}",
+            )
             if not isinstance(contract, Contract) or not contract.conId:
                 continue
             await self._pacing.acquire(str(contract.conId))
@@ -336,9 +377,12 @@ class IBKRMarketDataProvider:
         the current FX midpoint.
         """
         self._require_connection()
-        values = [
-            v for v in await self._ib.accountSummaryAsync(account_id) if v.account == account_id
-        ]
+        summary = await bounded(
+            self._ib.accountSummaryAsync(account_id),
+            self.request_timeout_s,
+            f"IBKR account summary of {account_id}",
+        )
+        values = [v for v in summary if v.account == account_id]
         account_ccy = next(
             (v.currency for v in values if v.tag == "NetLiquidation" and v.currency), None
         )
@@ -377,6 +421,9 @@ class IBKRMarketDataProvider:
             buying_power=converted("BuyingPower") or Decimal(0),
             available_funds=converted("AvailableFunds"),
         )
+        raw_positions = await bounded(
+            self._ib.reqPositionsAsync(), self.request_timeout_s, "IBKR positions"
+        )
         positions = [
             Position(
                 account_id=account_id,
@@ -385,7 +432,7 @@ class IBKRMarketDataProvider:
                 avg_cost=Decimal(str(p.avgCost)),
                 ts=ts,
             )
-            for p in await self._ib.reqPositionsAsync()
+            for p in raw_positions
             if p.account == account_id and p.contract.secType == "STK" and p.position != 0
         ]
         return AccountData(account, positions)

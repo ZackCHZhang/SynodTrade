@@ -18,7 +18,13 @@ from typing import Any, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from synodtrade_core.agent_factory import AgentSlot, instantiate_agents
-from synodtrade_core.config import AgentRole, ConfigStore, PipelineConfig, StageConfig
+from synodtrade_core.config import (
+    AccountConfig,
+    AgentRole,
+    ConfigStore,
+    PipelineConfig,
+    StageConfig,
+)
 from synodtrade_core.fundamentals import fundamental_summary
 from synodtrade_core.indicators import compute_indicators, relative_to
 from synodtrade_core.interfaces import BarsRefresher, CandidateSource, FundamentalsRefresher
@@ -37,6 +43,7 @@ from synodtrade_core.models import (
 from synodtrade_core.registry import CANDIDATE_SOURCES
 from synodtrade_core.services import Services
 from synodtrade_database import AgentInstance, Repositories
+from synodtrade_selection import scanner
 from synodtrade_selection.agent import SelectionAgent
 from synodtrade_selection.aggregation import SelectionAggregation, aggregate_selection
 from synodtrade_selection.screen import CandidateProfile, ScreenOptions, avg_dollar_volume, screen
@@ -439,9 +446,11 @@ def build_selection_stage(config: StageConfig, services: Services) -> SelectionS
     Services: `repos`, `config_store`, `llm` (LLMClientPool), `pipeline` (PipelineConfig:
     universe, budget and benchmark); optional `bars_refresher` (BarsRefresher) to fetch bars
     of the candidates, `fundamentals` (FundamentalsRefresher) for their fundamentals, and
-    `candidate_sources` (dict name -> CandidateSource) overriding the registry, e.g. fakes.
+    `candidate_sources` (dict name -> CandidateSource) overriding the registry, e.g. fakes,
+    and `account` (AccountConfig): ibkr_scanner connects with its host, port and client id.
     """
     options = config.options(SelectionOptions)
+    account = services.optional("account", AccountConfig)
     repos = services.get("repos", Repositories)
     pipeline = services.get("pipeline", PipelineConfig)
     provided = services.optional("candidate_sources", dict) or {}
@@ -457,7 +466,10 @@ def build_selection_stage(config: StageConfig, services: Services) -> SelectionS
         if name in provided:
             sources.append(provided[name])
         else:
-            sources.append(CANDIDATE_SOURCES.get(entry.type)(entry.source_options()))
+            source_options = entry.source_options()
+            if entry.type == "ibkr_scanner" and account is not None:
+                source_options = {**scanner.account_connection(account), **source_options}
+            sources.append(CANDIDATE_SOURCES.get(entry.type)(source_options))
     agents = instantiate_agents(
         config.agents,
         role=AgentRole.SELECTION,

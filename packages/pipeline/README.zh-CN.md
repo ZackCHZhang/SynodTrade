@@ -32,6 +32,7 @@ synodtrade --env-file other.env run -p ...          # 默认读取 ./.env（不�
 2. 确定运行模式：`--dry-run` 或 `--offline` 时为 dry_run，`--paper` 时为 paper，否则取配置中的值。live 模式必须设置 `SYNODTRADE_ALLOW_LIVE=1`，否则直接拒绝，数据库中也不会留下任何运行记录。
 3. **防重入**：同一条流水线已有未结束、且开始于 `max_run_minutes`（默认 180 分钟）以内的运行时，抛出 `PipelineBusyError`；更早的未结束运行视为进程已崩溃，标记为 FAILED 后继续。
 4. 写入 `pipeline_runs` 记录，包括 `run_id`、运行模式、`as_of`、`config_hash`，以及配置快照（流水线和全部 agent 配置）。
+   **运行排队**：账户属于同一运行组（默认按 IBKR API 连接：host、port、`client_id`；或账户配置的 `run_group:`）的运行不会重叠。后来的运行（已记录为 running）等待先前的运行结束：同一进程内用 asyncio 锁，跨进程轮询运行表（最早的先运行）。超过 `max_queue_minutes`（默认 60）则标记为 FAILED（`not started: ...`）并抛出 `PipelineBusyError`。
 5. **只装配所选阶段需要的服务**：
    - 数据库仓库、ConfigStore、LLM 厂商池、流水线配置、账户配置；
    - 包含 `data_update` 或 `selection` 阶段时，才创建行情源（IBKR），两个阶段共用这一个连接。选股阶段通过它（`bars_refresher`）拉取候选股的日线；
@@ -43,7 +44,7 @@ synodtrade --env-file other.env run -p ...          # 默认读取 ./.env（不�
    - 某阶段抛出异常：`on_error: skip` 的阶段（例如舆情）记录错误后继续；
    - 默认是 `abort`：立即终止，**后续阶段（包括交易）都不再执行**，运行记为 FAILED；
    - 装配阶段（配置、凭据）出错也记为失败。
-8. 关闭连接（各阶段的 `aclose`、行情源、券商、LLM 客户端），写入最终状态和摘要（每个阶段的状态和耗时、各类记录数量、最终动作、订单状态、错误列表）。
+8. 关闭连接（各阶段的 `aclose`、行情源、券商、LLM 客户端；每一步最多 `close_timeout_s`，失败只记日志，后续步骤照常执行），写入最终状态和摘要（每个阶段的状态和耗时、各类记录数量、最终动作、订单状态、错误列表）。
 
 **覆盖服务**：`PipelineRunner(store, db, overrides={...})` 可以替换任意服务，例如 `broker`、`market_data`、`llm`、`sentiment_sources`、`market_clock`。测试就是这样注入假对象的。
 
