@@ -87,19 +87,19 @@ SynodTrade 公开自己的交易表现。每条在 IBKR 模拟账户（paper）�
 
 | 流水线 | 模型 | 收益 | 基准 | 超额收益 | 最大回撤 | 夏普比率 | LLM 费用 |
 |:--|:--|--:|--:|--:|--:|--:|--:|
-| **arena_claude** | claude-haiku-5.5 | -5.27% | SPY -3.96% | -1.30% | -5.45% | — | $1.85 |
-| **arena_deepseek** | deepseek-v4.1-flash | -4.17% | SPY -3.96% | -0.21% | -4.79% | — | $3.32 |
-| **arena_glm** | glm-5.3-flashx | -3.29% | SPY -3.96% | +0.67% | -3.59% | — | $7.18 |
-| **arena_gpt** | gpt-6-luna | -3.40% | SPY -3.96% | +0.56% | -4.09% | — | — |
-| **arena_qwen** | qwen3.8-omni-flash | -4.36% | SPY -3.96% | -0.39% | -4.57% | — | $4.06 |
-| **arena_solo_claude** | claude-haiku-5.5 | -3.09% | SPY -3.96% | +0.87% | -4.23% | — | $0.47 |
-| **arena_solo_deepseek** | deepseek-v4.1-flash | -2.08% | SPY -3.96% | +1.89% | -2.96% | — | $0.59 |
-| **arena_solo_glm** | glm-5.3-flashx | -2.60% | SPY -3.96% | +1.36% | -4.43% | — | $2.30 |
-| **arena_solo_gpt** | gpt-6-luna | -1.13% | SPY -3.96% | +2.83% | -2.27% | — | — |
-| **arena_solo_qwen** | qwen3.8-omni-flash | -0.02% | SPY -3.96% | +3.94% | -0.02% | — | $0.15 |
-| **demo_all_modules** | deepseek-chat | -7.56% | SPY -5.69% | -1.87% | -8.15% | -7.72 | — |
+| **arena_claude** | claude-haiku-5.5 | -5.14% | SPY -1.28% | -3.86% | -5.49% | -4.57 | $2.50 |
+| **arena_deepseek** | deepseek-v4.1-flash | -3.32% | SPY -1.28% | -2.04% | -4.79% | -3.24 | $4.08 |
+| **arena_glm** | glm-5.3-flashx | -2.49% | SPY -1.28% | -1.21% | -3.83% | -2.75 | $10.16 |
+| **arena_gpt** | gpt-6-luna | -3.02% | SPY -1.28% | -1.74% | -4.15% | -3.49 | — |
+| **arena_qwen** | qwen3.8-omni-flash | -4.44% | SPY -1.28% | -3.16% | -4.65% | -4.93 | $5.50 |
+| **arena_solo_claude** | claude-haiku-5.5 | -1.40% | SPY -1.28% | -0.12% | -4.36% | -1.25 | $0.65 |
+| **arena_solo_deepseek** | deepseek-v4.1-flash | -0.46% | SPY -1.28% | +0.82% | -3.38% | -0.47 | $0.93 |
+| **arena_solo_glm** | glm-5.3-flashx | -1.25% | SPY -1.28% | +0.03% | -4.82% | -1.03 | $3.37 |
+| **arena_solo_gpt** | gpt-6-luna | +0.00% | SPY -1.28% | +1.28% | -2.30% | 0.03 | — |
+| **arena_solo_qwen** | qwen3.8-omni-flash | +0.86% | SPY -1.28% | +2.14% | -0.17% | 5.03 | $0.61 |
+| **demo_all_modules** | deepseek-chat | -6.76% | SPY -3.05% | -3.70% | -8.25% | -5.66 | — |
 
-<sub>IBKR 模拟盘 · 更新于 2026-11-06 · [详细数据、计算方法和原始数据](benchmark/README.zh-CN.md)</sub>
+<sub>IBKR 模拟盘 · 更新于 2026-11-14 · [详细数据、计算方法和原始数据](benchmark/README.zh-CN.md)</sub>
 <!-- benchmark:end -->
 
 ## 🚀 快速开始
