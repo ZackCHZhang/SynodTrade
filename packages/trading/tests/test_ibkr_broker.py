@@ -1,5 +1,6 @@
 """IBKRBroker against a stub `IB` object — no gateway, no orders ever leave the process."""
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -363,3 +364,25 @@ async def test_order_not_transmitted_is_flagged() -> None:
     warnings = [e for e in logs if e["event"] == "ibkr_broker.not_transmitted"]
     assert len(warnings) == 1  # warned once
     assert "Bypass Order Precautions" in warnings[0]["hint"]
+
+
+class SilentIB(StubIB):
+    """TWS never answers contract lookups, open orders or executions."""
+
+    async def qualifyContractsAsync(self, contract: Stock) -> list[Any]:  # noqa: N802
+        await asyncio.Event().wait()
+        return []
+
+    async def reqAllOpenOrdersAsync(self) -> list[Trade]:  # noqa: N802
+        await asyncio.Event().wait()
+        return []
+
+
+async def test_unanswered_requests_time_out() -> None:
+    ib = SilentIB()
+    b = IBKRBroker(mode=RunMode.PAPER, account_id="DU123", ib=ib, env={}, request_timeout_s=0.01)  # type: ignore[arg-type]
+    await b.connect()
+    with pytest.raises(TimeoutError, match="contract lookup of AAPL"):
+        await asyncio.wait_for(b.submit(intent(), Instrument(symbol="AAPL")), 5)
+    with pytest.raises(TimeoutError, match="open orders"):
+        await asyncio.wait_for(b.lookup(intent()), 5)

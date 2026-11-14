@@ -1,8 +1,10 @@
 """IBKR market scanner as a candidate source (e.g. most active / top gainers US stocks).
 
 Uses its own read-only connection to TWS / IB Gateway. IBKR client ids must be unique per
-connection; by default this source uses IBKR_CLIENT_ID + 3 (market data uses the configured
-id, trading + 1, IBKR news + 2). Scan codes and filter tags are IBKR's own (the full list
+connection; in a pipeline this source uses the pipeline account's host, port and client_id + 3
+(market data uses the configured id, trading + 1, IBKR news + 2), standalone
+IBKR_CLIENT_ID + 3. The connection is closed after each fetch, so it never holds a client id
+for the rest of the run. Scan codes and filter tags are IBKR's own (the full list
 comes from `ib.reqScannerParametersAsync()`), e.g. MOST_ACTIVE, TOP_PERC_GAIN,
 HOT_BY_VOLUME. Which scanners return data depends on the account's market data
 subscriptions.
@@ -18,6 +20,8 @@ from typing import Any
 from ib_async import IB, ScannerSubscription, TagValue
 from pydantic import BaseModel, ConfigDict, Field
 
+from synodtrade_core.aio import bounded
+from synodtrade_core.config import AccountConfig
 from synodtrade_core.logging import get_logger
 from synodtrade_core.models import Candidate
 from synodtrade_selection.sources import CandidateSourceError
@@ -50,6 +54,9 @@ class IBKRScannerOptions(BaseModel):
     filters: dict[str, str] = Field(default_factory=dict)  # extra IBKR filter tags
     currency: str = "USD"
     connect_timeout_s: float = Field(default=10.0, gt=0)
+    request_timeout_s: float = Field(default=60.0, gt=0)  # per scan
+    # attempts after a timeout (connecting or scanning), each on a fresh connection
+    timeout_retries: int = Field(default=1, ge=0, le=3)
 
     @property
     def codes(self) -> list[str]:
@@ -101,7 +108,26 @@ class IBKRScannerSource:
             self._ib.disconnect()
 
     async def fetch(self, as_of: datetime) -> list[Candidate]:
-        """Current scanner results (a scanner has no history: `as_of` is not applied)."""
+        """Current scanner results (a scanner has no history: `as_of` is not applied).
+        A timeout is retried `timeout_retries` times on a fresh connection."""
+        attempt = 0
+        while True:
+            try:
+                return await self._fetch()
+            except TimeoutError as exc:
+                if attempt >= self.options.timeout_retries:
+                    raise
+                attempt += 1
+                log.warning(
+                    "selection.scanner_retry",
+                    source=self.name,
+                    attempt=attempt,
+                    error=f"{type(exc).__name__}: {exc}",
+                )
+            finally:
+                await self.aclose()
+
+    async def _fetch(self) -> list[Candidate]:
         if not self._ib.isConnected():
             await self._ib.connectAsync(
                 self.host,
@@ -115,8 +141,10 @@ class IBKRScannerSource:
         seen: set[str] = set()
         failed: dict[str, str] = {}
         for code in self.options.codes:
-            rows: Any = await self._ib.reqScannerDataAsync(
-                self.options.subscription(code), [], filters
+            rows: Any = await bounded(
+                self._ib.reqScannerDataAsync(self.options.subscription(code), [], filters),
+                self.options.request_timeout_s,
+                f"IBKR scan {code}",
             )
             if rows is None:
                 failed[code] = "scanner request timed out"
@@ -152,6 +180,16 @@ class IBKRScannerSource:
                 )
             )
         return candidates
+
+
+def account_connection(account: AccountConfig) -> dict[str, Any]:
+    """Connection options of this source for a pipeline's IBKR account (its own client id,
+    so pipelines on different accounts/client ids never collide on one)."""
+    return {
+        "host": account.host,
+        "port": account.port,
+        "client_id": account.client_id + CLIENT_ID_OFFSET,
+    }
 
 
 def build_ibkr_scanner_source(options: Mapping[str, Any]) -> IBKRScannerSource:

@@ -10,7 +10,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from synodtrade_core.agent_factory import AgentSlot, instantiate_agents
-from synodtrade_core.config import AgentRole, ConfigStore, StageConfig
+from synodtrade_core.config import AccountConfig, AgentRole, ConfigStore, StageConfig
 from synodtrade_core.interfaces import SentimentSource
 from synodtrade_core.llm import LLMClientPool
 from synodtrade_core.logging import get_logger
@@ -20,6 +20,7 @@ from synodtrade_core.services import Services
 from synodtrade_database import AgentInstance, Repositories
 from synodtrade_sentiment.agent import SentimentAgent
 from synodtrade_sentiment.prefilter import PrefilterOptions, prefilter
+from synodtrade_sentiment.sources import ibkr_news
 
 log = get_logger(__name__)
 
@@ -138,18 +139,23 @@ def build_sentiment_stage(config: StageConfig, services: Services) -> SentimentS
     """Stage factory (entry point `synodtrade.stages: sentiment`).
 
     Services: `repos`, `config_store` (ConfigStore), `llm` (LLMClientPool); optional
-    `sentiment_sources` (dict name -> SentimentSource) overriding the registry, e.g. fakes.
+    `sentiment_sources` (dict name -> SentimentSource) overriding the registry, e.g. fakes,
+    and `account` (AccountConfig): ibkr_news connects with its host, port and client id.
     """
     options = config.options(SentimentOptions)
     repos = services.get("repos", Repositories)
     provided = services.optional("sentiment_sources", dict) or {}
+    account = services.optional("account", AccountConfig)
     sources: list[SentimentSource] = []
     for name in options.sources:
         if name in provided:
             sources.append(provided[name])
             continue
+        source_options = options.source_options.get(name, {})
+        if name == ibkr_news.IBKRNewsSource.name and account is not None:
+            source_options = {**ibkr_news.account_connection(account), **source_options}
         try:
-            sources.append(SENTIMENT_SOURCES.get(name)(options.source_options.get(name, {})))
+            sources.append(SENTIMENT_SOURCES.get(name)(source_options))
         except Exception as exc:  # e.g. missing credentials: only this source is lost
             log.warning("sentiment.source_unavailable", source=name, error=str(exc))
             sources.append(UnavailableSource(name, f"{type(exc).__name__}: {exc}"))

@@ -18,7 +18,7 @@ from synodtrade_account_sync import (
     BrokerExecution,
     BrokerSnapshot,
 )
-from synodtrade_core.config import ConfigError, ConfigStore
+from synodtrade_core.config import AccountConfig, ConfigError, ConfigStore
 from synodtrade_core.logging import configure_logging
 from synodtrade_core.models import Action, OrderIntent, OrderSide, OrderStatus, OrderType, RunMode
 from synodtrade_core.safety import LiveTradingNotAllowedError
@@ -40,7 +40,7 @@ from synodtrade_database.models import (
 from synodtrade_market_data import FakeMarketDataProvider
 from synodtrade_pipeline import PipelineBusyError, PipelineRunner, RunOptions, select_stages
 from synodtrade_pipeline.offline import offline_market_data, schema_reply
-from synodtrade_pipeline.runner import wants_fundamentals
+from synodtrade_pipeline.runner import run_group, wants_fundamentals
 from synodtrade_sentiment.sources import FakeSentimentSource
 from synodtrade_trading import SimulatedBroker
 
@@ -471,6 +471,183 @@ async def test_cancelled_run_is_closed_and_marked_failed(
     assert row.status == RunStatus.FAILED.value
     assert row.error == "cancelled before completion"
     assert row.ended_at is not None
+
+
+class HangingDisconnect(FakeMarketDataProvider):
+    """Never finishes disconnecting (like an HTTP client stuck on a half-closed socket)."""
+
+    async def disconnect(self) -> None:
+        await asyncio.Event().wait()
+
+
+class FailingDisconnect(SimulatedBroker):
+    def __init__(self) -> None:
+        super().__init__(commission=Decimal(1))
+        self.disconnect_called = False
+
+    async def disconnect(self) -> None:
+        self.disconnect_called = True
+        raise ConnectionError("socket already closed")
+
+
+async def test_teardown_steps_are_bounded_and_independent(
+    store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    broker = FailingDisconnect()
+    overrides = fakes(market_data=HangingDisconnect(), broker=broker)
+    run = PipelineRunner(store, db, overrides=overrides, env=ENV, close_timeout_s=0.05)
+    report = await asyncio.wait_for(
+        run.run("long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF)), 30
+    )
+    assert report.ok
+    assert broker.disconnect_called  # the hung market data step did not stop the others
+    stored = await Repositories.create(db).runs.get_run(report.run_id)
+    assert stored is not None
+    assert stored.status is RunStatus.SUCCEEDED
+    assert stored.ended_at is not None
+
+
+def copy_pipeline(configs: Path, name: str, new_name: str) -> None:
+    """A second pipeline identical to `name` (so on the same account)."""
+    data = yaml.safe_load((configs / "pipelines" / f"{name}.yaml").read_text(encoding="utf-8"))
+    data["name"] = new_name
+    (configs / "pipelines" / f"{new_name}.yaml").write_text(
+        yaml.safe_dump(data, sort_keys=False), encoding="utf-8"
+    )
+
+
+class GatedMarketData(FakeMarketDataProvider):
+    """Records when the run reaches market data; waits for `gate` when given one."""
+
+    def __init__(self, name: str, events: list[str], gate: asyncio.Event | None = None) -> None:
+        super().__init__()
+        self.name, self.events, self.gate = name, events, gate
+        self.entered = asyncio.Event()
+
+    async def connect(self) -> None:
+        if not self.entered.is_set():
+            self.events.append(f"{self.name} connect")
+        self.entered.set()
+        if self.gate is not None:
+            await self.gate.wait()
+
+
+async def test_runs_on_one_connection_queue_in_process(
+    configs: Path, db: Database, fakes: Fakes
+) -> None:
+    copy_pipeline(configs, "long_term_stocks", "long_term_b")
+    store = ConfigStore(configs, env=ENV)
+    events: list[str] = []
+    gate = asyncio.Event()
+    first_md = GatedMarketData("a", events, gate)
+    second_md = GatedMarketData("b", events)
+    first = asyncio.create_task(
+        runner(store, db, fakes(market_data=first_md)).run(
+            "long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF)
+        )
+    )
+    await asyncio.wait_for(first_md.entered.wait(), 5)
+    second = asyncio.create_task(
+        runner(store, db, fakes(market_data=second_md)).run(
+            "long_term_b", RunOptions(dry_run=True, as_of=AS_OF)
+        )
+    )
+    await asyncio.sleep(0.2)
+    assert events == ["a connect"]  # b is queued, not running alongside
+    running = {r.pipeline_name for r in await Repositories.create(db).runs.running_runs()}
+    assert running == {"long_term_stocks", "long_term_b"}  # queued runs are visible
+    gate.set()
+    a, b = await asyncio.wait_for(asyncio.gather(first, second), 30)
+    assert a.ok
+    assert b.ok
+    assert events == ["a connect", "b connect"]
+
+
+async def test_runs_on_other_connections_do_not_queue(
+    store: ConfigStore, db: Database, fakes: Fakes
+) -> None:
+    events: list[str] = []
+    gate = asyncio.Event()
+    first_md = GatedMarketData("stocks", events, gate)
+    first = asyncio.create_task(
+        runner(store, db, fakes(market_data=first_md)).run(
+            "long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF)
+        )
+    )
+    await asyncio.wait_for(first_md.entered.wait(), 5)
+    other = await asyncio.wait_for(
+        runner(store, db, fakes()).run("etf_allocation", RunOptions(dry_run=True, as_of=AS_OF)),
+        30,
+    )  # ibkr_etf has its own client ids
+    assert other.status in (RunStatus.SUCCEEDED, RunStatus.FAILED)
+    assert not first.done()
+    gate.set()
+    assert (await asyncio.wait_for(first, 30)).ok
+
+
+async def started_elsewhere(db: Database, pipeline: str, minutes_ago: float) -> PipelineRun:
+    """A running run as another process would have recorded it."""
+    started = datetime.now(UTC) - timedelta(minutes=minutes_ago)
+    run = PipelineRun(
+        run_id=uuid4(),
+        pipeline_name=pipeline,
+        mode=RunMode.DRY_RUN,
+        config_hash="0" * 64,
+        config={"offline": False},
+        as_of=started,
+        started_at=started,
+    )
+    await Repositories.create(db).runs.start_run(run)
+    return run
+
+
+async def test_runs_wait_for_earlier_runs_of_other_processes(
+    configs: Path, db: Database, fakes: Fakes
+) -> None:
+    copy_pipeline(configs, "long_term_stocks", "long_term_b")
+    store = ConfigStore(configs, env=ENV)
+    repos = Repositories.create(db)
+    other = await started_elsewhere(db, "long_term_b", minutes_ago=1)
+    await started_elsewhere(db, "etf_allocation", minutes_ago=1)  # another connection
+    await started_elsewhere(db, "demo_all_modules", minutes_ago=500)  # crashed long ago
+    events: list[str] = []
+    overrides = fakes(market_data=GatedMarketData("a", events))
+    run = PipelineRunner(store, db, overrides=overrides, env=ENV, queue_poll_s=0.01)
+    task = asyncio.create_task(run.run("long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF)))
+    await asyncio.sleep(0.2)
+    assert events == []  # waiting for the other process's run
+    await repos.runs.finish_run(other.run_id, RunStatus.SUCCEEDED)
+    assert (await asyncio.wait_for(task, 30)).ok
+    assert events == ["a connect"]
+
+
+async def test_queueing_too_long_fails_the_run_without_running_it(
+    configs: Path, db: Database, fakes: Fakes
+) -> None:
+    copy_pipeline(configs, "long_term_stocks", "long_term_b")
+    store = ConfigStore(configs, env=ENV)
+    await started_elsewhere(db, "long_term_b", minutes_ago=1)
+    events: list[str] = []
+    run = runner(store, db, fakes(market_data=GatedMarketData("a", events)))
+    with pytest.raises(PipelineBusyError, match="still busy"):
+        await run.run(
+            "long_term_stocks", RunOptions(dry_run=True, as_of=AS_OF, max_queue_minutes=0)
+        )
+    assert events == []
+    async with db.transaction() as s:
+        row = (
+            await s.execute(
+                select(PipelineRunRow).where(PipelineRunRow.pipeline_name == "long_term_stocks")
+            )
+        ).scalar_one()
+    assert row.status == RunStatus.FAILED.value
+    assert (row.error or "").startswith("not started: PipelineBusyError")
+
+
+def test_run_group() -> None:
+    account = AccountConfig(name="a", account_id="DU1", host="h", port=7497, client_id=40)
+    assert run_group(account) == "ibkr:h:7497:40"
+    assert run_group(account.model_copy(update={"run_group": "paper"})) == "paper"
 
 
 # ------------------------------------------------------------------ data flow between runs

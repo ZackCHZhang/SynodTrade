@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from synodtrade_core.config import ConfigStore, PipelineConfig, StageConfig
+from synodtrade_core.config import AccountConfig, ConfigStore, PipelineConfig, StageConfig
 from synodtrade_core.llm import FakeLLMClient, LLMClientPool, LLMRequest
 from synodtrade_core.models import (
     Action,
@@ -31,6 +31,7 @@ from synodtrade_database import Repositories
 from synodtrade_selection import (
     CandidateSourceError,
     FakeCandidateSource,
+    IBKRScannerSource,
     SelectionError,
     SelectionStage,
     build_selection_stage,
@@ -558,3 +559,31 @@ async def test_watchlist_kept_when_every_agent_fails(
     prompt = broken.requests[0].messages[0].content
     assert "on the watchlist since" in prompt
     assert "stay followed for 10 days" in prompt
+
+
+async def test_scanner_connects_with_the_pipeline_account(
+    repos: Repositories, store: ConfigStore
+) -> None:
+    """Each pipeline's scanner uses its own account's client id (+3), not $IBKR_CLIENT_ID,
+    so pipelines on different client ids never collide on the scanner's."""
+    pool = LLMClientPool({}, env={})
+    pool.set("deepseek", FakeLLMClient())
+    pool.set("anthropic", FakeLLMClient())
+    account = AccountConfig(
+        name="arena", account_id="DU1", host="10.0.0.2", port=7497, client_id=40
+    )
+    services = Services(
+        repos=repos,
+        config_store=store,
+        llm=pool,
+        pipeline=pipeline_config(["AAPL"]),
+        account=account,
+    )
+    stage = build_selection_stage(stage_config(), services)
+    [scanner] = [s for s in stage.sources if isinstance(s, IBKRScannerSource)]
+    assert (scanner.host, scanner.port, scanner.client_id) == ("10.0.0.2", 7497, 43)
+
+    explicit = stage_config(sources=[{"type": "ibkr_scanner", "client_id": 99}])
+    stage = build_selection_stage(explicit, services)
+    [scanner] = [s for s in stage.sources if isinstance(s, IBKRScannerSource)]
+    assert scanner.client_id == 99  # the stage's own option wins

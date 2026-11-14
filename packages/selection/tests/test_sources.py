@@ -1,5 +1,6 @@
 """Candidate sources and stage option validation (no network: IB is a stub)."""
 
+import asyncio
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -8,6 +9,7 @@ import pytest
 from ib_async import ContractDetails, Forex, ScanData, Stock
 from pydantic import ValidationError
 
+from synodtrade_core.config import AccountConfig
 from synodtrade_core.registry import AGENTS, CANDIDATE_SOURCES, STAGES
 from synodtrade_selection import (
     CandidateSourceConfig,
@@ -20,7 +22,7 @@ from synodtrade_selection import (
     StaticCandidateSource,
     build_selection_stage,
 )
-from synodtrade_selection.scanner import build_ibkr_scanner_source
+from synodtrade_selection.scanner import account_connection, build_ibkr_scanner_source
 from synodtrade_selection.sources import build_static_source
 
 NOW = datetime(2026, 9, 24, 14, 0, tzinfo=UTC)
@@ -156,11 +158,58 @@ async def test_scanner_fetch() -> None:
     assert sub.belowPrice > 1e300  # unset filters keep IBKR's "no filter" value
     assert [(t.tag, t.value) for t in filters] == [("avgVolumeAbove", "1000000")]
 
+    assert not ib.connected  # closed after the fetch: the client id is free again
     await source.fetch(NOW)
-    assert len(ib.connects) == 1  # connection reused
-    await source.aclose()
-    assert not ib.connected
+    assert len(ib.connects) == 2
     await source.aclose()  # idempotent
+    assert not ib.connected
+
+
+@dataclass
+class HangingIB(StubIB):
+    """Connecting hangs for the first `hangs` attempts (e.g. a client id still in use);
+    later attempts behave like StubIB."""
+
+    hangs: int = 1
+    scan_hangs: bool = False
+
+    async def connectAsync(self, host: str, port: int, **kwargs: Any) -> None:  # noqa: N802
+        if self.hangs > 0:
+            self.hangs -= 1
+            raise TimeoutError()
+        await super().connectAsync(host, port, **kwargs)
+
+    async def reqScannerDataAsync(self, sub: Any, options: Any, filters: Any) -> Any:  # noqa: N802
+        if self.scan_hangs:
+            await asyncio.Event().wait()
+        return await super().reqScannerDataAsync(sub, options, filters)
+
+
+async def test_scanner_retries_once_after_a_timeout() -> None:
+    ib = HangingIB(rows=[scan_row(0, Stock("NVDA", "SMART", "USD"))], hangs=1)
+    source = IBKRScannerSource(IBKRScannerOptions(), env={}, ib=ib)  # type: ignore[arg-type]
+    assert [c.symbol for c in await source.fetch(NOW)] == ["NVDA"]
+    assert len(ib.connects) == 1  # the second attempt
+    assert not ib.connected
+
+    twice = HangingIB(rows=[], hangs=2)
+    with pytest.raises(TimeoutError):
+        await IBKRScannerSource(IBKRScannerOptions(), env={}, ib=twice).fetch(NOW)  # type: ignore[arg-type]
+    assert twice.hangs == 0
+
+
+async def test_scanner_request_is_bounded() -> None:
+    ib = HangingIB(rows=[], hangs=0, scan_hangs=True)
+    options = IBKRScannerOptions(request_timeout_s=0.01, timeout_retries=0)
+    source = IBKRScannerSource(options, env={}, ib=ib)  # type: ignore[arg-type]
+    with pytest.raises(TimeoutError, match="IBKR scan MOST_ACTIVE timed out"):
+        await asyncio.wait_for(source.fetch(NOW), 5)
+    assert not ib.connected
+
+
+def test_scanner_connects_with_the_pipeline_account() -> None:
+    account = AccountConfig(name="a", account_id="DU1", host="10.0.0.2", port=7497, client_id=40)
+    assert account_connection(account) == {"host": "10.0.0.2", "port": 7497, "client_id": 43}
 
 
 async def test_scanner_timeout_and_empty() -> None:
