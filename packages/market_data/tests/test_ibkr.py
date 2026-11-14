@@ -543,8 +543,9 @@ class OneSilentIB(StubIB):
 
 
 async def test_one_unanswered_quote_does_not_fail_the_others() -> None:
-    ma = Instrument(symbol="MA", con_id=38685693, primary_exchange="NYSE")
-    ib = OneSilentIB(ma.con_id)
+    ma_con_id = 38685693
+    ma = Instrument(symbol="MA", con_id=ma_con_id, primary_exchange="NYSE")
+    ib = OneSilentIB(ma_con_id)
     ib.tickers = [ticker(Contract(conId=265598), time=NOW, bid=1.0, ask=2.0)]
     provider = make_provider(ib, request_timeout_s=0.01)
     quotes = await asyncio.wait_for(provider.fetch_quotes([AAPL, ma]), 5)
