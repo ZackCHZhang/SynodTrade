@@ -87,19 +87,19 @@ SynodTrade publishes its own track record. Every pipeline that trades an IBKR pa
 
 | Pipeline | Model | Return | Benchmark | Excess | Max drawdown | Sharpe | LLM cost |
 |:--|:--|--:|--:|--:|--:|--:|--:|
-| **arena_claude** | claude-haiku-5.5 | -0.79% | SPY -1.31% | +0.53% | -2.62% | — | $1.17 |
-| **arena_deepseek** | deepseek-v4.1-flash | +0.45% | SPY -1.31% | +1.76% | -1.77% | — | $2.15 |
-| **arena_glm** | glm-5.3-flashx | +0.19% | SPY -1.31% | +1.50% | -2.04% | — | $4.49 |
-| **arena_gpt** | gpt-6-luna | +0.57% | SPY -1.31% | +1.88% | -1.72% | — | — |
-| **arena_qwen** | qwen3.8-omni-flash | -0.08% | SPY -1.31% | +1.24% | -1.85% | — | $2.31 |
-| **arena_solo_claude** | claude-haiku-5.5 | +1.07% | SPY -1.31% | +2.39% | -1.68% | — | $0.31 |
-| **arena_solo_deepseek** | deepseek-v4.1-flash | +0.82% | SPY -1.31% | +2.14% | -1.17% | — | $0.39 |
-| **arena_solo_glm** | glm-5.3-flashx | +1.68% | SPY -1.31% | +2.99% | -1.60% | — | $1.52 |
-| **arena_solo_gpt** | gpt-6-luna | +1.12% | SPY -1.31% | +2.43% | -0.26% | — | — |
-| **arena_solo_qwen** | qwen3.8-omni-flash | +0.00% | SPY -1.31% | +1.31% | +0.00% | — | $0.07 |
-| **demo_all_modules** | deepseek-chat | -5.81% | SPY -3.09% | -2.72% | -6.51% | — | — |
+| **arena_claude** | claude-haiku-5.5 | -5.27% | SPY -3.96% | -1.30% | -5.45% | — | $1.85 |
+| **arena_deepseek** | deepseek-v4.1-flash | -4.17% | SPY -3.96% | -0.21% | -4.79% | — | $3.32 |
+| **arena_glm** | glm-5.3-flashx | -3.29% | SPY -3.96% | +0.67% | -3.59% | — | $7.18 |
+| **arena_gpt** | gpt-6-luna | -3.40% | SPY -3.96% | +0.56% | -4.09% | — | — |
+| **arena_qwen** | qwen3.8-omni-flash | -4.36% | SPY -3.96% | -0.39% | -4.57% | — | $4.06 |
+| **arena_solo_claude** | claude-haiku-5.5 | -3.09% | SPY -3.96% | +0.87% | -4.23% | — | $0.47 |
+| **arena_solo_deepseek** | deepseek-v4.1-flash | -2.08% | SPY -3.96% | +1.89% | -2.96% | — | $0.59 |
+| **arena_solo_glm** | glm-5.3-flashx | -2.60% | SPY -3.96% | +1.36% | -4.43% | — | $2.30 |
+| **arena_solo_gpt** | gpt-6-luna | -1.13% | SPY -3.96% | +2.83% | -2.27% | — | — |
+| **arena_solo_qwen** | qwen3.8-omni-flash | -0.02% | SPY -3.96% | +3.94% | -0.02% | — | $0.15 |
+| **demo_all_modules** | deepseek-chat | -7.56% | SPY -5.69% | -1.87% | -8.15% | -7.72 | — |
 
-<sub>Paper trading on IBKR · updated 2026-10-30 · [details, methodology and raw data](benchmark/README.md)</sub>
+<sub>Paper trading on IBKR · updated 2026-11-06 · [details, methodology and raw data](benchmark/README.md)</sub>
 <!-- benchmark:end -->
 
 ## 🚀 Quick start
